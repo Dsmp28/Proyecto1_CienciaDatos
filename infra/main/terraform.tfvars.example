@@ -1,0 +1,29 @@
+# Copia este archivo a terraform.tfvars (ignorado por git) y ajusta los valores.
+# Nunca pongas secretos aquí: los secretos viven en Secret Manager.
+
+project_id         = "cienciadatos-509301"
+region             = "us-central1"
+zone               = "us-central1-a"
+billing_account_id = "XXXXXX-XXXXXX-XXXXXX"
+alert_email        = "<correo-del-propietario>"
+
+# VM
+machine_type = "e2-standard-2"
+disk_size_gb = 30
+vm_image     = "debian-cloud/debian-12" # alternativa: "ubuntu-os-cloud/ubuntu-2404-lts-amd64"
+
+# Presupuesto (pon create_budget = false si no tienes rol en la cuenta de facturación)
+budget_amount_usd = 60
+create_budget     = true
+
+# Accesos opcionales (vacío = sin binding)
+tableau_user_email = "" # p. ej. "<correo-del-propietario>" para Tableau Desktop vía OAuth (solo gold)
+auditor_email      = "" # auditor de fraude: dataViewer en silver
+
+labels = {
+  proyecto = "red-metropolitana"
+  curso    = "ciencia-datos"
+}
+
+# Opcional: mover bronze/ a NEARLINE tras N días (0 = desactivado)
+lake_bronze_nearline_days = 0

@@ -1,0 +1,8 @@
+# Copia este archivo a terraform.tfvars (ignorado por git) y ajusta los valores.
+project_id = "cienciadatos-509301"
+region     = "us-central1"
+
+labels = {
+  proyecto = "red-metropolitana"
+  curso    = "ciencia-datos"
+}
