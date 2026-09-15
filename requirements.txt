@@ -1,0 +1,9 @@
+# Entorno local y de la VM (Python 3.12). Instalar con: make venv
+dbt-core==1.12.5
+dbt-bigquery==1.12.1
+confluent-kafka>=2.6
+google-cloud-storage>=2.18
+google-cloud-bigquery>=3.25
+google-cloud-secret-manager>=2.20
+pyyaml>=6.0
+pytest>=8.0
