@@ -1,0 +1,59 @@
+name: red_metropolitana
+version: "1.0.0"
+config-version: 2
+profile: red_metropolitana
+require-dbt-version: ">=1.10.0,<2.0.0"
+
+model-paths: ["models"]
+seed-paths: ["seeds"]
+test-paths: ["tests"]
+macro-paths: ["macros"]
+analysis-paths: ["analyses"]
+target-path: "target"
+clean-targets: ["target", "dbt_packages"]
+
+vars:
+  # Fecha fija del pipeline. Regla de "fechas del futuro" y corte de features.
+  # NUNCA usar CURRENT_DATE en modelos (rompe la idempotencia). Se sobreescribe por --vars.
+  fecha_referencia: "2026-09-01"   # [verificar en generador] día siguiente a la fecha máxima legítima
+  # Identificador de corrida que Airflow pasa por --vars para ops.run_metrics
+  run_id: "manual"
+  # Zona horaria local para conversiones (Aerómetro llega en UTC)
+  tz_local: "America/Guatemala"
+
+models:
+  red_metropolitana:
+    +persist_docs: {relation: true, columns: true}
+    staging:                      # se vacía en cada corrida (tablas recreadas)
+      +schema: staging
+      +materialized: table
+      +tags: ["staging"]
+    silver:
+      +schema: silver
+      +materialized: table
+      +tags: ["silver"]
+    quarantine:
+      +schema: quarantine
+      +materialized: table
+      +tags: ["quarantine"]
+    gold:                         # solo ref() a silver u otro gold (tests/test_gold_lineage.py)
+      +schema: gold
+      +materialized: table
+      +tags: ["gold"]
+    features:                     # solo desde silver
+      +schema: features
+      +materialized: table
+      +tags: ["features"]
+    ops:
+      +schema: ops
+      +materialized: table
+      +tags: ["ops"]
+
+seeds:
+  red_metropolitana:
+    +schema: silver               # catálogos conformados versionados viven con Silver
+    +tags: ["seed"]
+
+tests:
+  +store_failures: true
+  +schema: ops
