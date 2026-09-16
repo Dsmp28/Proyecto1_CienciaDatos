@@ -7,21 +7,21 @@ Detalle de diseño (grano, matriz del bus, identidad, costos): `docs/modelo/`, `
 ## Parámetros confirmados
 - GCP `cienciadatos-509301`, región `us-central1`, facturación `XXXXXX-XXXXXX-XXXXXX` (vincular con OK).
 - Git local: David Monje `<<correo-del-propietario>>`. Sin push.
-- `ESCALA` por defecto (~200 MB). HTTPS con `airflow.<IP>.sslip.io` + Caddy. TZ `America/Guatemala`.
+- `ESCALA` por defecto 0.08 (~137 MB), `fecha_referencia = 2026-07-16`. HTTPS con `airflow.<IP>.sslip.io` + Caddy. TZ `America/Guatemala`.
 - Generador real pendiente: en F1 se lee **antes** de escribir modelos y se corrige lo marcado *[verificar en generador]*.
 
 ## F0 — Bootstrap
 - [x] `git init`, identidad local, `.gitignore`, `.claude/settings.json` sin atribución, `.env.example`
 - [x] `CLAUDE.md`, `docs/PLAN.md`, `docs/PROGRESS.md`, `docs/DECISIONS.md`
-- [ ] `docs/modelo/matriz_bus.md` (grano + matriz + clasificación de medidas)
-- [ ] `.venv` con dbt-bigquery 1.12 (Python 3.12), `Makefile`
-- [ ] `infra/bootstrap` (bucket de estado versionado, APIs) — `plan` → OK → `apply`
-- [ ] `infra/main` (VPC, firewall 443 + IAP-22, SA mínimo privilegio, bucket lake, datasets BQ + IAM, secretos, presupuesto, VM e2-standard-2 30 GB)
-- [ ] `vm/` Docker Compose: Kafka 4.3 KRaft, Airflow 3.3 LocalExecutor, Postgres, Caddy HTTPS; usuarios `admin` y `catedratico` (viewer)
+- [x] `docs/modelo/matriz_bus.md` (grano + matriz + clasificación de medidas)
+- [x] `.venv` con dbt-bigquery 1.12 (Python 3.12), `Makefile`
+- [x] `infra/bootstrap` (bucket de estado versionado, APIs) — aplicado 2026-09-20
+- [x] `infra/main` (VPC, firewall 443 + IAP-22, SA mínimo privilegio, bucket lake, datasets BQ + IAM, secretos, presupuesto, VM e2-standard-2 30 GB)
+- [x] `vm/` Docker Compose: Kafka 4.3 KRaft, Airflow 3.3 LocalExecutor, Postgres, Caddy HTTPS; usuarios `admin` y `catedratico` (viewer)
 - [ ] Compuerta: `terraform apply` limpio, Airflow accesible por HTTPS, Kafka no expuesto, presupuesto creado
 
 ## F1 — Datos e ingesta a Bronze (1.1)
-- [ ] Leer generador real; corregir plan, esquemas, identidad y `fecha_referencia`
+- [x] Leer generador real; corregir plan, esquemas, identidad y `fecha_referencia` (ADR-008, 009, 010)
 - [ ] `ingest/generar_o_verificar.py` (sha256 por archivo, manifiesto)
 - [ ] Batch → GCS: 4 catálogos, `metroriel_viajes.jsonl`, `transurbano_transacciones.csv`
 - [ ] Streaming: productor Kafka + consumidor a GCS con nombres deterministas (Transmetro, Aerómetro)
