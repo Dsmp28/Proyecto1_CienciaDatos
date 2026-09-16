@@ -7,7 +7,7 @@ SHELL := /bin/bash
 PROJECT_ID ?= cienciadatos-509301
 REGION     ?= us-central1
 ZONE       ?= us-central1-a
-VM_NAME    ?= vm-red-metropolitana
+VM_NAME    ?= vm-pipeline
 VENV       := .venv
 PY         := $(VENV)/bin/python
 DBT        := $(VENV)/bin/dbt
@@ -57,19 +57,19 @@ vm-status: ## Estado de la VM
 	gcloud compute instances describe $(VM_NAME) --zone $(ZONE) --project $(PROJECT_ID) --format='value(status,networkInterfaces[0].accessConfigs[0].natIP)'
 
 vm-ssh: ## SSH a la VM por túnel IAP (el puerto 22 no está abierto a internet)
-	gcloud compute ssh $(VM_NAME) --zone $(ZONE) --project $(PROJECT_ID) --tunnel-through-iap
+	gcloud compute ssh $(VM_NAME) --zone $(ZONE) --project $(PROJECT_ID) --tunnel-through-iap --quiet
 
 vm-sync: ## Copia el código del repo a la VM por IAP (sin datos, sin .venv, sin estado)
 	git ls-files -z | xargs -0 tar czf /tmp/red-metropolitana-src.tgz
-	gcloud compute scp /tmp/red-metropolitana-src.tgz $(VM_NAME):/tmp/ --zone $(ZONE) --project $(PROJECT_ID) --tunnel-through-iap
-	gcloud compute ssh $(VM_NAME) --zone $(ZONE) --project $(PROJECT_ID) --tunnel-through-iap -- \
+	gcloud compute scp /tmp/red-metropolitana-src.tgz $(VM_NAME):/tmp/ --zone $(ZONE) --project $(PROJECT_ID) --tunnel-through-iap --quiet
+	gcloud compute ssh $(VM_NAME) --zone $(ZONE) --project $(PROJECT_ID) --tunnel-through-iap --quiet -- \
 	  'sudo mkdir -p $(VM_DIR) && sudo tar xzf /tmp/red-metropolitana-src.tgz -C $(VM_DIR) && sudo chown -R $$(id -u):$$(id -g) $(VM_DIR) && echo sincronizado'
 
 vm-up: ## Reejecuta el script de arranque en la VM (instala Docker, levanta la pila)
-	gcloud compute ssh $(VM_NAME) --zone $(ZONE) --project $(PROJECT_ID) --tunnel-through-iap -- 'sudo google_metadata_script_runner startup'
+	gcloud compute ssh $(VM_NAME) --zone $(ZONE) --project $(PROJECT_ID) --tunnel-through-iap --quiet -- 'sudo google_metadata_script_runner startup'
 
 vm-logs: ## Logs del arranque y de los contenedores
-	gcloud compute ssh $(VM_NAME) --zone $(ZONE) --project $(PROJECT_ID) --tunnel-through-iap -- \
+	gcloud compute ssh $(VM_NAME) --zone $(ZONE) --project $(PROJECT_ID) --tunnel-through-iap --quiet -- \
 	  'sudo tail -n 60 /var/log/startup-red-metropolitana.log; cd $(VM_DIR)/vm && sudo docker compose ps'
 
 # ---------- dbt ----------
