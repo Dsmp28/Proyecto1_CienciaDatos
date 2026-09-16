@@ -58,3 +58,4 @@ __pycache__/
 # Scratch local
 tmp/
 scratch/
+infra/**/tfplan
