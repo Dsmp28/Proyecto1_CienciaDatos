@@ -1,0 +1,316 @@
+# Pila de la VM (e2-standard-2: 2 vCPU, 8 GB RAM + 2 GB swap) de la Red Metropolitana.
+#
+# Derivado del docker-compose.yaml oficial de Airflow 3.3.2
+# (https://airflow.apache.org/docs/apache-airflow/stable/docker-compose.yaml),
+# adaptado a LocalExecutor: sin redis, sin worker de Celery, sin flower.
+#
+# Servicios: kafka (KRaft, un nodo), postgres (metadata de Airflow), airflow-init,
+# airflow-api-server, airflow-scheduler, airflow-dag-processor, airflow-triggerer, caddy.
+#
+# Único puerto publicado al host: 443 (Caddy). Kafka y Postgres solo viven en la red
+# interna de Docker; Airflow solo se alcanza a través de Caddy (HTTPS).
+#
+# Presupuesto de memoria (límites duros por contenedor, suma 6 272 MiB):
+#   kafka 1g | postgres 512m | api-server 1.5g | scheduler 1.5g
+#   dag-processor 1g | triggerer 512m | caddy 128m   (airflow-init 1g, transitorio)
+#
+# Las variables ${...} vienen de vm/.env, generado por startup.sh (nunca en git).
+
+x-airflow-common: &airflow-common
+  # Imagen extendida (dbt, confluent-kafka, librerías de Google). Se construye en la VM
+  # con `docker compose up -d --build`.
+  build:
+    context: .
+    dockerfile: Dockerfile.airflow
+  image: red-metropolitana/airflow:3.3.2
+  environment: &airflow-common-env
+    TZ: ${TZ:-America/Guatemala}
+    # --- Núcleo ---
+    AIRFLOW__CORE__EXECUTOR: LocalExecutor
+    # FAB auth manager: usuarios/roles en la BD de Airflow (admin + catedratico/Viewer).
+    # Es el valor que usa el compose oficial 3.3.2.
+    AIRFLOW__CORE__AUTH_MANAGER: airflow.providers.fab.auth_manager.fab_auth_manager.FabAuthManager
+    AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres/airflow
+    AIRFLOW__CORE__FERNET_KEY: ${AIRFLOW_FERNET_KEY}
+    AIRFLOW__CORE__LOAD_EXAMPLES: 'false'
+    AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: 'true'
+    AIRFLOW__CORE__DEFAULT_TIMEZONE: America/Guatemala
+    # Con 2 vCPU limitamos la concurrencia del LocalExecutor para no agotar la RAM.
+    AIRFLOW__CORE__PARALLELISM: '4'
+    AIRFLOW__CORE__MAX_ACTIVE_TASKS_PER_DAG: '4'
+    # Las tareas (LocalExecutor) hablan con la Execution API por la red interna,
+    # no a través de Caddy. Por defecto sería {base_url}/execution/.
+    AIRFLOW__CORE__EXECUTION_API_SERVER_URL: 'http://airflow-api-server:8080/execution/'
+    # --- API server / UI detrás del proxy HTTPS ---
+    # base_url: Airflow no puede adivinar el dominio público; genera enlaces absolutos.
+    AIRFLOW__API__BASE_URL: https://${AIRFLOW_HOST}
+    AIRFLOW__API__WORKERS: '1'
+    # secret_key del api-server y secreto JWT compartido por todos los componentes
+    # (scheduler/dag-processor/triggerer validan los tokens que emite el api-server).
+    AIRFLOW__API__SECRET_KEY: ${AIRFLOW_API_SECRET_KEY}
+    AIRFLOW__API_AUTH__JWT_SECRET: ${AIRFLOW_JWT_SECRET}
+    # uvicorn: confiar en X-Forwarded-* de cualquier IP de la red interna (solo Caddy
+    # alcanza el api-server; ningún puerto de Airflow se publica al host).
+    FORWARDED_ALLOW_IPS: '*'
+    # Servidor HTTP de salud del scheduler (puerto 8974) para el healthcheck.
+    AIRFLOW__SCHEDULER__ENABLE_HEALTH_CHECK: 'true'
+    # --- Proyecto ---
+    GCP_PROJECT_ID: ${GCP_PROJECT_ID}
+    GOOGLE_CLOUD_PROJECT: ${GCP_PROJECT_ID}
+    GCP_REGION: ${GCP_REGION}
+    LAKE_BUCKET: ${LAKE_BUCKET}
+    KAFKA_BOOTSTRAP: kafka:9092
+    DBT_PROFILES_DIR: /opt/airflow/dbt
+    DBT_PROJECT_DIR: /opt/airflow/dbt
+  volumes:
+    - ../airflow/dags:/opt/airflow/dags
+    - ../airflow/logs:/opt/airflow/logs
+    - ../airflow/plugins:/opt/airflow/plugins
+    - ../dbt:/opt/airflow/dbt
+    - ../ingest:/opt/airflow/ingest
+    - ../scripts:/opt/airflow/scripts
+    - ../tests:/opt/airflow/tests
+    # Datos generados en la VM (gitignored, nunca al repo).
+    - ../datos_red:/opt/airflow/datos_red
+  user: "${AIRFLOW_UID:-50000}:0"
+  depends_on: &airflow-common-depends-on
+    postgres:
+      condition: service_healthy
+
+services:
+  # ---------------------------------------------------------------------------
+  # Kafka 4.3.1 en modo KRaft combinado (broker + controller) de un solo nodo.
+  # Variables: prefijo KAFKA_ y puntos -> guiones bajos (doc de la imagen apache/kafka).
+  # Listener de clientes: PLAINTEXT://kafka:9092, solo en la red interna de Docker.
+  # ---------------------------------------------------------------------------
+  kafka:
+    image: apache/kafka:4.3.1
+    hostname: kafka
+    environment:
+      TZ: ${TZ:-America/Guatemala}
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_LISTENERS: PLAINTEXT://:9092,CONTROLLER://:9093
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
+      # Identificador del clúster KRaft (UUID en base64url, 22 caracteres). Fijo para
+      # que el volumen persistente siga siendo válido entre reinicios.
+      CLUSTER_ID: lSabVbOQS1WX01TrlLVshg
+      # Un solo broker: factores de replicación e ISR mínimos en 1.
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_SHARE_COORDINATOR_STATE_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_SHARE_COORDINATOR_STATE_TOPIC_MIN_ISR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      # Los tópicos se crean al primer produce (auto.create.topics.enable=true, que es
+      # el valor por defecto de Kafka; se deja explícito). El productor en ingest/ puede
+      # además crearlos con AdminClient para fijar particiones.
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: 'true'
+      KAFKA_NUM_PARTITIONS: 3
+      KAFKA_LOG_RETENTION_HOURS: 72
+      # Directorio de datos: existe en la imagen con dueño appuser (uid 1000) y está
+      # declarado como VOLUME, por eso el volumen nombrado no da problemas de permisos.
+      KAFKA_LOG_DIRS: /var/lib/kafka/data
+      # JVM acotada para caber en 1 GiB junto con el off-heap.
+      KAFKA_HEAP_OPTS: -Xmx512m -Xms256m
+    volumes:
+      - kafka-data:/var/lib/kafka/data
+    healthcheck:
+      # Pregunta al broker sus versiones de API; heap pequeño para la JVM del chequeo.
+      test: ["CMD-SHELL", "KAFKA_HEAP_OPTS='-Xmx128m' /opt/kafka/bin/kafka-broker-api-versions.sh --bootstrap-server localhost:9092 >/dev/null 2>&1"]
+      interval: 30s
+      timeout: 15s
+      retries: 5
+      start_period: 60s
+    deploy:
+      resources:
+        limits:
+          memory: 1g
+    restart: unless-stopped
+
+  # ---------------------------------------------------------------------------
+  # Postgres 16: base de metadata de Airflow (misma imagen que el compose oficial).
+  # ---------------------------------------------------------------------------
+  postgres:
+    image: postgres:16
+    environment:
+      TZ: ${TZ:-America/Guatemala}
+      POSTGRES_USER: airflow
+      POSTGRES_PASSWORD: airflow
+      POSTGRES_DB: airflow
+    volumes:
+      - postgres-db-volume:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "airflow"]
+      interval: 10s
+      retries: 5
+      start_period: 5s
+    deploy:
+      resources:
+        limits:
+          memory: 512m
+    restart: unless-stopped
+
+  # ---------------------------------------------------------------------------
+  # airflow-init: corre una vez por `up`. Permisos de volúmenes, migración de la BD,
+  # usuario admin (lo crea el entrypoint oficial) y usuario catedratico con rol Viewer.
+  # ---------------------------------------------------------------------------
+  airflow-init:
+    <<: *airflow-common
+    entrypoint: /bin/bash
+    command:
+      - -c
+      - |
+        set -euo pipefail
+        echo "Creando directorios de trabajo y ajustando dueño a ${AIRFLOW_UID:-50000}:0"
+        mkdir -p /opt/airflow/logs /opt/airflow/dags /opt/airflow/plugins /opt/airflow/datos_red
+        mkdir -p /opt/airflow/dbt/target /opt/airflow/dbt/logs /opt/airflow/dbt/dbt_packages
+        chown -R "${AIRFLOW_UID:-50000}:0" /opt/airflow/logs /opt/airflow/datos_red /opt/airflow/dbt
+        echo "Airflow $$(airflow version)"
+        # Una sola llamada al entrypoint oficial: espera la BD, migra (_AIRFLOW_DB_MIGRATE),
+        # crea el admin (_AIRFLOW_WWW_USER_CREATE) y luego ejecuta el comando final,
+        # que crea al usuario de solo lectura. `airflow users create` es idempotente:
+        # si el usuario ya existe imprime "already exists in the db" y termina con 0.
+        exec /entrypoint airflow users create \
+          --username "$${AIRFLOW_VIEWER_USER}" \
+          --password "$${AIRFLOW_VIEWER_PASSWORD}" \
+          --role Viewer \
+          --firstname Catedratico \
+          --lastname "Solo lectura" \
+          --email "catedratico@$${AIRFLOW_HOST}"
+    environment:
+      <<: *airflow-common-env
+      _AIRFLOW_DB_MIGRATE: 'true'
+      _AIRFLOW_WWW_USER_CREATE: 'true'
+      _AIRFLOW_WWW_USER_USERNAME: ${AIRFLOW_ADMIN_USER:-admin}
+      _AIRFLOW_WWW_USER_PASSWORD: ${AIRFLOW_ADMIN_PASSWORD}
+      _AIRFLOW_WWW_USER_ROLE: Admin
+      _AIRFLOW_WWW_USER_FIRSTNAME: Admin
+      _AIRFLOW_WWW_USER_LASTNAME: Red Metropolitana
+      _AIRFLOW_WWW_USER_EMAIL: admin@${AIRFLOW_HOST}
+      AIRFLOW_VIEWER_USER: ${AIRFLOW_VIEWER_USER:-catedratico}
+      AIRFLOW_VIEWER_PASSWORD: ${AIRFLOW_VIEWER_PASSWORD}
+      AIRFLOW_HOST: ${AIRFLOW_HOST}
+    user: "0:0"
+    deploy:
+      resources:
+        limits:
+          memory: 1g
+    restart: "no"
+
+  # ---------------------------------------------------------------------------
+  # API server (UI + API REST + Execution API). Solo lo alcanza Caddy.
+  # --proxy-headers: respeta X-Forwarded-Proto/For que envía Caddy (doc "run behind proxy").
+  # ---------------------------------------------------------------------------
+  airflow-api-server:
+    <<: *airflow-common
+    command: api-server --proxy-headers
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "http://localhost:8080/api/v2/monitor/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    deploy:
+      resources:
+        limits:
+          memory: 1536m
+    restart: unless-stopped
+    depends_on:
+      <<: *airflow-common-depends-on
+      airflow-init:
+        condition: service_completed_successfully
+
+  # ---------------------------------------------------------------------------
+  # Scheduler: con LocalExecutor también ejecuta las tareas (de ahí su límite de 1.5 GiB).
+  # ---------------------------------------------------------------------------
+  airflow-scheduler:
+    <<: *airflow-common
+    command: scheduler
+    healthcheck:
+      # Servidor de salud del scheduler (AIRFLOW__SCHEDULER__ENABLE_HEALTH_CHECK); mucho
+      # más barato que `airflow jobs check`, que arranca un intérprete completo cada vez.
+      test: ["CMD", "curl", "--fail", "http://localhost:8974/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    deploy:
+      resources:
+        limits:
+          memory: 1536m
+    restart: unless-stopped
+    depends_on:
+      <<: *airflow-common-depends-on
+      airflow-init:
+        condition: service_completed_successfully
+
+  # ---------------------------------------------------------------------------
+  # DAG processor (obligatorio en Airflow 3: parsea los DAGs fuera del scheduler).
+  # ---------------------------------------------------------------------------
+  airflow-dag-processor:
+    <<: *airflow-common
+    command: dag-processor
+    deploy:
+      resources:
+        limits:
+          memory: 1g
+    restart: unless-stopped
+    depends_on:
+      <<: *airflow-common-depends-on
+      airflow-init:
+        condition: service_completed_successfully
+
+  # ---------------------------------------------------------------------------
+  # Triggerer (operadores diferibles / sensores asíncronos).
+  # ---------------------------------------------------------------------------
+  airflow-triggerer:
+    <<: *airflow-common
+    command: triggerer
+    deploy:
+      resources:
+        limits:
+          memory: 512m
+    restart: unless-stopped
+    depends_on:
+      <<: *airflow-common-depends-on
+      airflow-init:
+        condition: service_completed_successfully
+
+  # ---------------------------------------------------------------------------
+  # Caddy 2: proxy inverso HTTPS con certificado automático (Let's Encrypt, respaldo
+  # ZeroSSL) para https://${AIRFLOW_HOST}. Solo se publica 443: el firewall de GCP
+  # únicamente abre 443 y el Caddyfile fuerza el desafío ACME TLS-ALPN-01 (puerto 443).
+  # ---------------------------------------------------------------------------
+  caddy:
+    image: caddy:2
+    ports:
+      - "443:443"
+    environment:
+      TZ: ${TZ:-America/Guatemala}
+      AIRFLOW_HOST: ${AIRFLOW_HOST}
+      ACME_EMAIL: ${ACME_EMAIL}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      # /data guarda certificados y cuenta ACME: debe persistir para no repetir
+      # emisiones (límites de tasa de Let's Encrypt). /config es opcional pero útil.
+      - caddy-data:/data
+      - caddy-config:/config
+    deploy:
+      resources:
+        limits:
+          memory: 128m
+    restart: unless-stopped
+    depends_on:
+      airflow-api-server:
+        condition: service_started
+
+volumes:
+  kafka-data:
+  postgres-db-volume:
+  caddy-data:
+  caddy-config:

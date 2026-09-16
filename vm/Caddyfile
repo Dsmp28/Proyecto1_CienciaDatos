@@ -1,0 +1,43 @@
+# Proxy inverso HTTPS para Airflow. Las variables {$...} las inyecta docker-compose.
+#
+# El firewall de GCP solo abre el puerto 443, así que:
+#   - se deshabilita el desafío HTTP-01 (necesitaría el 80) y queda TLS-ALPN-01 (443);
+#   - al declarar `issuer` explícitamente se pierden los emisores por defecto, por eso
+#     se listan los dos: Let's Encrypt y el endpoint ACME de ZeroSSL como respaldo
+#     (Caddy genera las credenciales EAB de ZeroSSL automáticamente con el email).
+#   - sin puerto 80 no hay redirección http->https; el firewall la vuelve irrelevante.
+#
+# La autenticación la hace Airflow (FAB auth manager): sin basic_auth aquí.
+# reverse_proxy añade por defecto X-Forwarded-For, X-Forwarded-Proto y X-Forwarded-Host;
+# el api-server corre con --proxy-headers para respetarlas.
+
+{
+	email {$ACME_EMAIL}
+}
+
+{$AIRFLOW_HOST} {
+	tls {
+		issuer acme {
+			email {$ACME_EMAIL}
+			disable_http_challenge
+		}
+		issuer acme https://acme.zerossl.com/v2/DV90 {
+			email {$ACME_EMAIL}
+			disable_http_challenge
+		}
+	}
+
+	encode zstd gzip
+
+	reverse_proxy airflow-api-server:8080 {
+		# Airflow puede tardar en responder listados grandes; se amplía el tiempo de espera.
+		transport http {
+			read_timeout 120s
+		}
+	}
+
+	log {
+		output stdout
+		format console
+	}
+}

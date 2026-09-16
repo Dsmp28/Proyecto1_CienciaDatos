@@ -1,0 +1,39 @@
+# Imagen de Airflow extendida para la VM de la Red Metropolitana.
+#
+# Base oficial: apache/airflow:3.3.2-python3.12 (verificada en Docker Hub).
+# La imagen de referencia ya trae los extras `fab`, `google` y `postgres`
+# (ver ARG AIRFLOW_EXTRAS en el Dockerfile oficial de la etiqueta 3.3.2),
+# por lo que el FAB auth manager y las librerías de Google están disponibles.
+#
+# Patrón recomendado por la documentación de la imagen (docker-stack/build):
+#   - paquetes apt como root,
+#   - paquetes pip como usuario `airflow` con --no-cache-dir,
+#   - se repite "apache-airflow==<versión>" en el pip install para que pip
+#     no cambie la versión de Airflow al resolver dependencias de dbt.
+FROM apache/airflow:3.3.2-python3.12
+
+ARG AIRFLOW_VERSION=3.3.2
+
+# git y make: dbt deps (paquetes desde git) y las tareas del Makefile del repo.
+USER root
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends git make \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+
+# Dependencias del pipeline (dbt, Kafka, Google Cloud). Versiones de dbt fijadas
+# según el stack del proyecto; las librerías de Google se dejan flotantes para
+# que pip las concilie con las que ya trae el provider google de la imagen.
+USER airflow
+RUN pip install --no-cache-dir \
+    "apache-airflow==${AIRFLOW_VERSION}" \
+    "dbt-core==1.12.5" \
+    "dbt-bigquery==1.12.1" \
+    confluent-kafka \
+    google-cloud-storage \
+    google-cloud-bigquery \
+    google-cloud-secret-manager \
+    pyyaml
+
+# Sanidad: dbt debe importar y quedar en el PATH del usuario airflow.
+RUN dbt --version
