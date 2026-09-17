@@ -1,0 +1,70 @@
+version: 2
+
+sources:
+  - name: bronze
+    description: >
+      Capa Bronze: tablas externas de BigQuery sobre gs://cienciadatos-509301-lake/bronze/<fuente>/.
+      El dato se conserva tal como llegó (una columna `raw` por línea en batch/CDC; envolvente JSON con la
+      línea original en streaming). Partición Hive `ingest_date`. Linaje: `_FILE_NAME` (objeto en GCS).
+      Se crean con ingest/bronze_external_tables.py; el lake es la fuente de verdad.
+    database: "{{ target.project }}"
+    schema: bronze
+    loader: ingest/ (batch_to_gcs.py, kafka_consumer_gcs.py)
+    tables:
+      # ---- Catálogos (batch) ----
+      - name: tm_estaciones
+        description: "Catálogo Transmetro: estacion_id,nombre,linea,zona,lat,lon (CSV crudo, una fila por línea)."
+        columns: &raw_cols
+          - name: raw
+            description: "Línea original del archivo, sin transformar."
+          - name: ingest_date
+            description: "Fecha local de ingesta (partición Hive)."
+      - name: tu_paradas
+        description: "Catálogo Transurbano: cod_parada,descripcion,ruta,sector (sector en mayúsculas: Z4, MIXCO)."
+        columns: *raw_cols
+      - name: mr_estaciones
+        description: "Catálogo MetroRiel: id_estacion,nombre_estacion,zona_nombre,km."
+        columns: *raw_cols
+      - name: am_estaciones
+        description: "Catálogo Aerómetro: station_code,station_name,axis,district (en inglés)."
+        columns: *raw_cols
+      # ---- Operación por batch ----
+      - name: metroriel_viajes
+        description: "MetroRiel JSON Lines: un viaje cerrado por línea (trip_id, card, entry{station,ts}, exit{station,ts}|null, fare_gtq, duration_s)."
+        columns: *raw_cols
+      - name: transurbano_transacciones
+        description: "Transurbano CSV: fecha(dd/mm/yyyy),hora,num_tarjeta,cod_parada,ruta,monto_centavos,cod_estado. Vía batch (ADR-003)."
+        columns: *raw_cols
+      # ---- CDC ----
+      - name: cdc_padron_usuarios
+        description: "Log de CDC del padrón: seq,commit_ts,op(INSERT|UPDATE|DELETE),tarjeta,perfil,zona_residencia,estado. Los DELETE llegan sin cuerpo."
+        columns: *raw_cols
+      # ---- Operación por streaming (Kafka -> GCS) ----
+      - name: transmetro_validaciones
+        description: "Transmetro: envolvente JSON por mensaje de Kafka; `raw` es la línea CSV original (validacion_id,tarjeta,estacion_id,linea,fecha_hora,tarifa,tipo)."
+        columns: &kafka_cols
+          - name: offset
+            description: "Offset de Kafka (junto con topico y particion identifica el mensaje)."
+          - name: kafka_ts
+            description: "Marca de tiempo del mensaje en Kafka (ISO 8601 UTC)."
+          - name: clave
+            description: "Clave del mensaje (nombre del archivo publicado)."
+          - name: archivo
+            description: "Archivo de origen (header del mensaje)."
+          - name: linea_num
+            description: "Número de línea de datos en el archivo de origen (1 = primera fila tras el encabezado)."
+          - name: sha256_archivo
+            description: "sha256 del archivo publicado."
+          - name: raw
+            description: "Línea CSV original, sin transformar."
+          - name: ingest_ts
+            description: "Marca de tiempo de escritura a GCS (ISO 8601 UTC)."
+          - name: ingest_date
+            description: "Fecha local de ingesta (partición Hive)."
+          - name: topico
+            description: "Tópico de Kafka (partición Hive)."
+          - name: particion
+            description: "Partición de Kafka (partición Hive)."
+      - name: aerometro_boardings
+        description: "Aerómetro: envolvente JSON por mensaje de Kafka; `raw` es la línea CSV original (boarding_id,user_hash,station_code,axis,timestamp_utc,cabin_number,fare)."
+        columns: *kafka_cols

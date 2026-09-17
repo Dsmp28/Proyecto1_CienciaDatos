@@ -1,0 +1,27 @@
+zona_id,zona_nombre,tipo,municipio,presente_en_datos,orden
+GT-Z01,Zona 1,zona_ciudad,Guatemala,true,1
+GT-Z02,Zona 2,zona_ciudad,Guatemala,false,2
+GT-Z03,Zona 3,zona_ciudad,Guatemala,false,3
+GT-Z04,Zona 4,zona_ciudad,Guatemala,true,4
+GT-Z05,Zona 5,zona_ciudad,Guatemala,false,5
+GT-Z06,Zona 6,zona_ciudad,Guatemala,true,6
+GT-Z07,Zona 7,zona_ciudad,Guatemala,true,7
+GT-Z08,Zona 8,zona_ciudad,Guatemala,true,8
+GT-Z09,Zona 9,zona_ciudad,Guatemala,true,9
+GT-Z10,Zona 10,zona_ciudad,Guatemala,true,10
+GT-Z11,Zona 11,zona_ciudad,Guatemala,true,11
+GT-Z12,Zona 12,zona_ciudad,Guatemala,true,12
+GT-Z13,Zona 13,zona_ciudad,Guatemala,true,13
+GT-Z14,Zona 14,zona_ciudad,Guatemala,false,14
+GT-Z15,Zona 15,zona_ciudad,Guatemala,false,15
+GT-Z16,Zona 16,zona_ciudad,Guatemala,false,16
+GT-Z17,Zona 17,zona_ciudad,Guatemala,true,17
+GT-Z18,Zona 18,zona_ciudad,Guatemala,true,18
+GT-Z19,Zona 19,zona_ciudad,Guatemala,false,19
+GT-Z21,Zona 21,zona_ciudad,Guatemala,false,21
+GT-Z24,Zona 24,zona_ciudad,Guatemala,false,24
+GT-Z25,Zona 25,zona_ciudad,Guatemala,false,25
+GT-MIXCO,Mixco,municipio,Mixco,true,101
+GT-VILLA-NUEVA,Villa Nueva,municipio,Villa Nueva,true,102
+GT-SAN-MIGUEL-PETAPA,San Miguel Petapa,municipio,San Miguel Petapa,true,103
+GT-SANTA-CATARINA-PINULA,Santa Catarina Pinula,municipio,Santa Catarina Pinula,true,104

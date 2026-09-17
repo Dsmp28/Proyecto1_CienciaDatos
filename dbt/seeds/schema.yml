@@ -1,0 +1,53 @@
+version: 2
+
+seeds:
+  - name: zonas
+    description: >
+      Dimensión zona conformada (versionada). Universo: las 22 zonas oficiales de la Ciudad de Guatemala
+      (1–25 sin 20, 22 ni 23) más los 4 municipios metropolitanos presentes en los datos.
+      `presente_en_datos` indica si algún operador o el padrón la menciona. Dueño: Agencia · Planificación territorial.
+    config:
+      column_types: {zona_id: string, zona_nombre: string, tipo: string, municipio: string, presente_en_datos: boolean, orden: int64}
+    columns:
+      - name: zona_id
+        description: "Llave natural conformada (GT-Z01 … GT-Z25, GT-MIXCO …)."
+        data_tests: [unique, not_null]
+      - name: zona_nombre
+        description: "Nombre canónico: 'Zona N' o nombre del municipio."
+        data_tests: [unique, not_null]
+      - name: tipo
+        data_tests:
+          - accepted_values: {values: [zona_ciudad, municipio]}
+  - name: zonas_mapeo
+    description: >
+      Mapeo versionado de cada forma de escribir una zona en los archivos de origen (Z10 en Transurbano,
+      'Zona 10' en Transmetro/MetroRiel/padrón, district en inglés en Aerómetro, MIXCO en mayúsculas…)
+      a la zona conformada. Silver falla si aparece un valor sin mapear (regla R05).
+    config:
+      column_types: {valor_origen: string, zona_id: string, operadores_que_lo_usan: string}
+    columns:
+      - name: valor_origen
+        data_tests: [unique, not_null]
+      - name: zona_id
+        data_tests:
+          - not_null
+          - relationships: {to: ref('zonas'), field: zona_id}
+  - name: franjas_horarias
+    description: >
+      Franjas del día y definición oficial de hora pico (05–08 y 16–19, coherente con la distribución
+      bimodal observada en los cuatro operadores). Dueño: Agencia · Planificación de operación.
+    config:
+      column_types: {hora: int64, franja: string, es_hora_pico: boolean}
+    columns:
+      - name: hora
+        data_tests: [unique, not_null]
+      - name: franja
+        data_tests:
+          - accepted_values: {values: [madrugada, pico_manana, valle, pico_tarde, noche]}
+  - name: feriados_gt
+    description: "Feriados de Guatemala 2026 (Decreto 19-2018 y feriado municipal de la ciudad). Día hábil = lunes a viernes no feriado."
+    config:
+      column_types: {fecha: date, nombre: string, ambito: string}
+    columns:
+      - name: fecha
+        data_tests: [unique, not_null]
