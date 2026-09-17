@@ -60,7 +60,7 @@ vm-ssh: ## SSH a la VM por túnel IAP (el puerto 22 no está abierto a internet)
 	gcloud compute ssh $(VM_NAME) --zone $(ZONE) --project $(PROJECT_ID) --tunnel-through-iap --quiet
 
 vm-sync: ## Copia el código del repo a la VM por IAP (sin datos, sin .venv, sin estado)
-	git ls-files -z | xargs -0 tar czf /tmp/red-metropolitana-src.tgz
+	COPYFILE_DISABLE=1 git ls-files -z | xargs -0 tar czf /tmp/red-metropolitana-src.tgz --no-xattrs
 	gcloud compute scp /tmp/red-metropolitana-src.tgz $(VM_NAME):/tmp/ --zone $(ZONE) --project $(PROJECT_ID) --tunnel-through-iap --quiet
 	gcloud compute ssh $(VM_NAME) --zone $(ZONE) --project $(PROJECT_ID) --tunnel-through-iap --quiet -- \
 	  'sudo mkdir -p $(VM_DIR) && sudo tar xzf /tmp/red-metropolitana-src.tgz -C $(VM_DIR) && sudo chown -R $$(id -u):$$(id -g) $(VM_DIR) && echo sincronizado'
