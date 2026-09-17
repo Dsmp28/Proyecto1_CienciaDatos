@@ -19,6 +19,10 @@ locals {
 
   # Datasets de BigQuery (capa medallón + operativos). Las llaves son el dataset_id.
   datasets = {
+    bronze = {
+      friendly_name = "Bronze (tablas externas)"
+      description   = "Tablas externas sobre gs://<proyecto>-lake/bronze/: exponen el dato crudo tal como llegó (una columna raw por línea, partición Hive ingest_date). No almacena datos; el lake es la fuente de verdad."
+    }
     staging = {
       friendly_name = "Staging"
       description   = "Capa de aterrizaje: copia cruda y tipada de cada archivo de Bronze. Se vacía en cada corrida (idempotencia)."

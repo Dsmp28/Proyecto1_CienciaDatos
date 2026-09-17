@@ -59,6 +59,8 @@ x-airflow-common: &airflow-common
     GOOGLE_CLOUD_PROJECT: ${GCP_PROJECT_ID}
     GCP_REGION: ${GCP_REGION}
     LAKE_BUCKET: ${LAKE_BUCKET}
+    DATOS_DIR: /opt/airflow/datos_red
+    PYTHONPATH: /opt/airflow
     KAFKA_BOOTSTRAP: kafka:9092
     DBT_PROFILES_DIR: /opt/airflow/dbt
     DBT_PROJECT_DIR: /opt/airflow/dbt
