@@ -1,16 +1,17 @@
 # Estado del proyecto
 
-**Fase actual:** F0 — Bootstrap (infraestructura aplicada; falta sincronizar código a la VM y verificar Airflow por HTTPS)
-**Último paso completado:** `terraform apply` de `infra/bootstrap` (14 recursos) y `infra/main` (49 recursos) el 2026-09-20. Generador oficial leído y datos verificados (regeneración byte a byte idéntica).
-**Siguiente paso:** `make vm-sync` + `make vm-up`, verificar https://airflow.<IP>.sslip.io con `admin` y `catedratico`; cerrar F0 y empezar F1 (ingesta a Bronze).
+**Fase actual:** F1 — Ingesta a Bronze (F0 cerrada el 2026-09-20)
+**Último paso completado:** F0 cerrada: pila en la VM arriba, Airflow 3.3.2 por HTTPS (Let's Encrypt), usuarios admin/catedratico verificados; dataset `bronze` creado; `ingest/common.py` escrito. Subagentes escribiendo batch/tablas externas y productor/consumidor Kafka.
+**Siguiente paso:** integrar y probar los scripts de ingesta en la VM (batch, streaming, CDC), crear tablas externas, tabla de conteos origen vs Bronze en METRICAS, commit y cierre de F1.
 
 ## Bloqueos
 Ninguno. (Facturación vinculada el 2026-09-20; generador disponible en `docs/generar_red_metropolitana.py`; datos en `datos_red/`, ignorados por git.)
 
 ## Recursos de nube activos (proyecto cienciadatos-509301, us-central1)
-- VM `vm-pipeline` (e2-standard-2, 30 GB) con IP estática. **Apagar con `make vm-stop` cuando no se use.**
+- VM `vm-pipeline` (e2-standard-2, 30 GB) con IP estática <IP_VM>, Airflow en https://airflow.<IP_VM>.sslip.io. **Apagar con `make vm-stop` cuando no se use.**
+- Credenciales de Airflow: `gcloud secrets versions access latest --secret=airflow-admin-password` (y `airflow-viewer-password` para `catedratico`).
 - Bucket `cienciadatos-509301-lake` (Bronze) y `cienciadatos-509301-tfstate` (estado de Terraform).
-- Datasets BigQuery: staging, silver, quarantine, gold, features, ops, ops_secrets.
+- Datasets BigQuery: bronze (externas), staging, silver, quarantine, gold, features, ops, ops_secrets.
 - Secret Manager: airflow-admin-password, airflow-viewer-password, airflow-fernet-key, hmac-salt.
 - Presupuesto 60 USD/mes con alertas a <correo-del-propietario>.
 

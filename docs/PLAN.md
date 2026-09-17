@@ -18,7 +18,7 @@ Detalle de diseño (grano, matriz del bus, identidad, costos): `docs/modelo/`, `
 - [x] `infra/bootstrap` (bucket de estado versionado, APIs) — aplicado 2026-09-20
 - [x] `infra/main` (VPC, firewall 443 + IAP-22, SA mínimo privilegio, bucket lake, datasets BQ + IAM, secretos, presupuesto, VM e2-standard-2 30 GB)
 - [x] `vm/` Docker Compose: Kafka 4.3 KRaft, Airflow 3.3 LocalExecutor, Postgres, Caddy HTTPS; usuarios `admin` y `catedratico` (viewer)
-- [ ] Compuerta: `terraform apply` limpio, Airflow accesible por HTTPS, Kafka no expuesto, presupuesto creado
+- [x] Compuerta: `terraform apply` limpio, Airflow accesible por HTTPS, Kafka no expuesto, presupuesto creado (evidencia: `docs/evidence/f0_infraestructura.md`)
 
 ## F1 — Datos e ingesta a Bronze (1.1)
 - [x] Leer generador real; corregir plan, esquemas, identidad y `fecha_referencia` (ADR-008, 009, 010)
