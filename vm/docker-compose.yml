@@ -72,6 +72,8 @@ x-airflow-common: &airflow-common
     - ../ingest:/opt/airflow/ingest
     - ../scripts:/opt/airflow/scripts
     - ../tests:/opt/airflow/tests
+    # Generador oficial y documentación (solo lectura): el DAG regenera/verifica datos en la VM.
+    - ../docs:/opt/airflow/docs:ro
     # Datos generados en la VM (gitignored, nunca al repo).
     - ../datos_red:/opt/airflow/datos_red
   user: "${AIRFLOW_UID:-50000}:0"
