@@ -22,13 +22,13 @@ Detalle de diseño (grano, matriz del bus, identidad, costos): `docs/modelo/`, `
 
 ## F1 — Datos e ingesta a Bronze (1.1)
 - [x] Leer generador real; corregir plan, esquemas, identidad y `fecha_referencia` (ADR-008, 009, 010)
-- [ ] `ingest/generar_o_verificar.py` (sha256 por archivo, manifiesto)
-- [ ] Batch → GCS: 4 catálogos, `metroriel_viajes.jsonl`, `transurbano_transacciones.csv`
-- [ ] Streaming: productor Kafka + consumidor a GCS con nombres deterministas (Transmetro, Aerómetro)
-- [ ] CDC: `cdc_padron_usuarios.csv` a Bronze
-- [ ] Tablas externas Hive en BigQuery (`bronze` sources de dbt)
-- [ ] `ops.ingest_manifest` + tabla de conteos archivo vs Bronze en METRICAS
-- [ ] Prueba: republicar/recargar no cambia Bronze
+- [x] `ingest/generar_o_verificar.py` (sha256 por archivo, manifiesto)
+- [x] Batch → GCS: 4 catálogos, `metroriel_viajes.jsonl`, `transurbano_transacciones.csv`
+- [x] Streaming: productor Kafka + consumidor a GCS con nombres deterministas (Transmetro, Aerómetro)
+- [x] CDC: `cdc_padron_usuarios.csv` a Bronze
+- [x] Tablas externas Hive en BigQuery (`bronze` sources de dbt)
+- [x] `ops.ingest_manifest` + tabla de conteos archivo vs Bronze en METRICAS
+- [x] Prueba: republicar/recargar no cambia Bronze (evidencia: `docs/evidence/f1_ingesta_bronze.md`)
 
 ## F2 — Staging y CDC (1.2)
 - [ ] `stg_*` con tipos y linaje (`fuente`, `archivo`, `fecha_ingesta`, `offset`)
