@@ -33,7 +33,8 @@ RUN pip install --no-cache-dir \
     google-cloud-storage \
     google-cloud-bigquery \
     google-cloud-secret-manager \
-    pyyaml
+    pyyaml \
+    "pytest>=8"
 
 # Sanidad: dbt debe importar y quedar en el PATH del usuario airflow.
 RUN dbt --version

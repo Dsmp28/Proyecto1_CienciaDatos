@@ -19,7 +19,7 @@ crash.log
 dbt/target/
 dbt/dbt_packages/
 dbt/logs/
-dbt/profiles.yml
+# dbt/profiles.yml se versiona: usa oauth/ADC y no contiene secretos
 dbt/.user.yml
 
 # Airflow / Kafka (runtime)

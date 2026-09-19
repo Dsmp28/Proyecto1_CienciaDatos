@@ -1,0 +1,17 @@
+# Copia a dbt/profiles.yml (ignorado en git) o exporta DBT_PROFILES_DIR=dbt.
+# Autenticación: Application Default Credentials (laptop: gcloud auth application-default login;
+# VM: cuenta de servicio adjunta). Nunca llaves JSON.
+red_metropolitana:
+  target: dev
+  outputs:
+    dev:
+      type: bigquery
+      method: oauth
+      project: cienciadatos-509301
+      dataset: staging            # dataset base; cada carpeta define su +schema
+      location: us-central1
+      threads: 4
+      priority: interactive
+      job_execution_timeout_seconds: 600
+      job_retries: 1
+      maximum_bytes_billed: 10737418240   # 10 GB por consulta: salvaguarda de costo
