@@ -1,0 +1,201 @@
+version: 2
+
+# Features (entregable 2.3, restricción dura 5): solo desde Silver y seeds, nunca desde Gold
+# (tests/test_gold_lineage.py::test_features_solo_referencia_silver). Fecha de corte declarada en var('fecha_corte')
+# (por defecto var('fecha_referencia')). Pruebas anti-fuga y de coherencia en dbt/tests/features/.
+
+models:
+- name: usuario_features
+  description: >
+    Tabla de features lista para entrenar: una fila por persona (usuario_unificado_sk, ADR-008) con su historial de
+    abordajes en los cuatro modos estrictamente anterior a fecha_corte (2026-07-16 por defecto). Ventanas 7/30/90 días,
+    modo y zona más frecuentes, hábitos horarios, gasto, MetroRiel y padrón vigente a la fecha de corte. Sin columna
+    objetivo. Diccionario en docs/features/diccionario_features.md y en features.diccionario_features.
+  config:
+    cluster_by: [modo_mas_usado]
+  columns:
+  - name: usuario_unificado_sk
+    description: Identidad unificada seudonimizada de la persona (HMAC-SHA256, ADR-008). Llave de la tabla.
+    data_tests: [unique, not_null]
+  - name: fecha_corte
+    description: Fecha de corte declarada; ninguna feature usa datos con fecha >= fecha_corte.
+    data_tests: [not_null]
+  - name: viajes_7d
+    description: Viajes en [corte-7, corte).
+    data_tests: [not_null]
+  - name: viajes_30d
+    description: Viajes en [corte-30, corte).
+    data_tests: [not_null]
+  - name: viajes_90d
+    description: Viajes en [corte-90, corte); ventana truncada por los datos (45 días).
+    data_tests: [not_null]
+  - name: viajes_total
+    description: Viajes en todo el historial observado antes del corte.
+    data_tests:
+    - not_null
+    - dbt_utils.accepted_range:
+        arguments:
+          min_value: 1
+          inclusive: true
+  - name: viajes_30d_previos
+    description: Viajes en [corte-60, corte-30) (ventana truncada).
+    data_tests: [not_null]
+  - name: tendencia_30_vs_anterior
+    description: viajes_30d - viajes_30d_previos.
+    data_tests: [not_null]
+  - name: dias_desde_ultimo_viaje
+    description: Días entre el último viaje y el corte; >= 1 por construcción.
+    data_tests:
+    - not_null
+    - dbt_utils.accepted_range:
+        arguments:
+          min_value: 1
+          inclusive: true
+  - name: dias_desde_primer_viaje
+    description: Días entre el primer viaje observado y el corte.
+    data_tests: [not_null]
+  - name: dias_activos
+    description: Días distintos con al menos un viaje.
+    data_tests: [not_null]
+  - name: modo_mas_usado
+    description: Modo con más viajes; desempate alfabético.
+    data_tests:
+    - not_null
+    - accepted_values:
+        arguments:
+          values: [TM, TU, MR, AM]
+  - name: n_modos_distintos
+    description: Modos distintos usados (1 a 4).
+    data_tests:
+    - not_null
+    - dbt_utils.accepted_range:
+        arguments:
+          min_value: 1
+          max_value: 4
+          inclusive: true
+  - name: es_multimodal
+    description: n_modos_distintos > 1.
+    data_tests: [not_null]
+  - name: viajes_por_modo_tm
+    data_tests: [not_null]
+  - name: viajes_por_modo_tu
+    data_tests: [not_null]
+  - name: viajes_por_modo_mr
+    data_tests: [not_null]
+  - name: viajes_por_modo_am
+    data_tests: [not_null]
+  - name: prop_hora_pico
+    description: Proporción de viajes en hora pico oficial (seed franjas_horarias).
+    data_tests:
+    - not_null
+    - dbt_utils.accepted_range:
+        arguments:
+          min_value: 0
+          max_value: 1
+          inclusive: true
+  - name: prop_dia_habil
+    description: Proporción de viajes en día hábil (lunes a viernes no feriado, seed feriados_gt).
+    data_tests:
+    - not_null
+    - dbt_utils.accepted_range:
+        arguments:
+          min_value: 0
+          max_value: 1
+          inclusive: true
+  - name: prop_transbordo_interno
+    description: Proporción de viajes que son transbordo interno de Transmetro.
+    data_tests:
+    - not_null
+    - dbt_utils.accepted_range:
+        arguments:
+          min_value: 0
+          max_value: 1
+          inclusive: true
+  - name: hora_promedio
+    description: Hora promedio de los viajes (0 a 23).
+    data_tests:
+    - not_null
+    - dbt_utils.accepted_range:
+        arguments:
+          min_value: 0
+          max_value: 23
+          inclusive: true
+  - name: franja_mas_frecuente
+    description: Franja horaria con más viajes.
+    data_tests:
+    - not_null
+    - accepted_values:
+        arguments:
+          values: [madrugada, pico_manana, valle, pico_tarde, noche]
+  - name: zona_origen_mas_frecuente
+    description: Zona conformada con más abordajes.
+    data_tests:
+    - not_null
+    - relationships:
+        arguments:
+          to: ref('zonas')
+          field: zona_id
+  - name: n_zonas_distintas
+    data_tests: [not_null]
+  - name: n_estaciones_distintas
+    data_tests: [not_null]
+  - name: gasto_acumulado_q
+    description: Suma de tarifas en quetzales.
+    data_tests:
+    - not_null
+    - dbt_utils.accepted_range:
+        arguments:
+          min_value: 0
+          inclusive: true
+  - name: gasto_promedio_viaje_q
+    description: Tarifa promedio por viaje en quetzales.
+    data_tests:
+    - not_null
+    - dbt_utils.accepted_range:
+        arguments:
+          min_value: 0
+          inclusive: true
+  - name: viajes_metroriel_completos
+    description: Viajes cerrados de MetroRiel antes del corte (0 si no usa MetroRiel).
+    data_tests: [not_null]
+  - name: duracion_promedio_metroriel_min
+    description: Duración promedio de sus viajes de MetroRiel en minutos (NULL si no usa MetroRiel).
+  - name: perfil_padron
+    description: Perfil del padrón vigente a la fecha de corte.
+  - name: zona_residencia_id
+    description: Zona de residencia conformada del padrón vigente a la fecha de corte.
+    data_tests:
+    - relationships:
+        arguments:
+          to: ref('zonas')
+          field: zona_id
+  - name: estado_padron
+    description: ACTIVA / INACTIVA a la fecha de corte; SIN_PADRON si no está en el padrón.
+    data_tests:
+    - not_null
+    - accepted_values:
+        arguments:
+          values: [ACTIVA, INACTIVA, SIN_PADRON]
+  - name: es_usuario_activo_30d
+    description: Definición oficial de usuario activo a la fecha de corte.
+    data_tests: [not_null]
+
+- name: diccionario_features
+  description: >
+    Diccionario de datos de usuario_features materializado (una fila por columna: tipo, descripción, ventana, fuente
+    Silver y fórmula). Copia en Markdown en docs/features/diccionario_features.md.
+  columns:
+  - name: orden
+    data_tests: [unique, not_null]
+  - name: columna
+    data_tests: [unique, not_null]
+  - name: tipo
+    data_tests: [not_null]
+  - name: descripcion
+    data_tests: [not_null]
+  - name: ventana
+    data_tests: [not_null]
+  - name: fuente_silver
+    data_tests: [not_null]
+  - name: formula
+    data_tests: [not_null]
