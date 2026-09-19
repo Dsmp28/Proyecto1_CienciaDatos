@@ -36,7 +36,31 @@ Rendimiento de la vía streaming en la VM (e2-standard-2, Kafka de un nodo): pro
 
 ## CDC
 ### Altas, cambios y bajas aplicadas; tarjetas activas antes y después de los DELETE
-*Pendiente (F2).*
+Medido el 2026-09-20 en `staging.stg_padron_cdc_resumen` (log completo de 31 050 operaciones aplicado en orden de `seq`, ADR-009). Detalle y cuadre en `docs/evidence/cdc_resumen.md`.
+
+| Métrica | Valor |
+|---|---:|
+| Operaciones en el log (INSERT / UPDATE / DELETE) | 31 050 (10 800 / 16 200 / 4 050) |
+| Filas sin llave (`SIN-TARJETA`, a cuarentena R07) | 2 206 |
+| Tarjetas distintas con llave | 22 462 |
+| Altas aplicadas (primera operación INSERT) | 7 845 |
+| Altas implícitas (UPDATE o DELETE sin INSERT previo) | 14 617 |
+| INSERT repetidos sobre llave existente (aplicados como cambio) | 2 158 |
+| Cambios aplicados (UPDATE) | 15 069 |
+| Bajas aplicadas (estado final INACTIVA) | 2 993 |
+| DELETE sin alta previa (tarjetas) | 3 301 |
+| **Tarjetas activas antes de aplicar los DELETE** | **20 148** |
+| **Tarjetas activas después de aplicar los DELETE** | **19 469** |
+
+Los DELETE marcan la tarjeta como inactiva y conservan perfil y zona previos; 635 tarjetas recibieron un INSERT/UPDATE posterior a su DELETE y quedaron activas (la última operación manda).
+
+### Catálogos mínimos de usuarios (llaves distintas en los archivos de operación)
+| Operador | Llaves distintas | Filas de operación |
+|---|---:|---:|
+| Transmetro (`tarjeta`) | 43 255 | 363 221 |
+| Transurbano (`num_tarjeta`) | 36 567 | 832 791 |
+| MetroRiel (`card`) | 22 885 | 299 100 |
+| Aerómetro (`user_hash`) | 14 496 | 203 554 |
 
 ## Rendimiento
 ### Duración por etapa, tamaño en almacenamiento por capa, tiempo de las consultas del tablero

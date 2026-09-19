@@ -31,10 +31,10 @@ Detalle de diseño (grano, matriz del bus, identidad, costos): `docs/modelo/`, `
 - [x] Prueba: republicar/recargar no cambia Bronze (evidencia: `docs/evidence/f1_ingesta_bronze.md`)
 
 ## F2 — Staging y CDC (1.2)
-- [ ] `stg_*` con tipos y linaje (`fuente`, `archivo`, `fecha_ingesta`, `offset`)
-- [ ] CDC aplicado en orden (INSERT/UPDATE/DELETE; DELETE = inactiva con atributos)
-- [ ] Catálogos mínimos de llaves (TU, MR, AM) con conteo de llaves distintas
-- [ ] Métricas CDC: altas, cambios, bajas, activas antes/después
+- [x] `stg_*` con tipos y linaje (`fuente`, `archivo`, `fecha_ingesta`, `offset`)
+- [x] CDC aplicado en orden (INSERT/UPDATE/DELETE; DELETE = inactiva con atributos)
+- [x] Catálogos mínimos de llaves (TU, MR, AM) con conteo de llaves distintas
+- [x] Métricas CDC: altas, cambios, bajas, activas antes/después
 
 ## F3 — Silver, calidad y cuarentena (1.3)
 - [ ] `docs/governance/reglas_calidad.md` antes del código
