@@ -1,0 +1,113 @@
+version: 2
+
+# Cuarentena (restricción dura 2): ningún registro se descarta. Se reconstruye completa en cada corrida.
+
+models:
+- name: registros_rechazados
+  description: 'Todos los registros rechazados por las reglas R01–R11 (docs/governance/reglas_calidad.md): unión de las filas
+    con regla_id NOT NULL de val_transmetro_validaciones, val_transurbano_transacciones, val_metroriel_viajes, val_aerometro_boardings,
+    val_cdc_padron_usuarios y val_estaciones, con el registro original (raw), fuente, archivo, posición, regla, motivo, llave
+    nativa, ingest_date, run_id y ts_cuarentena. Conciliación por fuente: staging = silver + cuarentena (prueba singular assert_staging_igual_silver_mas_cuarentena).
+
+    '
+  columns:
+  - name: fuente
+    description: Fuente lógica (transmetro_validaciones, transurbano_transacciones, metroriel_viajes, aerometro_boardings,
+      cdc_padron_usuarios, tm_estaciones, tu_paradas, mr_estaciones, am_estaciones).
+    data_tests:
+    - not_null
+    - accepted_values:
+        arguments:
+          values:
+          - transmetro_validaciones
+          - transurbano_transacciones
+          - metroriel_viajes
+          - aerometro_boardings
+          - cdc_padron_usuarios
+          - tm_estaciones
+          - tu_paradas
+          - mr_estaciones
+          - am_estaciones
+  - name: archivo
+    description: Archivo crudo de origen.
+    data_tests:
+    - not_null
+  - name: objeto_gcs
+    description: Ruta gs:// del objeto de Bronze.
+  - name: linea_num
+    description: Línea en el archivo (solo streaming; NULL en batch y CDC).
+  - name: kafka_offset
+    description: Offset de Kafka (solo streaming).
+  - name: registro_original
+    description: La línea tal como llegó (raw), sin transformar.
+    data_tests:
+    - not_null
+  - name: regla_id
+    description: 'Regla incumplida: R01…R11.'
+    data_tests:
+    - not_null
+    - accepted_values:
+        arguments:
+          values:
+          - R01
+          - R02
+          - R03
+          - R04
+          - R05
+          - R06
+          - R07
+          - R08
+          - R09
+          - R10
+          - R11
+  - name: motivo
+    description: Texto oficial del motivo.
+    data_tests:
+    - not_null
+  - name: llave_usuario
+    description: Llave nativa del usuario si existe (auditoría).
+  - name: ingest_date
+    description: Fecha de ingesta a Bronze.
+    data_tests:
+    - not_null
+  - name: run_id
+    description: Identificador de la corrida (var('run_id')).
+    data_tests:
+    - not_null
+  - name: ts_cuarentena
+    description: 'Marca de tiempo de la cuarentena: var(''run_ts'') si Airflow la pasa; si no, TIMESTAMP(fecha_referencia).
+      Nunca CURRENT_TIMESTAMP.'
+    data_tests:
+    - not_null
+- name: resumen_por_regla
+  description: 'Rechazos por (fuente, regla_id, motivo) con el total de filas de staging de la fuente y el porcentaje (3 decimales),
+    más una fila regla_id = ''TOTAL'' por fuente. Alimenta la categoría Calidad de docs/METRICAS.md.
+
+    '
+  data_tests:
+  - dbt_utils.unique_combination_of_columns:
+      arguments:
+        combination_of_columns:
+        - fuente
+        - regla_id
+  columns:
+  - name: fuente
+    description: Fuente lógica.
+    data_tests:
+    - not_null
+  - name: regla_id
+    description: R01…R11 o TOTAL.
+    data_tests:
+    - not_null
+  - name: motivo
+    description: Texto oficial del motivo o 'Total en cuarentena'.
+  - name: n_rechazados
+    description: Filas en cuarentena de esa fuente y regla.
+    data_tests:
+    - not_null
+  - name: n_total_fuente
+    description: Filas de staging de la fuente.
+    data_tests:
+    - not_null
+  - name: pct
+    description: n_rechazados / n_total_fuente × 100, 3 decimales.

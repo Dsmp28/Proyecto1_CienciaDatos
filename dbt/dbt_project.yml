@@ -15,11 +15,17 @@ clean-targets: ["target", "dbt_packages"]
 vars:
   # Fecha fija del pipeline. Regla de "fechas del futuro" y corte de features.
   # NUNCA usar CURRENT_DATE en modelos (rompe la idempotencia). Se sobreescribe por --vars.
-  fecha_referencia: "2026-09-01"   # [verificar en generador] día siguiente a la fecha máxima legítima
+  fecha_referencia: "2026-07-16"   # verificado en el generador (ADR-010): día siguiente a la última fecha legítima (2026-07-15)
   # Identificador de corrida que Airflow pasa por --vars para ops.run_metrics
   run_id: "manual"
+  # Marca de tiempo de la corrida (ISO 8601 UTC) que Airflow pasa por --vars; alimenta quarantine.ts_cuarentena.
+  # Si es nula, la cuarentena usa TIMESTAMP(fecha_referencia) para que dos corridas manuales sean idénticas.
+  run_ts: null
   # Zona horaria local para conversiones (Aerómetro llega en UTC)
   tz_local: "America/Guatemala"
+  # Cota superior del identificador base de personas (ADR-008): el generador crea 60 000; el mapa de
+  # inversión del hash de Aerómetro (silver_am_hash_map) se calcula para 1..max_usuario_base_id.
+  max_usuario_base_id: 70000
 
 models:
   red_metropolitana:

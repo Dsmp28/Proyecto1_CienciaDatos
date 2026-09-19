@@ -1,0 +1,105 @@
+version: 2
+
+# Modelos de validación (Silver, prefijo val_). Cada uno toma TODAS las filas de su stg_<fuente> y añade
+# regla_id (NULL = válida) y motivo, según docs/governance/reglas_calidad.md. Una fila, una regla (la primera
+# que incumple). Silver toma las filas con regla_id NULL; quarantine.registros_rechazados las demás.
+
+models:
+- name: val_transmetro_validaciones
+  description: 'Validación de Transmetro: todas las filas de stg_transmetro_validaciones (363 221) con regla_id y motivo.
+    Orden: R07 tarjeta nula → R08 fecha_hora no parseable → R03 fecha ≥ fecha_referencia → R06 estacion_id ausente en stg_tm_estaciones
+    → R09 tarifa nula o negativa → R10 duplicado de entrega (archivo, sha256_archivo, linea_num) → R01 duplicado de torniquete
+    (validacion_id repetida; se conserva la primera por linea_num, kafka_offset).
+
+    '
+  columns:
+  - &id001
+    name: regla_id
+    description: 'Regla de calidad incumplida (R01…R11) o NULL si la fila es válida. Una fila, una regla: la primera del orden
+      de evaluación.'
+    data_tests:
+    - accepted_values:
+        arguments:
+          values:
+          - R01
+          - R02
+          - R03
+          - R04
+          - R05
+          - R06
+          - R07
+          - R08
+          - R09
+          - R10
+          - R11
+  - &id002
+    name: motivo
+    description: Texto oficial del motivo (docs/governance/reglas_calidad.md) o NULL si la fila es válida.
+- name: val_transurbano_transacciones
+  description: 'Validación de Transurbano: todas las filas de stg_transurbano_transacciones (832 791) con regla_id y motivo.
+    Orden: R07 num_tarjeta nulo → R08 fecha_hora no parseable → R03 fecha ≥ fecha_referencia → R02 cod_parada nulo → R06 cod_parada
+    ausente en stg_tu_paradas → R09 monto nulo o negativo. Los cobros 7/9 no se rechazan.
+
+    '
+  columns:
+  - *id001
+  - *id002
+- name: val_metroriel_viajes
+  description: 'Validación de MetroRiel: todas las filas de stg_metroriel_viajes (299 100) con regla_id y motivo. Orden: R07
+    card nulo → R08 entry_ts no parseable → R03 entrada ≥ fecha_referencia → R06 estación de entrada (o de salida si existe)
+    ausente en stg_mr_estaciones → R09 fare nulo o negativo → R04 viaje sin salida.
+
+    '
+  columns:
+  - *id001
+  - *id002
+- name: val_aerometro_boardings
+  description: 'Validación de Aerómetro: todas las filas de stg_aerometro_boardings (203 554) con regla_id y motivo. Orden:
+    R07 user_hash nulo → R08 timestamp_utc no parseable → R03 fecha local ≥ fecha_referencia → R06 station_code ausente en
+    stg_am_estaciones → R09 fare nulo o negativo → R10 duplicado de entrega.
+
+    '
+  columns:
+  - *id001
+  - *id002
+- name: val_cdc_padron_usuarios
+  description: 'Validación del log de CDC del padrón: todas las filas de stg_cdc_padron_usuarios (31 050) con regla_id y motivo.
+    Orden: R11 op fuera de INSERT/UPDATE/DELETE o seq nulo → R07 tarjeta nula o SIN-TARJETA → R08 commit_ts no parseable →
+    R05 zona_residencia ausente en zonas_mapeo. Las anomalías del log (ADR-009) no se rechazan.
+
+    '
+  columns:
+  - *id001
+  - *id002
+- name: val_estaciones
+  description: 'Validación de los catálogos de estaciones/paradas: unión de stg_tm_estaciones, stg_tu_paradas, stg_mr_estaciones
+    y stg_am_estaciones con columnas comunes (modo_id, codigo_nativo, nombre, linea_ruta_eje, zona_origen, lat, lon, km) y
+    zona_id por zonas_mapeo. Única regla: R05 zona sin mapear (nula o ausente en el seed).
+
+    '
+  columns:
+  - name: modo_id
+    description: 'Modo dueño del catálogo: TM, TU, MR, AM.'
+    data_tests:
+    - accepted_values:
+        arguments:
+          values:
+          - TM
+          - TU
+          - MR
+          - AM
+  - name: codigo_nativo
+    description: 'Código de estación/parada del operador (MetroRiel: id numérico como texto).'
+  - name: zona_origen
+    description: Zona tal como la escribe el operador (zona, sector, district).
+  - name: zona_id
+    description: Zona conformada según zonas_mapeo; NULL cuando no hay mapeo (R05).
+  - name: regla_id
+    description: R05 si la zona no está mapeada; NULL si la fila es válida.
+    data_tests:
+    - accepted_values:
+        arguments:
+          values:
+          - R05
+  - name: motivo
+    description: Texto oficial del motivo o NULL.

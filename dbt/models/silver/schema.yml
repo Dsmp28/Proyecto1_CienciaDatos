@@ -1,0 +1,586 @@
+version: 2
+
+# Capa Silver (F3). Filas válidas de val_* tipadas y unificadas, con linaje hasta el archivo crudo
+# (fuente, archivo, objeto_gcs, ingest_date, registro_hash; linea_num/kafka_offset en streaming).
+# Silver conserva la llave nativa del usuario (solo auditoría); la seudonimización (HMAC) sale en silver_usuarios
+# y es la única llave que llega a Gold. Nunca CURRENT_DATE: la fecha de referencia es var('fecha_referencia').
+
+models:
+- name: silver_estaciones
+  description: 'Catálogo conformado de estaciones y paradas de los 4 modos (base de dim_estacion): filas válidas de val_estaciones.
+    estacion_sk = TO_HEX(SHA256(modo_id | codigo_nativo)) (hash determinista de un código público, no dato personal). zona_id
+    conformada por zonas_mapeo, NOT NULL porque lo no mapeado va a cuarentena (R05).
+
+    '
+  columns:
+  - name: estacion_sk
+    description: 'Llave sustituta determinista: TO_HEX(SHA256(CONCAT(modo_id,''|'',codigo_nativo))).'
+    data_tests:
+    - unique
+    - not_null
+  - name: modo_id
+    description: 'Modo dueño de la estación: TM, TU, MR, AM.'
+    data_tests:
+    - not_null
+    - accepted_values:
+        arguments:
+          values:
+          - TM
+          - TU
+          - MR
+          - AM
+  - name: codigo_nativo
+    description: 'Código nativo (TM: estacion_id; TU: cod_parada; MR: id_estacion como texto; AM: station_code).'
+    data_tests:
+    - not_null
+  - name: nombre
+    description: Nombre de la estación/parada tal como lo publica el operador.
+  - name: linea_ruta_eje
+    description: Línea (TM), ruta (TU) o eje (AM); NULL en MetroRiel (una sola línea).
+  - name: zona_origen
+    description: Zona tal como la escribe el operador (Zona 4, Z4, MIXCO, Mixco…).
+    data_tests:
+    - not_null
+  - name: zona_id
+    description: Zona conformada (seed zonas_mapeo → zonas).
+    data_tests:
+    - not_null
+    - relationships:
+        arguments:
+          to: ref('zonas')
+          field: zona_id
+  - name: lat
+    description: Latitud (solo Transmetro; NULL en los demás).
+  - name: lon
+    description: Longitud (solo Transmetro; NULL en los demás).
+  - name: km
+    description: Kilómetro sobre la línea (solo MetroRiel).
+  - &id001
+    name: fuente
+    description: Nombre lógico de la fuente (igual al nombre de la tabla externa de Bronze).
+    data_tests:
+    - not_null
+  - &id002
+    name: archivo
+    description: Archivo crudo de origen (linaje hasta el archivo).
+    data_tests:
+    - not_null
+  - &id003
+    name: objeto_gcs
+    description: Ruta gs:// del objeto de Bronze del que proviene la fila.
+  - &id004
+    name: ingest_date
+    description: Fecha de ingesta a Bronze (partición Hive).
+    data_tests:
+    - not_null
+  - &id005
+    name: registro_hash
+    description: SHA-256 de la línea cruda (identifica el registro original).
+- name: silver_am_hash_map
+  description: 'Correspondencia usuario_base_id → user_hash de Aerómetro (ADR-008): LEFT(TO_HEX(MD5(''am'' || i)), 12) para
+    i en 1..var(''max_usuario_base_id''). Inversión por diccionario de un hash sin sal (lección de seguridad: la Agencia seudonimiza
+    con HMAC y sal secreta). Prueba singular assert_am_hash_invertible: toda llave de stg_catalogo_usuarios_am existe aquí.
+
+    '
+  columns:
+  - name: usuario_base_id
+    description: Identificador base de la persona (entero i del generador).
+    data_tests:
+    - unique
+    - not_null
+  - name: user_hash
+    description: Hash de 12 hex tal como aparece en aerometro_boardings.user_hash.
+    data_tests:
+    - unique
+    - not_null
+- name: silver_transmetro_validaciones
+  description: 'Validaciones válidas de Transmetro (val_transmetro_validaciones con regla_id NULL), tipadas y unificadas.
+    fecha_hora_local = fecha_hora (ya local), monto_q = tarifa, estacion_sk/zona_id desde silver_estaciones.
+
+    '
+  columns:
+  - name: validacion_id
+    description: Id de validación del torniquete (único tras R01).
+    data_tests:
+    - unique
+    - not_null
+  - &id006
+    name: modo_id
+    description: 'Modo de transporte: TM (Transmetro), TU (Transurbano), MR (MetroRiel), AM (Aerómetro).'
+    data_tests:
+    - not_null
+    - accepted_values:
+        arguments:
+          values:
+          - TM
+          - TU
+          - MR
+          - AM
+  - &id007
+    name: llave_nativa
+    description: Llave de usuario tal como la entrega el operador (tarjeta, num_tarjeta, card, user_hash). Solo auditoría;
+      Gold usa usuario_sk.
+    data_tests:
+    - not_null
+  - &id008
+    name: codigo_estacion_nativo
+    description: Código de estación/parada del operador (STRING).
+    data_tests:
+    - not_null
+  - &id009
+    name: fecha_hora_local
+    description: Instante local del evento (DATETIME, America/Guatemala).
+    data_tests:
+    - not_null
+  - &id010
+    name: fecha
+    description: DATE(fecha_hora_local).
+    data_tests:
+    - not_null
+  - &id011
+    name: hora
+    description: Hora del día 0–23 (EXTRACT(HOUR FROM fecha_hora_local)).
+    data_tests:
+    - not_null
+  - &id012
+    name: monto_q
+    description: Monto en quetzales (NUMERIC). 0 es válido (adulto mayor).
+    data_tests:
+    - not_null
+  - name: estacion_sk
+    description: Llave de silver_estaciones (modo TM).
+    data_tests:
+    - not_null
+    - relationships:
+        arguments:
+          to: ref('silver_estaciones')
+          field: estacion_sk
+  - name: zona_id
+    description: Zona conformada de la estación.
+    data_tests:
+    - not_null
+  - name: linea
+    description: Línea de Transmetro reportada en la validación.
+  - name: tipo
+    description: ENTRADA o TRANSBORDO (transbordo interno con tarifa reducida).
+    data_tests:
+    - accepted_values:
+        arguments:
+          values:
+          - ENTRADA
+          - TRANSBORDO
+  - name: es_transbordo_interno
+    description: tipo = TRANSBORDO.
+  - *id001
+  - *id002
+  - *id003
+  - *id004
+  - *id005
+  - &id013
+    name: linea_num
+    description: Número de línea de datos en el archivo publicado a Kafka.
+  - &id014
+    name: kafka_offset
+    description: Offset del mensaje en Kafka.
+  - &id015
+    name: kafka_topico
+    description: Tópico de Kafka.
+  - &id016
+    name: kafka_particion
+    description: Partición de Kafka.
+  - &id017
+    name: sha256_archivo
+    description: sha256 del archivo publicado a Kafka.
+  - &id018
+    name: ingest_ts
+    description: Marca de tiempo de escritura del mensaje a GCS (TIMESTAMP).
+- name: silver_transurbano_transacciones
+  description: 'Transacciones válidas de Transurbano (val_transurbano_transacciones con regla_id NULL). fecha_hora_local une
+    fecha dd/mm/yyyy y hora; monto_q = monto_centavos / 100. Conserva cod_estado/estado_desc/es_cobro_exitoso: los cobros
+    fallidos (7 SALDO_INSUF, 9 TARJETA_INVALIDA) son hechos reales y NO cuentan como viaje.
+
+    '
+  columns:
+  - name: transaccion_id
+    description: 'Llave técnica (sin id nativo): registro_hash | n_repeticion.'
+    data_tests:
+    - unique
+    - not_null
+  - *id006
+  - *id007
+  - *id008
+  - *id009
+  - *id010
+  - *id011
+  - *id012
+  - name: estacion_sk
+    description: Llave de silver_estaciones (modo TU).
+    data_tests:
+    - not_null
+    - relationships:
+        arguments:
+          to: ref('silver_estaciones')
+          field: estacion_sk
+  - name: zona_id
+    description: Zona conformada de la parada.
+    data_tests:
+    - not_null
+  - name: ruta
+    description: Ruta reportada en la transacción.
+  - name: monto_centavos
+    description: Monto original en centavos (INT64).
+  - name: cod_estado
+    description: 'Código de estado del cobro: 1, 2, 3 = OK; 7 = SALDO_INSUF; 9 = TARJETA_INVALIDA.'
+  - name: estado_desc
+    description: Descripción del código de estado.
+    data_tests:
+    - accepted_values:
+        arguments:
+          values:
+          - OK
+          - SALDO_INSUF
+          - TARJETA_INVALIDA
+  - name: es_cobro_exitoso
+    description: cod_estado en (1, 2, 3). Solo estos entran en silver_abordajes.
+    data_tests:
+    - not_null
+  - name: n_repeticion
+    description: Número de aparición de la misma línea cruda en el archivo (1 = primera).
+  - *id001
+  - *id002
+  - *id003
+  - *id004
+  - *id005
+- name: silver_metroriel_viajes
+  description: 'Viajes cerrados válidos de MetroRiel (val_metroriel_viajes con regla_id NULL: con entrada y salida). Conserva
+    entrada y salida (estacion_sk_origen/destino, zona_id_origen/destino, duracion_s); la entrada es el abordaje (ADR-004).
+    fecha_hora_local = entry_ts, monto_q = fare_gtq. Base de fct_viaje_metroriel.
+
+    '
+  columns:
+  - name: trip_id
+    description: Id del viaje del operador.
+    data_tests:
+    - unique
+    - not_null
+  - *id006
+  - *id007
+  - *id008
+  - *id009
+  - *id010
+  - *id011
+  - *id012
+  - name: codigo_estacion_destino
+    description: Código de la estación de salida (exit.station como texto).
+    data_tests:
+    - not_null
+  - name: estacion_sk_origen
+    description: Llave de silver_estaciones de la estación de entrada.
+    data_tests:
+    - not_null
+    - relationships:
+        arguments:
+          to: ref('silver_estaciones')
+          field: estacion_sk
+  - name: estacion_sk_destino
+    description: Llave de silver_estaciones de la estación de salida.
+    data_tests:
+    - not_null
+    - relationships:
+        arguments:
+          to: ref('silver_estaciones')
+          field: estacion_sk
+  - name: zona_id_origen
+    description: Zona conformada de la estación de entrada.
+    data_tests:
+    - not_null
+  - name: zona_id_destino
+    description: Zona conformada de la estación de salida.
+    data_tests:
+    - not_null
+  - name: fecha_hora_salida_local
+    description: Instante de salida (exit.ts, DATETIME local).
+    data_tests:
+    - not_null
+  - name: duracion_s
+    description: Duración del viaje en segundos (duration_s del operador).
+    data_tests:
+    - not_null
+  - name: n_repeticion
+    description: Número de aparición de la misma línea cruda en el archivo (1 = primera).
+  - *id001
+  - *id002
+  - *id003
+  - *id004
+  - *id005
+- name: silver_aerometro_boardings
+  description: 'Boardings válidos de Aerómetro (val_aerometro_boardings con regla_id NULL). fecha_hora_local = DATETIME(timestamp_utc,
+    tz_local) (ADR-010), monto_q = fare. Conserva timestamp_utc original.
+
+    '
+  columns:
+  - name: boarding_id
+    description: Id de boarding del operador.
+    data_tests:
+    - unique
+    - not_null
+  - *id006
+  - *id007
+  - *id008
+  - *id009
+  - *id010
+  - *id011
+  - *id012
+  - name: estacion_sk
+    description: Llave de silver_estaciones (modo AM).
+    data_tests:
+    - not_null
+    - relationships:
+        arguments:
+          to: ref('silver_estaciones')
+          field: estacion_sk
+  - name: zona_id
+    description: Zona conformada de la estación.
+    data_tests:
+    - not_null
+  - name: axis
+    description: Eje del teleférico reportado en el boarding.
+  - name: timestamp_utc
+    description: Marca de tiempo original en UTC (TIMESTAMP).
+    data_tests:
+    - not_null
+  - name: cabin_number
+    description: Número de cabina.
+  - *id001
+  - *id002
+  - *id003
+  - *id004
+  - *id005
+  - *id013
+  - *id014
+  - *id015
+  - *id016
+  - *id017
+  - *id018
+- name: silver_padron_scd2
+  description: 'Padrón como SCD Tipo 2 desde el log completo de CDC (ADR-009), con funciones de ventana sobre seq. Una fila
+    por operación con llave (SIN-TARJETA va a cuarentena). vigente_desde = commit_ts, vigente_hasta = LEAD(commit_ts) por
+    tarjeta en orden de seq, es_vigente = vigente_hasta IS NULL. perfil y zona_residencia son el último valor no nulo hasta
+    esa operación. Pruebas singulares: una vigente por tarjeta y coincidencia con stg_padron_cdc_aplicado.
+
+    '
+  data_tests:
+  - dbt_utils.unique_combination_of_columns:
+      arguments:
+        combination_of_columns:
+        - tarjeta
+        - seq
+  columns:
+  - name: tarjeta
+    description: Llave del padrón tal como llega (formato TC-, 10 dígitos o MR).
+    data_tests:
+    - not_null
+  - name: usuario_base_id
+    description: Identificador base de la persona extraído del formato de la tarjeta (ADR-008).
+    data_tests:
+    - not_null
+  - name: modo_id
+    description: Modo del formato de la tarjeta (TM, TU, MR).
+    data_tests:
+    - accepted_values:
+        arguments:
+          values:
+          - TM
+          - TU
+          - MR
+  - name: seq
+    description: Secuencia del log de CDC (orden de aplicación).
+    data_tests:
+    - not_null
+  - name: op
+    description: 'Operación del log: INSERT, UPDATE, DELETE.'
+    data_tests:
+    - accepted_values:
+        arguments:
+          values:
+          - INSERT
+          - UPDATE
+          - DELETE
+  - name: vigente_desde
+    description: commit_ts de la operación (DATETIME).
+    data_tests:
+    - not_null
+  - name: vigente_hasta
+    description: commit_ts de la siguiente operación de la misma tarjeta por seq; NULL en la vigente.
+  - name: es_vigente
+    description: TRUE en la última versión de cada tarjeta.
+    data_tests:
+    - not_null
+  - name: version
+    description: Número de versión por tarjeta (ROW_NUMBER por seq).
+    data_tests:
+    - not_null
+  - name: estado
+    description: INACTIVA si op = DELETE; ACTIVA en caso contrario.
+    data_tests:
+    - accepted_values:
+        arguments:
+          values:
+          - ACTIVA
+          - INACTIVA
+  - name: perfil
+    description: Perfil vigente (último no nulo hasta esta operación).
+  - name: zona_residencia
+    description: Zona de residencia vigente tal como llega en el padrón.
+  - name: zona_residencia_id
+    description: Zona de residencia conformada (zonas_mapeo).
+  - name: alta_implicita
+    description: TRUE en la primera versión de una tarjeta cuya primera op no es INSERT (UPDATE/DELETE sin alta previa).
+  - name: alta_repetida
+    description: TRUE en un INSERT sobre tarjeta ya existente (se aplica como UPDATE).
+  - name: baja_sin_alta_previa
+    description: TRUE en un DELETE sin ningún INSERT anterior en la secuencia.
+  - name: commit_ts_fuera_de_orden
+    description: TRUE cuando vigente_hasta < vigente_desde (el generador asigna horas aleatorias dentro del día); la vigencia
+      sigue el orden de seq.
+    data_tests:
+    - not_null
+  - *id001
+  - *id002
+  - *id003
+  - *id004
+  - *id005
+- name: silver_usuarios
+  description: 'Una fila por (modo_id, llave_nativa) para toda llave observada en operación (catálogos mínimos stg_catalogo_usuarios_*)
+    o en el padrón (stg_padron_cdc_aplicado). Base de dim_usuario. usuario_sk = HMAC-SHA256 (sal secreta) de modo|llave (ADR-007);
+    usuario_base_id por formato (TM/TU/MR) o inversión MD5 (AM, ADR-008); usuario_unificado_sk = HMAC de ''BASE|'' || usuario_base_id.
+    Perfil, zona y estado del padrón se unen por usuario_base_id (ADR-009).
+
+    '
+  data_tests:
+  - dbt_utils.unique_combination_of_columns:
+      arguments:
+        combination_of_columns:
+        - modo_id
+        - llave_nativa
+  columns:
+  - name: usuario_sk
+    description: 'Seudónimo estable: HMAC-SHA256(sal, modo_id | llave_nativa), 64 hex. Única llave de usuario que llega a
+      Gold.'
+    data_tests:
+    - unique
+    - not_null
+  - name: modo_id
+    description: 'Modo de la llave: TM, TU, MR, AM.'
+    data_tests:
+    - not_null
+    - accepted_values:
+        arguments:
+          values:
+          - TM
+          - TU
+          - MR
+          - AM
+  - name: llave_nativa
+    description: Llave tal como la entrega el operador o el padrón (solo auditoría).
+    data_tests:
+    - not_null
+  - name: usuario_base_id
+    description: 'Identificador base de la persona (TM: TC-<i>; TU: <i> a 10 dígitos; MR: MR<i>; AM: silver_am_hash_map).
+      NULL si no se pudo vincular.'
+  - name: metodo_vinculo
+    description: 'Cómo se obtuvo usuario_base_id: formato (regex), inversion_md5 (Aerómetro) o NULL.'
+    data_tests:
+    - accepted_values:
+        arguments:
+          values:
+          - formato
+          - inversion_md5
+  - name: usuario_unificado_sk
+    description: HMAC-SHA256(sal, 'BASE|' || usuario_base_id); NULL si no hay vínculo. Une a la misma persona entre modos.
+  - name: en_padron
+    description: TRUE si la persona (usuario_base_id) tiene fila en el padrón aplicado.
+    data_tests:
+    - not_null
+  - name: perfil
+    description: Perfil vigente del padrón (NULL si no está en el padrón).
+  - name: zona_residencia
+    description: Zona de residencia vigente tal como llega en el padrón.
+  - name: zona_residencia_id
+    description: Zona de residencia conformada (zonas_mapeo).
+  - name: estado_padron
+    description: ACTIVA / INACTIVA según el padrón aplicado; SIN_PADRON si la persona no aparece en él.
+    data_tests:
+    - not_null
+    - accepted_values:
+        arguments:
+          values:
+          - ACTIVA
+          - INACTIVA
+          - SIN_PADRON
+  - name: n_registros_operacion
+    description: Filas de operación en staging con esa llave (0 si solo aparece en el padrón).
+    data_tests:
+    - not_null
+- name: silver_abordajes
+  description: 'Tabla atómica unificada al grano "un abordaje" (ADR-004): UNION de Transmetro (todas las válidas), Transurbano
+    (solo es_cobro_exitoso), MetroRiel (la entrada de cada viaje cerrado válido) y Aerómetro (todas las válidas). Sin seudonimizar
+    (conserva llave_nativa); Gold construye fct_abordaje con silver_usuarios.usuario_sk.
+
+    '
+  columns:
+  - name: abordaje_id
+    description: 'modo_id | id nativo (TM: validacion_id; MR: trip_id; AM: boarding_id; TU: registro_hash | n_repeticion).'
+    data_tests:
+    - unique
+    - not_null
+  - *id006
+  - *id007
+  - *id008
+  - *id009
+  - *id010
+  - *id011
+  - *id012
+  - name: usuario_base_id
+    description: Identificador base de la persona desde silver_usuarios (100 % vinculable en estos datos).
+    data_tests:
+    - not_null
+  - name: estacion_sk
+    description: Llave de silver_estaciones (estación de entrada en MetroRiel).
+    data_tests:
+    - not_null
+    - relationships:
+        arguments:
+          to: ref('silver_estaciones')
+          field: estacion_sk
+  - name: zona_id
+    description: Zona conformada de la estación/parada del abordaje.
+    data_tests:
+    - not_null
+    - relationships:
+        arguments:
+          to: ref('zonas')
+          field: zona_id
+  - name: tipo_validacion
+    description: 'TM: tipo (ENTRADA/TRANSBORDO); TU: estado_desc (OK); MR: ENTRADA; AM: BOARDING.'
+    data_tests:
+    - accepted_values:
+        arguments:
+          values:
+          - ENTRADA
+          - TRANSBORDO
+          - OK
+          - BOARDING
+  - name: es_transbordo_interno
+    description: TRUE si es un TRANSBORDO de Transmetro (tarifa de transbordo dentro del mismo sistema).
+    data_tests:
+    - not_null
+  - *id001
+  - *id002
+  - *id003
+  - *id004
+  - *id005
+  - name: linea_num
+    description: 'Número de línea en el archivo publicado a Kafka (solo streaming: TM, AM).'
+  - name: kafka_offset
+    description: 'Offset de Kafka (solo streaming: TM, AM).'
