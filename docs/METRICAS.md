@@ -28,11 +28,43 @@ Tamaño en Bronze: batch 137 MB (copia byte a byte); streaming 209 MB (72 966 49
 Rendimiento de la vía streaming en la VM (e2-standard-2, Kafka de un nodo): productor 363 221 msgs en 5,8 s (63 084 msg/s) y 203 554 en 2,1 s (96 971 msg/s); consumidor 566 775 mensajes → 114 objetos en 77,8 s. Regeneración y verificación de los 9 archivos en la VM: 1 min 46 s.
 
 ### Filas por capa (Bronze → Staging → Silver → Gold)
-*Pendiente (F3–F5).*
+| Capa | Filas | Detalle |
+|---|---:|---|
+| Bronze (9 tablas externas) | 1 730 184 | igual al origen |
+| Staging (15 tablas) | 1 869 850 | 1 730 184 de las 9 fuentes + padrón aplicado, resumen y 4 catálogos de llaves |
+| Silver (`silver_abordajes`, grano abordaje) | 1 647 569 | TM 362 106 · TU 786 398 (solo cobros exitosos) · MR 295 511 · AM 203 554 |
+| Silver (`silver_usuarios`) | 117 205 | TM 43 257 · TU 36 567 · MR 22 885 · AM 14 496; 100 % con identidad unificada |
+| Cuarentena | 11 913 | ver Calidad |
+| Gold | *pendiente F4* | |
 
 ## Calidad
 ### Registros en cuarentena por regla y fuente
-*Pendiente (F3). Reglas en `docs/governance/reglas_calidad.md`.*
+Medido el 2026-09-20 en `quarantine.resumen_por_regla` (reglas en `docs/governance/reglas_calidad.md`; detalle en `docs/evidence/calidad_resumen.md`).
+
+| Fuente | Regla | Motivo | Rechazados | Total fuente | % |
+|---|---|---|---:|---:|---:|
+| transmetro_validaciones | R01 | duplicado de torniquete | 1 115 | 363 221 | 0,307 |
+| transurbano_transacciones | R02 | código de parada nulo | 4 186 | 832 791 | 0,503 |
+| transurbano_transacciones | R03 | fecha posterior a la fecha de referencia | 817 | 832 791 | 0,098 |
+| metroriel_viajes | R04 | viaje sin salida | 3 589 | 299 100 | 1,200 |
+| cdc_padron_usuarios | R07 | llave de usuario nula (`SIN-TARJETA`) | 2 206 | 31 050 | 7,105 |
+| aerometro_boardings, 4 catálogos | — | sin rechazos | 0 | 203 554 / 468 | 0 |
+| **Total** | | | **11 913** | **1 730 184** | **0,688** |
+
+Duplicados detectados: 1 115 (R01, filas completas repetidas por el torniquete; se conserva la primera aparición) y 0 duplicados de entrega en streaming (R10).
+Diferencia frente a lo inyectado por el generador: R02 muestra 4 186 y no 4 189 porque 3 filas con parada nula tienen además fecha del futuro y se etiquetan con R03 (una fila, una regla).
+Transacciones de Transurbano con cobro rechazado (`SALDO_INSUF` 33 112, `TARJETA_INVALIDA` 8 278): se conservan en Silver con su estado y no cuentan como viaje; no son registros inválidos.
+
+### Conciliación por fuente (staging = silver + cuarentena), prueba `assert_staging_igual_silver_mas_cuarentena`
+| Fuente | Staging | Silver | Cuarentena |
+|---|---:|---:|---:|
+| transmetro_validaciones | 363 221 | 362 106 | 1 115 |
+| transurbano_transacciones | 832 791 | 827 788 | 5 003 |
+| metroriel_viajes | 299 100 | 295 511 | 3 589 |
+| aerometro_boardings | 203 554 | 203 554 | 0 |
+| cdc_padron_usuarios | 31 050 | 28 844 (SCD2) | 2 206 |
+| catálogos (4) | 468 | 468 | 0 |
+| **Total** | **1 730 184** | **1 718 271** | **11 913** |
 
 ## CDC
 ### Altas, cambios y bajas aplicadas; tarjetas activas antes y después de los DELETE

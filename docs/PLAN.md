@@ -37,11 +37,11 @@ Detalle de diseño (grano, matriz del bus, identidad, costos): `docs/modelo/`, `
 - [x] Métricas CDC: altas, cambios, bajas, activas antes/después
 
 ## F3 — Silver, calidad y cuarentena (1.3)
-- [ ] `docs/governance/reglas_calidad.md` antes del código
-- [ ] Seeds: zonas conformadas, mapeo de zona, franjas horarias, feriados
-- [ ] Modelos Silver + `quarantine.registros_rechazados`
-- [ ] Pruebas: unicidad, not null, relaciones, accepted_values, zona sin mapear, conciliación
-- [ ] SCD2 del padrón con ventanas; conteo por regla en METRICAS
+- [x] `docs/governance/reglas_calidad.md` antes del código
+- [x] Seeds: zonas conformadas, mapeo de zona, franjas horarias, feriados
+- [x] Modelos Silver + `quarantine.registros_rechazados`
+- [x] Pruebas: unicidad, not null, relaciones, accepted_values, zona sin mapear, conciliación
+- [x] SCD2 del padrón con ventanas; conteo por regla en METRICAS
 
 ## F4 — Gold (1.4)
 - [ ] Dimensiones conformadas + 5 hechos; `dim_usuario` con HMAC
@@ -49,7 +49,7 @@ Detalle de diseño (grano, matriz del bus, identidad, costos): `docs/modelo/`, `
 - [ ] Diagrama Mermaid, DDL, diccionario YAML, `dbt docs`
 
 ## F5 — Orquestación e idempotencia (1.5)
-- [ ] DAG completo con reintentos y bitácora; `ops.run_metrics`
+- [x] DAG completo con reintentos y bitácora; `ops.run_metrics`
 - [ ] `make demo-idempotencia` + evidencia en `docs/evidence/`
 
 ## F6 — Features, Tableau, recomendación (2.3, 2.1, 2.2)
