@@ -1,0 +1,633 @@
+version: 2
+
+# Capa Staging (1.2). Convenciones:
+# - Un modelo stg_<fuente> por tabla externa de Bronze, con EXACTAMENTE las mismas filas (no filtra ni deduplica);
+#   la prueba singular assert_staging_igual_bronze lo verifica. Tipado con SAFE_CAST / SAFE.PARSE_*: una fila mal
+#   formada queda con NULL en la columna tipada y su valor crudo en <col>_raw.
+# - Linaje en todos los stg_<fuente>: fuente, archivo, objeto_gcs, ingest_date, registro_hash, raw
+#   (+ n_repeticion en batch; + kafka_offset/kafka_topico/kafka_particion/linea_num/sha256_archivo/ingest_ts en streaming).
+# - Nunca CURRENT_DATE: la fecha de referencia es var('fecha_referencia').
+
+models:
+  # ---------------- Catálogos ----------------
+  - name: stg_tm_estaciones
+    description: >
+      Catálogo de estaciones de Transmetro tipado desde bronze.tm_estaciones (CSV: estacion_id,nombre,linea,zona,lat,lon).
+      Parseo con SPLIT(raw, ','); lat/lon con SAFE_CAST a FLOAT64. Mismas filas que Bronze (104).
+    columns:
+      - name: estacion_id
+        description: "Código de estación de Transmetro (TM-<linea>-<nn>). Llave natural del catálogo."
+        data_tests: [unique, not_null]
+      - name: nombre
+        description: "Nombre de la estación tal como lo publica el operador."
+      - name: linea
+        description: "Línea de Transmetro (L1, L2, L6, L7, L12, L13, L18, R5)."
+      - name: zona_origen
+        description: "Zona tal como la escribe Transmetro ('Zona 4', 'Mixco'); se conforma en Silver con el seed zonas_mapeo."
+      - name: lat
+        description: "Latitud (FLOAT64, SAFE_CAST)."
+      - name: lon
+        description: "Longitud (FLOAT64, SAFE_CAST)."
+      - name: lat_raw
+        description: "Latitud cruda (texto) antes del SAFE_CAST."
+      - name: lon_raw
+        description: "Longitud cruda (texto) antes del SAFE_CAST."
+      - name: fuente
+        description: "Nombre lógico de la fuente (igual al nombre de la tabla externa de Bronze)."
+        data_tests: [not_null]
+      - name: archivo
+        description: "Nombre del archivo crudo de origen, extraído de _FILE_NAME (REGEXP_EXTRACT del último segmento de la ruta)."
+        data_tests: [not_null]
+      - name: objeto_gcs
+        description: "Ruta completa del objeto en GCS (_FILE_NAME de la tabla externa)."
+      - name: ingest_date
+        description: "Fecha local de ingesta a Bronze (partición Hive)."
+        data_tests: [not_null]
+      - name: registro_hash
+        description: "TO_HEX(SHA256(raw)): huella del registro crudo para rastrear el mismo registro entre capas."
+      - name: n_repeticion
+        description: "ROW_NUMBER() por (objeto_gcs, raw): 1 para la primera aparición; >1 identifica duplicados exactos dentro del mismo archivo (en batch no hay número de línea)."
+      - name: raw
+        description: "Línea original del archivo, sin transformar."
+        data_tests: [not_null]
+
+  - name: stg_tu_paradas
+    description: >
+      Catálogo de paradas de Transurbano tipado desde bronze.tu_paradas (CSV: cod_parada,descripcion,ruta,sector).
+      Solo texto; el sector se conserva en mayúsculas y sin 'Zona' ('Z4', 'MIXCO'). Mismas filas que Bronze (328).
+    columns:
+      - name: cod_parada
+        description: "Código de parada (R-<ruta>-<n>). Llave natural del catálogo."
+        data_tests: [unique, not_null]
+      - name: descripcion
+        description: "Descripción de la parada."
+      - name: ruta
+        description: "Ruta de Transurbano a la que pertenece la parada (R-101 … R-141)."
+      - name: sector_origen
+        description: "Sector tal como lo escribe Transurbano ('Z4', 'MIXCO'); se conforma en Silver con zonas_mapeo."
+      - name: fuente
+        description: "Nombre lógico de la fuente (igual al nombre de la tabla externa de Bronze)."
+        data_tests: [not_null]
+      - name: archivo
+        description: "Nombre del archivo crudo de origen, extraído de _FILE_NAME (REGEXP_EXTRACT del último segmento de la ruta)."
+        data_tests: [not_null]
+      - name: objeto_gcs
+        description: "Ruta completa del objeto en GCS (_FILE_NAME de la tabla externa)."
+      - name: ingest_date
+        description: "Fecha local de ingesta a Bronze (partición Hive)."
+        data_tests: [not_null]
+      - name: registro_hash
+        description: "TO_HEX(SHA256(raw)): huella del registro crudo para rastrear el mismo registro entre capas."
+      - name: n_repeticion
+        description: "ROW_NUMBER() por (objeto_gcs, raw): 1 para la primera aparición; >1 identifica duplicados exactos dentro del mismo archivo (en batch no hay número de línea)."
+      - name: raw
+        description: "Línea original del archivo, sin transformar."
+        data_tests: [not_null]
+
+  - name: stg_mr_estaciones
+    description: >
+      Catálogo de estaciones de MetroRiel tipado desde bronze.mr_estaciones (CSV: id_estacion,nombre_estacion,zona_nombre,km).
+      id_estacion INT64 y km FLOAT64 con SAFE_CAST. Mismas filas que Bronze (22).
+    columns:
+      - name: id_estacion
+        description: "Identificador numérico de la estación (1..22). Llave natural."
+        data_tests: [unique, not_null]
+      - name: nombre_estacion
+        description: "Nombre de la estación ('MR 01' …)."
+      - name: zona_origen
+        description: "Zona tal como la escribe MetroRiel ('Zona 12'); se conforma en Silver con zonas_mapeo."
+      - name: km
+        description: "Kilómetro de la estación sobre la línea (FLOAT64)."
+      - name: id_estacion_raw
+        description: "Identificador crudo (texto) antes del SAFE_CAST."
+      - name: km_raw
+        description: "Kilómetro crudo (texto) antes del SAFE_CAST."
+      - name: fuente
+        description: "Nombre lógico de la fuente (igual al nombre de la tabla externa de Bronze)."
+        data_tests: [not_null]
+      - name: archivo
+        description: "Nombre del archivo crudo de origen, extraído de _FILE_NAME (REGEXP_EXTRACT del último segmento de la ruta)."
+        data_tests: [not_null]
+      - name: objeto_gcs
+        description: "Ruta completa del objeto en GCS (_FILE_NAME de la tabla externa)."
+      - name: ingest_date
+        description: "Fecha local de ingesta a Bronze (partición Hive)."
+        data_tests: [not_null]
+      - name: registro_hash
+        description: "TO_HEX(SHA256(raw)): huella del registro crudo para rastrear el mismo registro entre capas."
+      - name: n_repeticion
+        description: "ROW_NUMBER() por (objeto_gcs, raw): 1 para la primera aparición; >1 identifica duplicados exactos dentro del mismo archivo (en batch no hay número de línea)."
+      - name: raw
+        description: "Línea original del archivo, sin transformar."
+        data_tests: [not_null]
+
+  - name: stg_am_estaciones
+    description: >
+      Catálogo de estaciones de Aerómetro tipado desde bronze.am_estaciones (CSV en inglés: station_code,station_name,axis,district).
+      Se conservan los nombres de columna del operador. Mismas filas que Bronze (14).
+    columns:
+      - name: station_code
+        description: "Código de estación (AM<eje><torre>). Llave natural."
+        data_tests: [unique, not_null]
+      - name: station_name
+        description: "Nombre de la estación."
+      - name: axis
+        description: "Eje del teleférico ('Eje 1', 'Eje 2')."
+      - name: district_origen
+        description: "District tal como lo escribe Aerómetro ('Mixco', 'Zona 7'); se conforma en Silver con zonas_mapeo."
+      - name: fuente
+        description: "Nombre lógico de la fuente (igual al nombre de la tabla externa de Bronze)."
+        data_tests: [not_null]
+      - name: archivo
+        description: "Nombre del archivo crudo de origen, extraído de _FILE_NAME (REGEXP_EXTRACT del último segmento de la ruta)."
+        data_tests: [not_null]
+      - name: objeto_gcs
+        description: "Ruta completa del objeto en GCS (_FILE_NAME de la tabla externa)."
+      - name: ingest_date
+        description: "Fecha local de ingesta a Bronze (partición Hive)."
+        data_tests: [not_null]
+      - name: registro_hash
+        description: "TO_HEX(SHA256(raw)): huella del registro crudo para rastrear el mismo registro entre capas."
+      - name: n_repeticion
+        description: "ROW_NUMBER() por (objeto_gcs, raw): 1 para la primera aparición; >1 identifica duplicados exactos dentro del mismo archivo (en batch no hay número de línea)."
+      - name: raw
+        description: "Línea original del archivo, sin transformar."
+        data_tests: [not_null]
+
+  # ---------------- Operación (batch) ----------------
+  - name: stg_transurbano_transacciones
+    description: >
+      Transacciones de Transurbano tipadas desde bronze.transurbano_transacciones
+      (CSV: fecha dd/mm/yyyy, hora HH:MM:SS, num_tarjeta, cod_parada, ruta, monto_centavos, cod_estado).
+      fecha_hora = SAFE.PARSE_DATETIME('%d/%m/%Y %H:%M:%S', fecha || ' ' || hora). Monto en centavos (INT64) y en quetzales (NUMERIC).
+      cod_estado se decodifica en estado_desc (1,2,3 OK; 7 SALDO_INSUF; 9 TARJETA_INVALIDA). No filtra: cod_parada vacío
+      (NULL) y fechas del futuro se conservan para que Silver los envíe a cuarentena. Mismas filas que Bronze (832 791).
+    columns:
+      - name: fecha_raw
+        description: "Fecha cruda del archivo (dd/mm/yyyy)."
+      - name: hora_raw
+        description: "Hora cruda del archivo (HH:MM:SS)."
+      - name: fecha_hora
+        description: "DATETIME local del evento; NULL si la fecha/hora no es parseable (regla R08 en Silver)."
+      - name: num_tarjeta
+        description: "Llave nativa de usuario de Transurbano (10 dígitos)."
+        data_tests: [not_null]
+      - name: cod_parada
+        description: "Código de parada; NULL cuando llega vacío (~0,5 %, regla R02 en Silver)."
+      - name: ruta
+        description: "Ruta de la unidad (R-101 … R-141)."
+      - name: monto_centavos
+        description: "Monto cobrado en centavos (INT64, SAFE_CAST)."
+      - name: monto_q
+        description: "Monto en quetzales: monto_centavos / 100 (NUMERIC)."
+      - name: monto_centavos_raw
+        description: "Monto crudo (texto) antes del SAFE_CAST."
+      - name: cod_estado
+        description: "Código de estado del cobro tal como lo emite Transurbano (INT64)."
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: [1, 2, 3, 7, 9]
+                quote: false
+      - name: cod_estado_raw
+        description: "Código de estado crudo (texto)."
+      - name: estado_desc
+        description: "Decodificación del código: OK (1,2,3), SALDO_INSUF (7), TARJETA_INVALIDA (9), DESCONOCIDO (otro)."
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: [OK, SALDO_INSUF, TARJETA_INVALIDA, DESCONOCIDO]
+      - name: es_cobro_exitoso
+        description: "TRUE si cod_estado ∈ {1,2,3}: solo estos cuentan como abordaje (ADR-010)."
+      - name: fuente
+        description: "Nombre lógico de la fuente (igual al nombre de la tabla externa de Bronze)."
+        data_tests: [not_null]
+      - name: archivo
+        description: "Nombre del archivo crudo de origen, extraído de _FILE_NAME (REGEXP_EXTRACT del último segmento de la ruta)."
+        data_tests: [not_null]
+      - name: objeto_gcs
+        description: "Ruta completa del objeto en GCS (_FILE_NAME de la tabla externa)."
+      - name: ingest_date
+        description: "Fecha local de ingesta a Bronze (partición Hive)."
+        data_tests: [not_null]
+      - name: registro_hash
+        description: "TO_HEX(SHA256(raw)): huella del registro crudo para rastrear el mismo registro entre capas."
+      - name: n_repeticion
+        description: "ROW_NUMBER() por (objeto_gcs, raw): 1 para la primera aparición; >1 identifica duplicados exactos dentro del mismo archivo (en batch no hay número de línea)."
+      - name: raw
+        description: "Línea original del archivo, sin transformar."
+        data_tests: [not_null]
+
+  - name: stg_metroriel_viajes
+    description: >
+      Viajes de MetroRiel tipados desde bronze.metroriel_viajes (JSON Lines: trip_id, card, entry{station,ts},
+      exit{station,ts}|null, fare_gtq, duration_s). SAFE.PARSE_JSON(raw) + JSON_VALUE; timestamps con
+      SAFE.PARSE_DATETIME('%Y-%m-%dT%H:%M:%S'). tiene_salida distingue el objeto exit del null JSON (regla R04 en Silver).
+      Mismas filas que Bronze (299 100).
+    columns:
+      - name: trip_id
+        description: "Identificador del viaje (INT64). Llave natural."
+        data_tests: [unique, not_null]
+      - name: card
+        description: "Llave nativa de usuario de MetroRiel (MR + 7 dígitos)."
+        data_tests: [not_null]
+      - name: entry_station
+        description: "Estación de entrada (id_estacion de MetroRiel)."
+      - name: entry_ts
+        description: "DATETIME local de la validación de entrada (es el abordaje que aporta MetroRiel al hecho principal)."
+      - name: exit_station
+        description: "Estación de salida; NULL si el pasajero no validó la salida."
+      - name: exit_ts
+        description: "DATETIME local de la salida; NULL si no hay salida."
+      - name: fare_gtq
+        description: "Tarifa en quetzales (NUMERIC)."
+      - name: duration_s
+        description: "Duración del viaje en segundos; NULL cuando no hay salida."
+      - name: tiene_salida
+        description: "TRUE si `exit` es un objeto JSON; FALSE si es null JSON o falta (~1,2 % de viajes)."
+      - name: trip_id_raw
+        description: "trip_id crudo (texto del JSON)."
+      - name: entry_ts_raw
+        description: "entry.ts crudo (texto ISO 8601)."
+      - name: exit_ts_raw
+        description: "exit.ts crudo (texto ISO 8601) o NULL."
+      - name: fare_gtq_raw
+        description: "fare_gtq crudo (texto del JSON)."
+      - name: duration_s_raw
+        description: "duration_s crudo (texto del JSON) o NULL."
+      - name: fuente
+        description: "Nombre lógico de la fuente (igual al nombre de la tabla externa de Bronze)."
+        data_tests: [not_null]
+      - name: archivo
+        description: "Nombre del archivo crudo de origen, extraído de _FILE_NAME (REGEXP_EXTRACT del último segmento de la ruta)."
+        data_tests: [not_null]
+      - name: objeto_gcs
+        description: "Ruta completa del objeto en GCS (_FILE_NAME de la tabla externa)."
+      - name: ingest_date
+        description: "Fecha local de ingesta a Bronze (partición Hive)."
+        data_tests: [not_null]
+      - name: registro_hash
+        description: "TO_HEX(SHA256(raw)): huella del registro crudo para rastrear el mismo registro entre capas."
+      - name: n_repeticion
+        description: "ROW_NUMBER() por (objeto_gcs, raw): 1 para la primera aparición; >1 identifica duplicados exactos dentro del mismo archivo (en batch no hay número de línea)."
+      - name: raw
+        description: "Línea original del archivo, sin transformar."
+        data_tests: [not_null]
+
+  # ---------------- Operación (streaming) ----------------
+  - name: stg_transmetro_validaciones
+    description: >
+      Validaciones de Transmetro tipadas desde bronze.transmetro_validaciones (streaming Kafka -> GCS; la envolvente JSON
+      trae offset, archivo, linea_num, sha256_archivo y la línea CSV original en raw:
+      validacion_id,tarjeta,estacion_id,linea,fecha_hora,tarifa,tipo). fecha_hora con SAFE.PARSE_DATETIME('%Y-%m-%d %H:%M:%S').
+      No deduplica: los ~1 115 duplicados de torniquete (mismo validacion_id) se conservan y van a cuarentena en Silver (R01),
+      por eso NO hay prueba unique en validacion_id. Mismas filas que Bronze (363 221).
+    columns:
+      - name: validacion_id
+        description: "Identificador de la validación asignado por el torniquete (INT64). Se repite en los duplicados inyectados."
+        data_tests: [not_null]
+      - name: tarjeta
+        description: "Llave nativa de usuario de Transmetro (TC- + 8 dígitos)."
+        data_tests: [not_null]
+      - name: estacion_id
+        description: "Código de estación (TM-<linea>-<nn>), llave hacia stg_tm_estaciones."
+      - name: linea
+        description: "Línea de Transmetro."
+      - name: fecha_hora
+        description: "DATETIME local de la validación."
+      - name: tarifa
+        description: "Tarifa cobrada en quetzales (NUMERIC; 0.00 adulto mayor es válida)."
+      - name: tipo
+        description: "Tipo de validación: ENTRADA o TRANSBORDO (ambas son abordajes válidos)."
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: [ENTRADA, TRANSBORDO]
+      - name: validacion_id_raw
+        description: "validacion_id crudo (texto)."
+      - name: fecha_hora_raw
+        description: "fecha_hora cruda (texto 'YYYY-MM-DD HH:MM:SS')."
+      - name: tarifa_raw
+        description: "Tarifa cruda (texto)."
+      - name: fuente
+        description: "Nombre lógico de la fuente (igual al nombre de la tabla externa de Bronze)."
+        data_tests: [not_null]
+      - name: archivo
+        description: "Archivo crudo de origen, tomado del header del mensaje de Kafka (envolvente de Bronze)."
+        data_tests: [not_null]
+      - name: objeto_gcs
+        description: "Ruta completa del objeto JSONL en GCS escrito por el consumidor (_FILE_NAME)."
+      - name: ingest_date
+        description: "Fecha local de ingesta a Bronze (partición Hive)."
+        data_tests: [not_null]
+      - name: registro_hash
+        description: "TO_HEX(SHA256(raw)): huella de la línea CSV original."
+      - name: kafka_offset
+        description: "Offset del mensaje en la partición de Kafka (offset de la envolvente)."
+        data_tests: [not_null]
+      - name: kafka_topico
+        description: "Tópico de Kafka (partición Hive `topico`)."
+      - name: kafka_particion
+        description: "Partición de Kafka (partición Hive `particion`)."
+      - name: kafka_ts
+        description: "Marca de tiempo del mensaje en Kafka (SAFE_CAST a TIMESTAMP del ISO 8601 UTC de la envolvente)."
+      - name: kafka_clave
+        description: "Clave del mensaje (nombre del archivo publicado por el productor)."
+      - name: linea_num
+        description: "Número de línea de datos en el archivo de origen (header del productor; 1 = primera fila tras el encabezado)."
+      - name: sha256_archivo
+        description: "sha256 del archivo publicado (header del productor); con archivo y linea_num identifica una entrega."
+      - name: ingest_ts
+        description: "Marca de tiempo de escritura a GCS por el consumidor (SAFE_CAST a TIMESTAMP)."
+      - name: raw
+        description: "Línea CSV original, sin transformar."
+        data_tests: [not_null]
+
+  - name: stg_aerometro_boardings
+    description: >
+      Abordajes de Aerómetro tipados desde bronze.aerometro_boardings (streaming Kafka -> GCS; raw es la línea CSV en inglés:
+      boarding_id,user_hash,station_code,axis,timestamp_utc,cabin_number,fare). timestamp_utc con
+      SAFE.PARSE_TIMESTAMP('%Y-%m-%dT%H:%M:%SZ') y fecha_hora_local = DATETIME(ts, var('tz_local')) (ADR-010: UTC-6).
+      Mismas filas que Bronze (203 554).
+    columns:
+      - name: boarding_id
+        description: "Identificador del abordaje (INT64). Llave natural."
+        data_tests: [unique, not_null]
+      - name: user_hash
+        description: "Llave nativa de usuario de Aerómetro (12 hex; MD5 sin sal, ver ADR-008)."
+        data_tests: [not_null]
+      - name: station_code
+        description: "Código de estación (AM<eje><torre>), llave hacia stg_am_estaciones."
+      - name: axis
+        description: "Eje del teleférico ('Eje 1', 'Eje 2')."
+      - name: timestamp_utc
+        description: "TIMESTAMP del abordaje en UTC, tal como lo reporta el operador."
+      - name: fecha_hora_local
+        description: "DATETIME en hora de Guatemala (America/Guatemala), comparable con los otros operadores."
+      - name: cabin_number
+        description: "Número de cabina (1..10)."
+      - name: fare
+        description: "Tarifa en quetzales (NUMERIC)."
+      - name: boarding_id_raw
+        description: "boarding_id crudo (texto)."
+      - name: timestamp_utc_raw
+        description: "timestamp_utc crudo (texto ISO 8601 con Z)."
+      - name: cabin_number_raw
+        description: "cabin_number crudo (texto)."
+      - name: fare_raw
+        description: "fare crudo (texto)."
+      - name: fuente
+        description: "Nombre lógico de la fuente (igual al nombre de la tabla externa de Bronze)."
+        data_tests: [not_null]
+      - name: archivo
+        description: "Archivo crudo de origen, tomado del header del mensaje de Kafka (envolvente de Bronze)."
+        data_tests: [not_null]
+      - name: objeto_gcs
+        description: "Ruta completa del objeto JSONL en GCS escrito por el consumidor (_FILE_NAME)."
+      - name: ingest_date
+        description: "Fecha local de ingesta a Bronze (partición Hive)."
+        data_tests: [not_null]
+      - name: registro_hash
+        description: "TO_HEX(SHA256(raw)): huella de la línea CSV original."
+      - name: kafka_offset
+        description: "Offset del mensaje en la partición de Kafka (offset de la envolvente)."
+        data_tests: [not_null]
+      - name: kafka_topico
+        description: "Tópico de Kafka (partición Hive `topico`)."
+      - name: kafka_particion
+        description: "Partición de Kafka (partición Hive `particion`)."
+      - name: kafka_ts
+        description: "Marca de tiempo del mensaje en Kafka (SAFE_CAST a TIMESTAMP del ISO 8601 UTC de la envolvente)."
+      - name: kafka_clave
+        description: "Clave del mensaje (nombre del archivo publicado por el productor)."
+      - name: linea_num
+        description: "Número de línea de datos en el archivo de origen (header del productor; 1 = primera fila tras el encabezado)."
+      - name: sha256_archivo
+        description: "sha256 del archivo publicado (header del productor); con archivo y linea_num identifica una entrega."
+      - name: ingest_ts
+        description: "Marca de tiempo de escritura a GCS por el consumidor (SAFE_CAST a TIMESTAMP)."
+      - name: raw
+        description: "Línea CSV original, sin transformar."
+        data_tests: [not_null]
+
+  # ---------------- CDC ----------------
+  - name: stg_cdc_padron_usuarios
+    description: >
+      Log de CDC del padrón de usuarios tipado desde bronze.cdc_padron_usuarios
+      (CSV: seq,commit_ts,op,tarjeta,perfil,zona_residencia,estado). Una fila por operación; los DELETE llegan sin cuerpo.
+      Implementa ADR-008: formato_tarjeta clasifica la llave mezclada (TM/TU/MR/SIN) y usuario_base_id extrae el entero base
+      compartido entre operadores. Mismas filas que Bronze (31 050).
+    columns:
+      - name: seq
+        description: "Número de secuencia del log (INT64). Define el orden de aplicación de las operaciones. Llave natural."
+        data_tests: [unique, not_null]
+      - name: seq_raw
+        description: "seq crudo (texto)."
+      - name: commit_ts
+        description: "DATETIME del commit en el sistema origen (SAFE.PARSE_DATETIME '%Y-%m-%dT%H:%M:%S')."
+      - name: commit_ts_raw
+        description: "commit_ts crudo (texto ISO 8601)."
+      - name: op
+        description: "Operación del log: INSERT, UPDATE o DELETE."
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [INSERT, UPDATE, DELETE]
+      - name: tarjeta
+        description: "Llave del padrón: primera tarjeta de la persona entre TM, TU y MR (formatos mezclados) o 'SIN-TARJETA'."
+        data_tests: [not_null]
+      - name: perfil
+        description: "Perfil de la persona (estudiante, trabajador, adulto_mayor, general); NULL en DELETE."
+      - name: zona_residencia
+        description: "Zona de residencia tal como la escribe el padrón ('Zona 10', 'Santa Catarina Pinula'); NULL en DELETE."
+      - name: estado
+        description: "Estado que trae el log ('ACTIVA'); NULL cuando llega vacío (DELETE)."
+      - name: formato_tarjeta
+        description: "Clasificación por expresión regular: TM (^TC-\\d{8}$), TU (^\\d{10}$), MR (^MR\\d{7}$), SIN ('SIN-TARJETA') o DESCONOCIDO."
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: [TM, TU, MR, SIN, DESCONOCIDO]
+      - name: usuario_base_id
+        description: "Entero base compartido entre operadores (ADR-008): TC-00029030 -> 29030, 0000058521 -> 58521, MR0041900 -> 41900; NULL para SIN/DESCONOCIDO."
+      - name: fuente
+        description: "Nombre lógico de la fuente (igual al nombre de la tabla externa de Bronze)."
+        data_tests: [not_null]
+      - name: archivo
+        description: "Nombre del archivo crudo de origen, extraído de _FILE_NAME (REGEXP_EXTRACT del último segmento de la ruta)."
+        data_tests: [not_null]
+      - name: objeto_gcs
+        description: "Ruta completa del objeto en GCS (_FILE_NAME de la tabla externa)."
+      - name: ingest_date
+        description: "Fecha local de ingesta a Bronze (partición Hive)."
+        data_tests: [not_null]
+      - name: registro_hash
+        description: "TO_HEX(SHA256(raw)): huella del registro crudo para rastrear el mismo registro entre capas."
+      - name: n_repeticion
+        description: "ROW_NUMBER() por (objeto_gcs, raw): 1 para la primera aparición; >1 identifica duplicados exactos dentro del mismo archivo (en batch no hay número de línea)."
+      - name: raw
+        description: "Línea original del archivo, sin transformar."
+        data_tests: [not_null]
+
+  - name: stg_padron_cdc_aplicado
+    description: >
+      Padrón vigente: resultado de aplicar el log de CDC en orden de seq, una fila por tarjeta (ADR-009).
+      Excluye 'SIN-TARJETA' (sin llave; Silver la envía a cuarentena, R07). estado_actual = INACTIVA si la última operación es
+      DELETE, si no ACTIVA. perfil y zona_residencia = último valor no nulo hasta la última operación (los DELETE, sin cuerpo,
+      conservan los atributos previos). Contadores por tarjeta y banderas de anomalía del log: alta implícita (primera op no es
+      INSERT), baja sin alta previa (DELETE sin INSERT antes) y alta repetida (más de un INSERT).
+    columns:
+      - name: tarjeta
+        description: "Llave del padrón (TM/TU/MR). Una fila por tarjeta."
+        data_tests: [unique, not_null]
+      - name: usuario_base_id
+        description: "Entero base compartido (ADR-008), tomado de stg_cdc_padron_usuarios."
+      - name: formato_tarjeta
+        description: "TM, TU o MR (SIN queda excluido; DESCONOCIDO no ocurre en los datos)."
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: [TM, TU, MR, DESCONOCIDO]
+      - name: estado_actual
+        description: "ACTIVA o INACTIVA según la última operación de la tarjeta (DELETE -> INACTIVA)."
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [ACTIVA, INACTIVA]
+      - name: perfil
+        description: "Último perfil no nulo aplicado (LAST_VALUE IGNORE NULLS por seq). NULL solo si la tarjeta nunca trajo cuerpo (solo DELETE)."
+      - name: zona_residencia
+        description: "Última zona de residencia no nula aplicada, tal como la escribe el padrón."
+      - name: primera_op
+        description: "Operación con menor seq de la tarjeta."
+      - name: primera_seq
+        description: "Menor seq de la tarjeta."
+      - name: ultima_op
+        description: "Operación con mayor seq de la tarjeta."
+      - name: ultima_seq
+        description: "Mayor seq de la tarjeta."
+      - name: ultimo_commit_ts
+        description: "commit_ts de la última operación."
+      - name: n_ops
+        description: "Total de operaciones de la tarjeta en el log."
+      - name: n_insert
+        description: "Número de INSERT de la tarjeta."
+      - name: n_update
+        description: "Número de UPDATE de la tarjeta."
+      - name: n_delete
+        description: "Número de DELETE de la tarjeta."
+      - name: n_insert_sobre_existente
+        description: "INSERT que llegaron cuando la llave ya existía (no son la primera operación): se aplican como UPDATE (ADR-009)."
+      - name: n_delete_sin_alta_previa
+        description: "DELETE que llegaron sin ningún INSERT anterior en la secuencia."
+      - name: alta_implicita
+        description: "TRUE si la primera operación no es INSERT (UPDATE o DELETE sobre llave inexistente)."
+      - name: baja_sin_alta_previa
+        description: "TRUE si hay al menos un DELETE sin INSERT antes en la secuencia."
+      - name: alta_repetida
+        description: "TRUE si la tarjeta tiene más de un INSERT."
+      - name: fuente
+        description: "cdc_padron_usuarios (linaje)."
+      - name: archivo
+        description: "Archivo crudo del log (linaje)."
+      - name: ingest_date
+        description: "Fecha de ingesta del log (linaje)."
+
+  - name: stg_padron_cdc_resumen
+    description: >
+      Una sola fila con las métricas del CDC exigidas por la rúbrica 1.2: operaciones por tipo, filas sin tarjeta,
+      tarjetas distintas, altas (aplicadas, implícitas, repetidas), cambios, bajas (aplicadas, sin alta previa) y tarjetas
+      activas antes y después de aplicar los DELETE. Las identidades entre cifras están documentadas en el modelo y en
+      docs/evidence/cdc_resumen.md.
+    columns:
+      - name: ops_total
+        description: "Operaciones en el log (= filas de Bronze)."
+        data_tests: [not_null]
+      - name: inserts
+        description: "Operaciones INSERT."
+      - name: updates
+        description: "Operaciones UPDATE."
+      - name: deletes
+        description: "Operaciones DELETE."
+      - name: filas_sin_tarjeta
+        description: "Operaciones con tarjeta 'SIN-TARJETA' o nula (sin llave; irán a cuarentena R07)."
+      - name: inserts_sin_tarjeta
+        description: "INSERT sin tarjeta."
+      - name: updates_sin_tarjeta
+        description: "UPDATE sin tarjeta."
+      - name: deletes_sin_tarjeta
+        description: "DELETE sin tarjeta."
+      - name: tarjetas_distintas
+        description: "Tarjetas distintas con llave (filas de stg_padron_cdc_aplicado)."
+      - name: altas_aplicadas
+        description: "Tarjetas cuya primera operación es INSERT."
+      - name: altas_implicitas
+        description: "Tarjetas cuya primera operación no es INSERT (creadas por UPDATE o DELETE)."
+      - name: altas_repetidas
+        description: "INSERT sobre llave ya existente, en número de operaciones (se aplican como UPDATE)."
+      - name: tarjetas_con_insert_repetido
+        description: "Tarjetas con más de un INSERT."
+      - name: cambios_aplicados
+        description: "UPDATE aplicados sobre tarjetas con llave, en número de operaciones."
+      - name: bajas_aplicadas
+        description: "Tarjetas con estado_actual = INACTIVA (su última operación es DELETE)."
+      - name: bajas_sin_alta_previa
+        description: "Tarjetas con al menos un DELETE sin INSERT previo."
+      - name: deletes_sin_alta_previa
+        description: "DELETE sin INSERT previo, en número de operaciones."
+      - name: tarjetas_solo_delete
+        description: "Tarjetas que solo tienen DELETE (nunca estuvieron activas)."
+      - name: activas_antes_de_borrados
+        description: "Tarjetas con al menos un INSERT o UPDATE: las que estarían activas si se ignoraran los DELETE."
+      - name: activas_despues_de_borrados
+        description: "Tarjetas con estado_actual = ACTIVA tras aplicar los DELETE."
+      - name: fuente
+        description: "cdc_padron_usuarios (linaje)."
+      - name: archivo
+        description: "Archivo crudo del log (linaje)."
+      - name: ingest_date
+        description: "Fecha de ingesta del log (linaje)."
+
+  # ---------------- Catálogos mínimos de usuarios (restricción dura 8) ----------------
+  - name: stg_catalogo_usuarios_tm
+    description: "Llaves distintas de usuario observadas en las validaciones de Transmetro (tarjeta). Solo llave, operador y conteo operativo; sin atributos inventados."
+    columns:
+      - name: llave
+        description: "Llave nativa (tarjeta TC-XXXXXXXX)."
+        data_tests: [unique, not_null]
+      - name: operador
+        description: "'TM'."
+      - name: n_registros
+        description: "Filas de operación con esa llave (conteo, no atributo del usuario)."
+  - name: stg_catalogo_usuarios_tu
+    description: "Llaves distintas de usuario observadas en las transacciones de Transurbano (num_tarjeta). Solo llave, operador y conteo operativo; sin atributos inventados."
+    columns:
+      - name: llave
+        description: "Llave nativa (num_tarjeta de 10 dígitos)."
+        data_tests: [unique, not_null]
+      - name: operador
+        description: "'TU'."
+      - name: n_registros
+        description: "Filas de operación con esa llave (conteo, no atributo del usuario)."
+  - name: stg_catalogo_usuarios_mr
+    description: "Llaves distintas de usuario observadas en los viajes de MetroRiel (card). Solo llave, operador y conteo operativo; sin atributos inventados."
+    columns:
+      - name: llave
+        description: "Llave nativa (card MRXXXXXXX)."
+        data_tests: [unique, not_null]
+      - name: operador
+        description: "'MR'."
+      - name: n_registros
+        description: "Filas de operación con esa llave (conteo, no atributo del usuario)."
+  - name: stg_catalogo_usuarios_am
+    description: "Llaves distintas de usuario observadas en los abordajes de Aerómetro (user_hash). Solo llave, operador y conteo operativo; sin atributos inventados."
+    columns:
+      - name: llave
+        description: "Llave nativa (user_hash de 12 hex)."
+        data_tests: [unique, not_null]
+      - name: operador
+        description: "'AM'."
+      - name: n_registros
+        description: "Filas de operación con esa llave (conteo, no atributo del usuario)."
