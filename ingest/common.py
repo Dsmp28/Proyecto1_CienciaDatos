@@ -13,7 +13,10 @@ adjunta a la VM. Nunca llaves JSON.
 """
 from __future__ import annotations
 
+import atexit
 import dataclasses
+import logging
+import time
 import datetime as dt
 import hashlib
 import os
@@ -21,7 +24,7 @@ import uuid
 from pathlib import Path
 from typing import Iterable
 
-from google.api_core.exceptions import NotFound
+from google.api_core.exceptions import NotFound, TooManyRequests
 from google.cloud import bigquery, storage
 
 # ---------------------------------------------------------------------------
@@ -178,18 +181,64 @@ def manifiesto_tiene(client: bigquery.Client, archivo: str, sha256: str, estados
     return next(iter(job.result())).n > 0
 
 
+_COLA_OPS: dict[str, list[dict]] = {}
+_CLIENTE_OPS: bigquery.Client | None = None
+_log = logging.getLogger("ingest.ops")
+
+
+def _encolar(client: bigquery.Client, table_id: str, fila: dict) -> None:
+    """Acumula filas para ops.*; se cargan en UN solo job por tabla al vaciar (flush_ops) o al salir.
+
+    BigQuery limita las operaciones de actualización de metadatos por tabla (~5 cada 10 s). Con varias
+    tareas del DAG en paralelo, un load job por fila producía 429 rateLimitExceeded (visto el 2026-09-21).
+    """
+    global _CLIENTE_OPS
+    _CLIENTE_OPS = client
+    _COLA_OPS.setdefault(table_id, []).append(fila)
+
+
+def _cargar_con_reintento(client: bigquery.Client, table_id: str, filas: list[dict], schema, intentos: int = 6) -> None:
+    espera = 5.0
+    for i in range(1, intentos + 1):
+        try:
+            job = client.load_table_from_json(
+                filas, table_id,
+                job_config=bigquery.LoadJobConfig(schema=schema, write_disposition="WRITE_APPEND"),
+            )
+            job.result()
+            return
+        except TooManyRequests as exc:
+            if i == intentos:
+                raise
+            _log.warning("429 al cargar %s (intento %d/%d): %s; reintento en %.0f s", table_id, i, intentos, exc, espera)
+            time.sleep(espera)
+            espera *= 2
+
+
+def flush_ops(client: bigquery.Client | None = None) -> int:
+    """Carga en BigQuery todas las filas acumuladas (un job por tabla). Devuelve filas cargadas."""
+    client = client or _CLIENTE_OPS
+    total = 0
+    for table_id in list(_COLA_OPS):
+        filas = _COLA_OPS.pop(table_id)
+        if not filas or client is None:
+            continue
+        schema = MANIFEST_SCHEMA if table_id == MANIFEST_TABLE else RUN_METRICS_SCHEMA
+        _cargar_con_reintento(client, table_id, filas, schema)
+        total += len(filas)
+    return total
+
+
+atexit.register(flush_ops)
+
+
 def registrar_manifiesto(client: bigquery.Client, fila: dict) -> None:
-    """Inserta una fila en el manifiesto (carga por job, no streaming: sin costo y sin buffer)."""
+    """Registra una fila del manifiesto (en lote: se escribe en flush_ops() o al terminar el proceso)."""
     fila = {**fila}
     fila.setdefault("ingest_ts", dt.datetime.now(dt.timezone.utc).isoformat())
     fila.setdefault("run_id", run_id_actual())
     fila.setdefault("ingest_date", ingest_date_hoy())
-    job = client.load_table_from_json(
-        [fila],
-        MANIFEST_TABLE,
-        job_config=bigquery.LoadJobConfig(schema=MANIFEST_SCHEMA, write_disposition="WRITE_APPEND"),
-    )
-    job.result()
+    _encolar(client, MANIFEST_TABLE, fila)
 
 
 def registrar_metrica(client: bigquery.Client, etapa: str, metrica: str, valor: float, *, capa: str | None = None,
@@ -204,11 +253,7 @@ def registrar_metrica(client: bigquery.Client, etapa: str, metrica: str, valor: 
         "ts": dt.datetime.now(dt.timezone.utc).isoformat(),
         "detalle": detalle,
     }
-    job = client.load_table_from_json(
-        [fila], RUN_METRICS_TABLE,
-        job_config=bigquery.LoadJobConfig(schema=RUN_METRICS_SCHEMA, write_disposition="WRITE_APPEND"),
-    )
-    job.result()
+    _encolar(client, RUN_METRICS_TABLE, fila)
 
 
 # ---------------------------------------------------------------------------

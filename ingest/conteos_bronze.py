@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import argparse
 import datetime as dt
+import os
 import sys
 from pathlib import Path
 
@@ -26,7 +27,7 @@ sys.path.insert(0, str(REPO))
 
 from ingest import common  # noqa: E402
 
-SALIDA_DEFECTO = REPO / "docs" / "evidence" / "conteos_bronze.md"
+SALIDA_DEFECTO = Path(os.environ["EVIDENCIA_DIR"]) / "conteos_bronze.md" if os.environ.get("EVIDENCIA_DIR") else REPO / "docs" / "evidence" / "conteos_bronze.md"
 
 
 # ---------------------------------------------------------------------------
@@ -134,8 +135,12 @@ def main(argv: list[str] | None = None) -> int:
         filas.append(fila)
 
     md = a_markdown(filas, run_id, dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds"))
-    args.salida.parent.mkdir(parents=True, exist_ok=True)
-    args.salida.write_text(md, encoding="utf-8")
+    try:
+        args.salida.parent.mkdir(parents=True, exist_ok=True)
+        args.salida.write_text(md, encoding="utf-8")
+    except OSError as exc:
+        # En la VM docs/ está montado de solo lectura: la evidencia se toma de la salida del log y de ops.run_metrics.
+        print(f"[conteos] AVISO: no se pudo escribir {args.salida} ({exc}); la tabla queda en la salida estándar", file=sys.stderr)
     print(md)
     print(f"[conteos] escrito {args.salida}")
     return 0 if all(f["ok"] for f in filas) else 1

@@ -74,6 +74,7 @@ def _registrar_duracion(context, detalle: str) -> None:
         run_id = context.get("run_id") or getattr(ti, "run_id", None)
         common.registrar_metrica(common.bq_client(), etapa=ti.task_id, metrica="duracion_s", valor=valor,
                                  run_id=run_id, detalle=detalle)
+        common.flush_ops()  # carga inmediata: el proceso de la tarea puede terminar sin ejecutar atexit
         log.info("Métrica duracion_s=%.1f registrada para %s (%s)", valor, ti.task_id, detalle)
     except Exception:  # noqa: BLE001 — registrar métricas nunca debe alterar el estado de la tarea
         log.exception("No se pudo registrar la duración en ops.run_metrics")

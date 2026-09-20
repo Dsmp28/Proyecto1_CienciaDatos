@@ -19,6 +19,16 @@
 # La contraseña de admin se lee de Secret Manager y nunca se imprime. Requiere: gcloud, curl, .venv.
 set -euo pipefail
 
+# Resume el estado de las tareas de una corrida (lee el JSON de /taskInstances por stdin).
+PY_PROGRESO=$(cat <<'PYEOF'
+import json, sys, collections
+tis = json.load(sys.stdin).get("task_instances", [])
+c = collections.Counter((t.get("state") or "pendiente") for t in tis)
+resto = ", ".join(f"{k}={v}" for k, v in sorted(c.items()) if k != "success")
+print(f"{c.get('success', 0)}/{len(tis)} ok" + (", " + resto if resto else ""))
+PYEOF
+)
+
 REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$REPO"
 
@@ -138,11 +148,7 @@ disparar_y_esperar() {  # disparar_y_esperar <dag_run_id>; deja DURACION_S y EST
     local dr; dr="$(api GET "/dags/$DAG_ID/dagRuns/$run_id")"
     ESTADO="$(printf '%s' "$dr" | campo state)"
     local progreso
-    progreso="$(api GET "/dags/$DAG_ID/dagRuns/$run_id/taskInstances?limit=100" | "$PY" -c '
-import json, sys, collections
-tis = json.load(sys.stdin).get("task_instances", [])
-c = collections.Counter((t.get("state") or "none") for t in tis)
-print(f"{c.get(\"success\",0)}/{len(tis)} ok" + "".join(f", {k}={v}" for k, v in sorted(c.items()) if k != "success"))' 2>/dev/null || echo "?")"
+    progreso="$(api GET "/dags/$DAG_ID/dagRuns/$run_id/taskInstances?limit=100" | "$PY" -c "$PY_PROGRESO" 2>/dev/null || echo "?")"
     log "  $run_id: estado=$ESTADO · tareas: $progreso"
     case "$ESTADO" in
       success|failed) break ;;
