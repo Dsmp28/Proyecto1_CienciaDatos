@@ -52,7 +52,7 @@ modos y la primera en transbordo local: **23 704 personas usan dos o más sistem
 usuarios multimodales generan el 88,46 % de sus viajes (131 404). Las estaciones más cargadas por ellos son MR 22
 (12 517 viajes) y Aerómetro Eje 1 - Torre 6 (13 380), con Transmetro Centra Sur - Centro 10 (2 936) y la parada 7 de
 la ruta R-110 de Transurbano (2 188) como alimentadores (`h8_transbordo_estacion_candidata.sql`). La Zona 12
-(23 004 personas; MR 03 y Eje 1 - Torre 4) es la segunda opción.
+(23 004 personas con dos o más modos dentro de la zona, `h9_cifras_recomendacion.sql`; MR 03 y Eje 1 - Torre 4) es la segunda opción.
 
 **2. Corredor descubierto: Santa Catarina Pinula.** Única zona sin servicio con demanda demostrable (1 261 personas
 del padrón, `h3_cobertura.sql`). Se propone extender una ruta de Transurbano (el modo más barato de desplegar) desde
@@ -60,8 +60,8 @@ la Zona 10, la zona con servicio colindante en la geografía real, y medir su us
 tablas Gold.
 
 **3. Modo subutilizado: Aerómetro.** Antes de ampliarlo, concentrar frecuencia en los ejes de Mixco y Zona 7, donde
-está la mitad de su demanda, e integrarlo tarifariamente con Transurbano, con el que comparte 1 546 usuarios de dos
-modos y 3 928 de tres (`h4_transbordo.sql`); fuera de esos ejes cada torre mueve ≈ 320 viajes/día.
+está la mitad de su demanda, e integrarlo tarifariamente con Transurbano, con el que comparte 1 546 personas que usan exactamente esos dos
+modos y 4 866 que los combinan con un tercero (`h9_cifras_recomendacion.sql`); fuera de esos ejes cada torre mueve ≈ 320 viajes/día.
 
 **4. Hora pico.** Reforzar frecuencias entre 06:00–08:00 y 17:00–18:00, cinco horas que concentran el 44,6 % de
 los viajes (735 172), y promover horarios escalonados con los grandes empleadores (`h1_demanda_modo_hora.sql`).
@@ -75,6 +75,6 @@ los viajes (735 172), y promover horarios escalonados con los grandes empleadore
   inversión del hash sin sal de Aerómetro); sin él, el 72,98 % no sería medible.
 - Aerómetro no tuvo filas en cuarentena (0 de 203 554, `docs/evidence/calidad_resumen.md`): su bajo volumen es
   demanda real, no pérdida de datos. Transurbano sí perdió 5 003 filas (0,6 %: paradas nulas y fechas futuras).
-- "Usuario activo" (53 820 personas (110 762 tarjetas) tarjetas) se calcula a `fecha_referencia = 2026-07-16`, no a la fecha del sistema.
+- "Usuario activo" (53 820 personas (110 762 tarjetas)) se calcula a `fecha_referencia = 2026-07-16`, no a la fecha del sistema.
 - Gold no tiene geometrías ni distancias entre estaciones: la ubicación exacta de la estación de transbordo dentro
   de la Zona 17 requiere un estudio de sitio.

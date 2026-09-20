@@ -50,7 +50,7 @@ outputs: ## Muestra los outputs de Terraform (IP, URL de Airflow, bucket)
 vm-start: ## Enciende la VM
 	gcloud compute instances start $(VM_NAME) --zone $(ZONE) --project $(PROJECT_ID)
 
-vm-stop: ## Apaga la VM (ahorra ~33 USD/mes; la IP estática se sigue cobrando)
+vm-stop: ## Apaga la VM (ahorra ~49 USD/mes de cómputo; disco e IP estática se siguen cobrando)
 	gcloud compute instances stop $(VM_NAME) --zone $(ZONE) --project $(PROJECT_ID)
 
 vm-status: ## Estado de la VM
@@ -64,7 +64,7 @@ vm-sync: ## Copia el código del repo a la VM por IAP (sin datos, sin .venv, sin
 	gcloud compute scp /tmp/red-metropolitana-src.tgz $(VM_NAME):/tmp/ --zone $(ZONE) --project $(PROJECT_ID) --tunnel-through-iap --quiet
 	gcloud compute ssh $(VM_NAME) --zone $(ZONE) --project $(PROJECT_ID) --tunnel-through-iap --quiet -- \
 	  'sudo mkdir -p $(VM_DIR)/airflow/logs $(VM_DIR)/datos_red && sudo tar xzf /tmp/red-metropolitana-src.tgz -C $(VM_DIR) --no-same-owner \
-	   && sudo chown -R 50000:0 $(VM_DIR)/airflow/logs $(VM_DIR)/dbt $(VM_DIR)/datos_red && sudo chmod -R g+rwX $(VM_DIR)/airflow/logs $(VM_DIR)/dbt $(VM_DIR)/datos_red \
+	   && sudo find $(VM_DIR) -name '._*' -delete && sudo chown -R 50000:0 $(VM_DIR)/airflow/logs $(VM_DIR)/dbt $(VM_DIR)/datos_red && sudo chmod -R g+rwX $(VM_DIR)/airflow/logs $(VM_DIR)/dbt $(VM_DIR)/datos_red \
 	   && echo sincronizado'
 	# Los directorios que escribe el contenedor (logs, dbt/target, datos_red) pertenecen al usuario airflow (uid 50000);
 	# el resto queda de root y es legible por todos. Nunca chown -R al usuario de SSH: rompe los logs de las tareas.

@@ -16,7 +16,8 @@ def _archivos_sql(dbt_dir: Path):
     for sub in ("models", "macros", "tests", "analyses"):
         base = dbt_dir / sub
         if base.exists():
-            yield from base.rglob("*.sql")
+            # Se omiten archivos ocultos (p. ej. `._x.sql`, metadatos AppleDouble que deja tar en macOS): dbt no los lee.
+            yield from (p for p in base.rglob("*.sql") if not p.name.startswith("."))
 
 
 def test_sin_fecha_del_sistema(dbt_dir):

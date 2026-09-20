@@ -23,7 +23,7 @@ Si el generador `docs/generar_red_metropolitana.py` ya existe, leerlo completo a
 ```
 make venv                 # crea .venv con dbt-bigquery
 make plan / make apply    # terraform en infra/main (apply solo con OK del usuario)
-make vm-start / vm-stop   # encender/apagar la VM (ahorra ~33 USD/mes)
+make vm-start / vm-stop   # encender/apagar la VM (ahorra ~49 USD/mes de cómputo; disco e IP se siguen cobrando)
 make destroy              # destruye toda la infraestructura
 make demo-idempotencia    # corre el flujo dos veces y compara conteos
 make dbt-build            # dbt build por capas con pruebas

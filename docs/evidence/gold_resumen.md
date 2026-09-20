@@ -27,7 +27,7 @@ tras la corrida 1; la corrida 2 produjo conteos idénticos (§3). Modelo: `docs/
 |---|---|---:|---|
 | `dim_tiempo` | dimensión | 1 080 | 45 días (2026-06-01…2026-07-15) × 24 horas |
 | `dim_modo` | dimensión | 4 | 4 modos fijos |
-| `dim_zona` | dimensión | 26 | = seed `zonas` (26, incluidas 10 sin servicio) |
+| `dim_zona` | dimensión | 26 | = seed `zonas` (26, incluidas 11 sin servicio) |
 | `dim_estacion` | dimensión | 468 | = `silver_estaciones` (104 TM + 328 TU + 22 MR + 14 AM) |
 | `dim_usuario` | dimensión | 117 205 | = `silver_usuarios` (43 257 TM + 36 567 TU + 22 885 MR + 14 496 AM) |
 | `dim_padron_historia` | dimensión | 28 844 | = `silver_padron_scd2` |

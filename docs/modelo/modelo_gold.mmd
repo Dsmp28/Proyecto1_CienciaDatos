@@ -46,6 +46,17 @@ erDiagram
         datetime vigente_hasta "SCD2, NULL = vigente"
         bool es_vigente
     }
+    dim_padron_historia {
+        string usuario_sk FK
+        int version PK "por usuario_sk"
+        datetime vigente_desde
+        datetime vigente_hasta "NULL = vigente"
+        bool es_vigente
+        string estado "ACTIVA|INACTIVA"
+        string perfil
+        string zona_residencia_id FK
+        bool alta_implicita
+    }
     dim_fuente {
         string fuente_sk PK
         string fuente
@@ -135,3 +146,5 @@ erDiagram
     dim_modo ||--o{ dim_estacion : "modo_id"
     dim_zona ||--o{ dim_estacion : "zona_id"
     dim_modo ||--o{ dim_usuario : "modo_id"
+    dim_usuario ||--o{ dim_padron_historia : "usuario_sk"
+    dim_zona ||--o{ dim_padron_historia : "zona_residencia_id"

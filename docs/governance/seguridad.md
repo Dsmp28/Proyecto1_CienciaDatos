@@ -18,7 +18,7 @@ sistema de transporte sabe dónde estuvo cada persona, a qué hora, todos los d�
 ## 2. Seudonimización de la llave de usuario antes de Gold
 - **HMAC-SHA256 con sal secreta** (ADR-007): `usuario_sk = HMAC(sal, modo || llave_nativa)`. Un hash simple sin sal es
   reversible por diccionario cuando la llave tiene formato conocido; el propio dataset lo demuestra: el "hash" de Aerómetro
-  es `md5("am" + i)[:12]` y se invirtió al 100 % con 60 000 candidatos (ADR-008).
+  es `md5("am" + i)[:12]` y se invirtió al 100 % con 70 000 candidatos (los 60 000 del generador más margen) (ADR-008).
 - La sal (32 bytes aleatorios) nunca sale de Secret Manager en texto de consulta: `ingest/hmac_key_to_bq.py` deriva los
   bloques internos de HMAC y los guarda en `ops_secrets.hmac_key`, un dataset al que solo accede la cuenta de servicio del
   pipeline; el macro `hmac_sha256()` de dbt los lee con una subconsulta. Verificado: BigQuery y Python producen el mismo digest.

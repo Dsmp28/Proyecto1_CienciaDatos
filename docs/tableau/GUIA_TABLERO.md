@@ -38,7 +38,7 @@ Parámetro global: `[Fecha de referencia]` (tipo fecha, valor `2026-07-16`). Nun
 | `Usuarios multimodales` | `SUM(IF [es_multimodal] THEN [usuarios] ELSE 0 END)` | agg_transbordo_resumen | |
 | `% Multimodal` | `SUM(IF [es_multimodal] THEN [usuarios] ELSE 0 END) / SUM([usuarios])` | agg_transbordo_resumen | KPI |
 | `Trazado MetroRiel` | `IF [es_zona_metroriel] THEN "En el trazado (12, 8, 1, 6, 17)" ELSE "Fuera del trazado" END` | agg_metroriel | color |
-| `Usuarios activos (30 d)` | `COUNTD(IF [fecha] > DATEADD('day', -30, [Fecha de referencia]) AND [fecha] <= [Fecha de referencia] AND NOT ([modo_id] = "TM" AND [estado_padron] = "INACTIVA") THEN [usuario_sk] END)` | `.tds` | definición oficial §2; `estado_padron` viene de `dim_usuario` |
+| `Usuarios activos (30 d)` | `COUNTD(IF [fecha] >= DATEADD('day', -30, [Fecha de referencia]) AND [fecha] < [Fecha de referencia] AND [estado_padron] <> "INACTIVA" THEN [usuario_unificado_sk] END)` | `.tds` | definición oficial §2; `estado_padron` viene de `dim_usuario` |
 | `Viajes del mes` | `SUM(IF [anio_mes] = [Mes de referencia] THEN [abordajes] ELSE 0 END)` | `.tds` | parámetro `[Mes de referencia]` = `"2026-06"`; `anio_mes` viene de `dim_tiempo` |
 | `Zona (nombre corto)` | `REPLACE([zona_nombre], "Zona ", "Z")` | agg_demanda, agg_metroriel | etiquetas cortas en barras |
 
@@ -118,12 +118,12 @@ Parámetro global: `[Fecha de referencia]` (tipo fecha, valor `2026-07-16`). Nun
 |---|---|---|---|
 | Viajes del mes (junio 2026) | `.tds` | `Viajes del mes` con `[Mes de referencia] = "2026-06"` | **1 093 235** (= `viajes_del_mes_a/b.sql`) |
 | Viajes 45 días | `.tds` o `agg_demanda` | `Viajes` | 1 647 569 |
-| Usuarios activos (30 d) | `.tds` | `Usuarios activos (30 d)` | **53 820 personas (110 762 tarjetas)** tarjetas |
+| Usuarios activos (30 d) | `.tds` | `Usuarios activos (30 d)` | **53 820 personas** (110 762 tarjetas si se usa `[usuario_sk]`) |
 | Zonas sin servicio | `agg_cobertura` | `Zonas sin servicio` | **11** de 26 |
 | % Multimodal | `agg_transbordo_resumen` | `% Multimodal` | **72,98 %** (41 485 personas) |
 
 Formato: fuente 28–36 pt, título del KPI arriba, subtítulo con la definición (p. ej. "tarjetas con ≥ 1 viaje entre
-2026-06-17 y 2026-07-16"). El KPI de viajes responde a los filtros globales; los otros tres no (ver §8).
+2026-06-16 y 2026-07-15"). El KPI de viajes responde a los filtros globales; los otros tres no (ver §8).
 
 ## 8. Dashboard "Red Metropolitana · demanda, cobertura, transbordo y MetroRiel"
 

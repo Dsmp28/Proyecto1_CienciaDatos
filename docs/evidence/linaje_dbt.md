@@ -8,7 +8,7 @@ Generado con `dbt docs generate` el 2026-09-21. Artefactos en `docs/evidence/dbt
 | Sources (tablas externas de Bronze) | 9 |
 | Seeds (catálogos de gobernanza versionados) | 4 |
 | Modelos staging / silver / quarantine / gold / features | 15 / 15 / 2 / 17 / 2 (51) |
-| Pruebas (genéricas + singulares) | 510 |
+| Pruebas (genéricas + singulares, incluidas las de seeds) | 510 |
 
 Ejemplo de trazabilidad: `gold.agg_demanda_modo_zona_hora` (base de la hoja de demanda del tablero) depende de 43 nodos
 y alcanza las 9 fuentes de Bronze. Desde cualquier cifra del tablero se llega al objeto crudo en GCS por

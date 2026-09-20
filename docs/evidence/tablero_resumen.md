@@ -27,7 +27,7 @@ medido con `time` alrededor del comando. Se corrieron dos rondas completas sin c
 | H5 | ídem | Viajes en las 5 zonas del trazado | 719 607 (43,68 %) | | | | | |
 | H5 | ídem | Viajes de MetroRiel que cambian de zona | 83,54 % de 295 511 | | | | | |
 | H6 | `h6_kpis.sql` | Viajes del mes (junio 2026) | 1 093 235 | 1 173 (1 167) | 23 587 | 157 736 270 | 2,51 | `h6_kpis_1789968196` |
-| H6 | ídem | Usuarios activos (30 d a 2026-07-16) | 53 820 personas (110 762 tarjetas) tarjetas | | | | | |
+| H6 | ídem | Usuarios activos (30 d a 2026-07-16) | 53 820 personas (110 762 tarjetas) | | | | | |
 | H6 | ídem | Zonas sin servicio · % multimodal | 11 · 72,98 % | | | | | |
 | H7 | `h7_linaje_de_una_cifra.sql` | Viajes TM, Zona 17, 2026-06-01 → objetos de Bronze | 725 = 388 + 337 (2 jsonl) | 173 (209) | 41 | 4 227 590 | 1,42 | `h7_linaje_de_una_cifra_1789968200` |
 | H8 | `h8_transbordo_estacion_candidata.sql` | Zona candidata a estación de transbordo | Zona 17: 23 704 personas con ≥ 2 modos en la zona | 4 118 (4 905) | 45 711 | 256 457 096 | 6,17 | `h8_transbordo_estacion_candidata_1789968202` |

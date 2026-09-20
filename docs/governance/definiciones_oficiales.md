@@ -13,7 +13,7 @@ Cómo se traduce por operador:
 
 | Operador | Lo que entrega | Cómo cuenta como viaje |
 |---|---|---|
-| Transmetro | una validación de torniquete | 1 validación válida = 1 viaje. Los duplicados de torniquete (misma tarjeta, misma estación, dentro de la ventana de la regla R01) cuentan una sola vez; el resto va a cuarentena |
+| Transmetro | una validación de torniquete | 1 validación válida = 1 viaje. Los duplicados de torniquete (misma `validacion_id`, fila completa repetida por el lector; regla R01) cuentan una sola vez: se conserva la primera aparición y el resto va a cuarentena |
 | Transurbano | una transacción de cobro | 1 transacción válida = 1 viaje |
 | MetroRiel | un viaje cerrado (entrada y salida) | 1 viaje cerrado = 1 viaje (su entrada es el abordaje). Un viaje sin salida (R04) va a cuarentena y **no** cuenta |
 | Aerómetro | un boarding | 1 boarding válido = 1 viaje |
@@ -30,8 +30,9 @@ MetroRiel hizo 2 viajes). Esta es la definición que permite comparar los cuatro
 definición 1) en los 30 días anteriores a esa fecha, inclusive.* La fecha de referencia es el parámetro fijo del
 pipeline (`var('fecha_referencia')`), nunca la fecha del sistema.
 
-- Para Transmetro, además, la tarjeta debe estar vigente en el padrón (SCD2, `activo = true` a la fecha de referencia).
-  Una tarjeta dada de baja (DELETE del CDC) conserva su historial de viajes pero no cuenta como usuario activo.
+- Además, la persona no debe estar dada de baja en el padrón central (ADR-009: el padrón describe personas, no un
+  solo operador; su estado se propaga a todas sus tarjetas por la identidad unificada). Una tarjeta dada de baja
+  (DELETE del CDC) conserva su historial de viajes pero no cuenta como usuario activo.
 - Para los otros tres operadores no existe padrón: "usuario" es la llave distinta observada en sus archivos de operación.
 - "Usuario" se cuenta a nivel de **persona** (identidad unificada `usuario_unificado_sk`, ADR-008) en todos los KPI
   y en las features; el conteo por tarjeta seudonimizada (`usuario_sk`) se reporta solo como detalle. Con la fecha de

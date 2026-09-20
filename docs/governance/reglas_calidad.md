@@ -33,7 +33,8 @@ que incumple (una fila, un motivo), para que la suma por regla coincida con el t
 ## Lo que NO es un registro inválido (se conserva en Silver)
 - Transurbano `cod_estado` 7 (`SALDO_INSUF`) y 9 (`TARJETA_INVALIDA`): son cobros rechazados por el sistema, es decir,
   hechos reales de la operación. Van a `silver.transurbano_transacciones` con su estado y **no cuentan como viaje**
-  (definición oficial). Se reportan aparte (41 649 ≈ 5 % de las transacciones).
+  (definición oficial). Se reportan aparte: 41 649 en staging (≈ 5 % de las transacciones), de los cuales 41 390 quedan en Silver
+  (33 112 `SALDO_INSUF` + 8 278 `TARJETA_INVALIDA`) y 259 fueron a cuarentena antes por R02/R03.
 - Transmetro `tipo = TRANSBORDO`: es un abordaje válido con tarifa de transbordo.
 - Tarifa 0.00 (adulto mayor): válida.
 - Padrón: INSERT repetido, UPDATE sin INSERT previo y DELETE sin INSERT previo se **aplican** según ADR-009 y se cuentan

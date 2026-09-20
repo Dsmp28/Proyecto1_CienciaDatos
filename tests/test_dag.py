@@ -53,6 +53,13 @@ def dag():
     # "airflow.sdk" y no "airflow": la carpeta airflow/ del repo es importable como paquete de
     # espacio de nombres desde la raíz y haría pasar el importorskip sin Airflow instalado.
     pytest.importorskip("airflow.sdk")
+    # Airflow 3 no entrega la conexión a la base de metadatos a los procesos de tarea (la prueba corre dentro del
+    # DAG, tarea `pruebas_python`), y al importar el DAG la configuración exige una URL válida: se usa SQLite temporal.
+    import os
+    import tempfile
+    os.environ["AIRFLOW__DATABASE__SQL_ALCHEMY_CONN"] = f"sqlite:///{tempfile.gettempdir()}/red_metropolitana_test_dag.db"
+    os.environ.setdefault("AIRFLOW__CORE__UNIT_TEST_MODE", "True")
+    os.environ.setdefault("AIRFLOW__CORE__LOAD_EXAMPLES", "False")
     spec = importlib.util.spec_from_file_location("red_metropolitana_dag", DAG_PATH)
     modulo = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(modulo)

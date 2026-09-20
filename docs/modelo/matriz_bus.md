@@ -23,13 +23,16 @@ La inferencia de viajes multimodales queda como extra opcional sin tocar el gran
 
 ## 2. Dimensiones conformadas
 
+(`dim_padron_historia` es el historial SCD2 de `dim_usuario`; se lista aquí pero no es una columna de la matriz.)
+
 | Dimensión | Grano | Atributos clave | Dueño (gobernanza) |
 |---|---|---|---|
 | `dim_tiempo` | una hora de un día | fecha, hora del día (0–23), día de semana, `es_dia_habil`, `es_hora_pico`, `franja` | Agencia / Planificación (seeds `franjas_horarias`, `feriados_gt`) |
 | `dim_modo` | un operador | `modo_id` (TM, TU, MR, AM), nombre, tipo (BRT, bus, tren ligero, teleférico), vía de ingesta | Agencia / Arquitectura de datos |
 | `dim_estacion` | una estación o parada de cualquier modo | `estacion_sk`, modo, código nativo, nombre, línea/ruta/eje, `zona_sk`, lat/lon *[verificar]* | Cada operador (código nativo); Agencia (conformación) |
 | `dim_zona` | una zona conformada | `zona_sk`, `zona_num`, nombre canónico "Zona N", municipio, formas de origen (`Z10`, `Zona 10`, `district`) | Agencia / Planificación (seed versionado `zonas_mapeo`) |
-| `dim_usuario` | una tarjeta seudonimizada (por modo) | `usuario_sk` (HMAC), modo de origen, `usuario_unificado_sk` (solo si hay vínculo determinista), atributos SCD2 del padrón **solo Transmetro** (`vigente_desde`, `vigente_hasta`, `activo`) | Transmetro (padrón); Agencia (seudonimización) |
+| `dim_usuario` | una tarjeta seudonimizada (por modo) | `usuario_sk` (HMAC), modo de origen, `usuario_unificado_sk` (vínculo determinista verificado, ADR-008), `perfil`, `zona_residencia_id`, `estado_padron` tomados del padrón central por identidad unificada (ADR-009), `n_modos_usados`, `es_multimodal` | Agencia (padrón central y seudonimización); cada operador emite su tarjeta |
+| `dim_padron_historia` | una versión de una persona en el padrón (SCD2) | `usuario_sk`, `version`, `vigente_desde`, `vigente_hasta`, `es_vigente`, `estado`, `perfil`, `zona_residencia_id`, `alta_implicita` | Agencia (padrón central, ADR-009) |
 | `dim_fuente` | un archivo crudo ingerido | `fuente_sk`, fuente, archivo, vía (batch/streaming/cdc), `fecha_ingesta`, `run_id`, sha256 | Agencia / Ingeniería de datos (linaje) |
 
 ## 3. Matriz del bus
@@ -40,7 +43,7 @@ La inferencia de viajes multimodales queda como extra opcional sin tocar el gran
 | `fct_viaje_metroriel` | un viaje cerrado de MetroRiel | ✔ entrada y salida | ✔ | ✔ origen y destino (role-playing) | ✔ origen y destino | ✔ | ✔ | transacción |
 | `fct_uso_usuario_dia` | usuario × día × modo | ✔ día | ✔ | | | ✔ | ✔ | snapshot periódico |
 | `fct_cobertura_zona_modo` | zona × modo con al menos una estación/parada | | ✔ | | ✔ | | ✔ | factless |
-| `fct_cambio_padron` | una operación CDC aplicada al padrón | ✔ | ✔ (TM) | | | ✔ | ✔ | transacción |
+| `fct_cambio_padron` | una operación CDC aplicada al padrón | ✔ | ✔ (modo emisor de la tarjeta) | | | ✔ | ✔ | transacción |
 
 ### Cómo responde el tablero sin tocar Silver
 - **Demanda por modo, zona y hora:** `fct_abordaje` × `dim_tiempo` × `dim_zona` × `dim_modo`.
