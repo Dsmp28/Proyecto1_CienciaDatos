@@ -1,0 +1,940 @@
+version: 2
+
+# Capa Gold (F4): modelo dimensional Kimball (docs/modelo/matriz_bus.md, docs/modelo/modelo_gold.mmd).
+# Restricción dura 1: todo modelo hace ref() solo a Silver, seeds u otro Gold (tests/test_gold_lineage.py).
+# Restricción dura 7: ninguna llave nativa de usuario llega aquí (prueba singular assert_gold_sin_llaves_nativas).
+# Cada descripción indica significado, fuente y transformación; las medidas llevan su clase
+# (aditiva / semi aditiva / no aditiva) según la matriz del bus §4. Nunca CURRENT_DATE (idempotencia).
+
+models:
+# ------------------------------------------------------------------------------------------------ dimensiones
+- name: dim_tiempo
+  description: >
+    Dimensión conformada de tiempo. Grano: una hora de un día. Rango derivado de los datos: desde el mínimo de
+    silver_abordajes.fecha (y del padrón) hasta el máximo de abordajes, salida de MetroRiel y padrón, para que toda
+    llave de los hechos exista. Hora pico y franja: seed franjas_horarias; feriados: seed feriados_gt.
+    Dueño: Agencia · Planificación de operación.
+  columns:
+  - name: tiempo_sk
+    description: "Llave sustituta INT64 = AAAAMMDD*100 + hora (2026060107 = 2026-06-01 07:00). Calculada: CAST(FORMAT_DATE('%Y%m%d', fecha) AS INT64)*100 + hora."
+    data_tests: [unique, not_null]
+  - name: fecha
+    description: "Fecha calendario (DATE), generada con GENERATE_DATE_ARRAY entre el mínimo y el máximo observados en Silver."
+    data_tests: [not_null]
+  - name: hora
+    description: "Hora del día 0–23 (INT64), generada con GENERATE_ARRAY(0, 23)."
+    data_tests:
+    - not_null
+    - dbt_utils.accepted_range:
+        arguments: {min_value: 0, max_value: 23}
+  - name: fecha_hora_inicio
+    description: "DATETIME de inicio de la hora (fecha + hora:00:00); comodidad para ejes temporales en Tableau."
+  - name: franja
+    description: "Franja del día según el seed franjas_horarias: madrugada, pico_manana, valle, pico_tarde, noche."
+    data_tests:
+    - not_null
+    - accepted_values:
+        arguments: {values: [madrugada, pico_manana, valle, pico_tarde, noche]}
+  - name: es_hora_pico
+    description: "TRUE en 05–08 y 16–19 (seed franjas_horarias, definición oficial de la Agencia)."
+    data_tests: [not_null]
+  - name: dia_semana
+    description: "Día de la semana ISO: 1 = lunes … 7 = domingo. Transformación de EXTRACT(DAYOFWEEK) de BigQuery (1 = domingo): MOD(DAYOFWEEK + 5, 7) + 1."
+    data_tests:
+    - dbt_utils.accepted_range:
+        arguments: {min_value: 1, max_value: 7}
+  - name: dia_semana_nombre
+    description: "Nombre del día en español (lunes … domingo)."
+  - name: es_fin_de_semana
+    description: "TRUE si dia_semana es 6 (sábado) o 7 (domingo)."
+  - name: es_feriado
+    description: "TRUE si la fecha está en el seed feriados_gt (Guatemala 2026)."
+  - name: nombre_feriado
+    description: "Nombre del feriado (seed feriados_gt); NULL si no es feriado."
+  - name: es_dia_habil
+    description: "Definición oficial: lunes a viernes y no feriado (NOT es_fin_de_semana AND NOT es_feriado)."
+    data_tests: [not_null]
+  - name: semana_iso
+    description: "Semana ISO 8601 del año (EXTRACT(ISOWEEK))."
+  - name: mes
+    description: "Mes 1–12 (EXTRACT(MONTH))."
+  - name: anio_mes
+    description: "Año-mes 'AAAA-MM' (FORMAT_DATE('%Y-%m')); llave de agrupación para 'viajes del mes'."
+  - name: anio
+    description: "Año (EXTRACT(YEAR))."
+
+- name: dim_modo
+  description: >
+    Dimensión de modo/operador. Cuatro filas fijas definidas en el modelo (SELECT … UNNEST de STRUCTs, no seed):
+    TM Transmetro (BRT, streaming), TU Transurbano (bus, batch), MR MetroRiel (tren ligero, batch),
+    AM Aerómetro (teleférico, streaming). Dueño: Agencia · Arquitectura de datos.
+  columns:
+  - name: modo_id
+    description: "Llave natural del modo: TM, TU, MR, AM. Misma codificación que Silver."
+    data_tests:
+    - unique
+    - not_null
+    - accepted_values:
+        arguments: {values: [TM, TU, MR, AM]}
+  - name: nombre
+    description: "Nombre del operador: Transmetro, Transurbano, MetroRiel, Aerómetro."
+    data_tests: [unique, not_null]
+  - name: tipo
+    description: "Tecnología: BRT, bus, tren ligero, teleférico."
+  - name: via_ingesta
+    description: "Cómo llega la operación a Bronze: streaming (Kafka → GCS) o batch (archivo)."
+    data_tests:
+    - accepted_values:
+        arguments: {values: [streaming, batch]}
+  - name: fuente_operacion
+    description: "Nombre lógico de la fuente de operación del modo en Silver/dim_fuente (transmetro_validaciones, …)."
+  - name: orden
+    description: "Orden de presentación en el tablero (1–4)."
+
+- name: dim_zona
+  description: >
+    Dimensión conformada de zona. Universo completo del seed zonas (26 filas: 22 zonas de la Ciudad de Guatemala y
+    4 municipios), incluidas las zonas sin datos, para que 'zona sin servicio' sea una fila. Atributos de cobertura
+    calculados desde silver_estaciones. Dueño: Agencia · Planificación territorial.
+  data_tests:
+  - dbt_utils.equal_rowcount:
+      arguments:
+        compare_model: ref('zonas')
+  columns:
+  - name: zona_id
+    description: "Llave natural conformada del seed zonas (GT-Z01 … GT-Z25, GT-MIXCO, …)."
+    data_tests:
+    - unique
+    - not_null
+    - relationships:
+        arguments: {to: ref('zonas'), field: zona_id}
+  - name: zona_nombre
+    description: "Nombre canónico ('Zona 10', 'Mixco') del seed zonas."
+    data_tests: [unique, not_null]
+  - name: tipo
+    description: "zona_ciudad o municipio (seed zonas)."
+  - name: municipio
+    description: "Municipio al que pertenece (Guatemala para las zonas de la ciudad)."
+  - name: presente_en_datos
+    description: "Marca del seed: algún operador o el padrón menciona la zona."
+  - name: orden
+    description: "Orden de presentación (número de zona; municipios 101+)."
+  - name: n_estaciones_total
+    description: "Estaciones y paradas de todos los modos en la zona: COUNT(*) de silver_estaciones por zona_id; 0 si no hay."
+    data_tests: [not_null]
+  - name: n_modos_con_servicio
+    description: "COUNT(DISTINCT modo_id) de silver_estaciones en la zona; 0 = zona sin servicio."
+    data_tests: [not_null]
+  - name: modos_con_servicio
+    description: "Modos con al menos una estación en la zona, STRING ordenado ('AM,MR,TM,TU'); NULL si ninguno."
+  - name: tiene_servicio
+    description: "TRUE si al menos un modo tiene una estación o parada en la zona."
+    data_tests: [not_null]
+
+- name: dim_estacion
+  description: >
+    Dimensión de estación o parada de cualquier modo. Copia conformada de silver_estaciones (catálogos de los 4
+    operadores validados y con zona conformada por zonas_mapeo). Dueño: cada operador para su código; Agencia para
+    la conformación.
+  data_tests:
+  - dbt_utils.equal_rowcount:
+      arguments:
+        compare_model: ref('silver_estaciones')
+  columns:
+  - name: estacion_sk
+    description: "Llave sustituta determinista TO_HEX(SHA256(modo_id|codigo_nativo)) heredada de silver_estaciones (código público de infraestructura, no dato personal)."
+    data_tests: [unique, not_null]
+  - name: modo_id
+    description: "Modo dueño de la estación (FK a dim_modo)."
+    data_tests:
+    - not_null
+    - relationships:
+        arguments: {to: ref('dim_modo'), field: modo_id}
+  - name: codigo_nativo
+    description: "Código nativo del operador (TM: estacion_id; TU: cod_parada; MR: id_estacion; AM: station_code)."
+    data_tests: [not_null]
+  - name: nombre
+    description: "Nombre publicado por el operador."
+  - name: linea_ruta_eje
+    description: "Línea (TM), ruta (TU) o eje (AM); NULL en MetroRiel (línea única)."
+  - name: zona_id
+    description: "Zona conformada (FK a dim_zona), asignada en Silver por zonas_mapeo."
+    data_tests:
+    - not_null
+    - relationships:
+        arguments: {to: ref('dim_zona'), field: zona_id}
+  - name: lat
+    description: "Latitud (solo Transmetro)."
+  - name: lon
+    description: "Longitud (solo Transmetro)."
+  - name: km
+    description: "Kilómetro sobre la línea (solo MetroRiel)."
+  - name: archivo_origen
+    description: "Archivo crudo del catálogo del operador (linaje)."
+    data_tests: [not_null]
+  - name: fuente_sk
+    description: "FK a dim_fuente del catálogo crudo."
+    data_tests:
+    - not_null
+    - relationships:
+        arguments: {to: ref('dim_fuente'), field: fuente_sk}
+
+- name: dim_usuario
+  description: >
+    Dimensión de usuario seudonimizado. Grano: una tarjeta por modo (ADR-008). Fuente: silver_usuarios SIN llave_nativa
+    ni usuario_base_id (seguridad.md §2). usuario_sk = HMAC-SHA256(sal secreta, modo|llave) calculado en Silver
+    (ADR-007); usuario_unificado_sk une las tarjetas de la misma persona. n_modos_usados y es_multimodal se calculan
+    sobre silver_abordajes por persona. Agrupada (cluster) por modo_id.
+  data_tests:
+  - dbt_utils.equal_rowcount:
+      arguments:
+        compare_model: ref('silver_usuarios')
+  columns:
+  - name: usuario_sk
+    description: "Seudónimo estable de la tarjeta: HMAC-SHA256(sal, modo_id|llave_nativa), 64 hex (silver_usuarios). Única llave de usuario en Gold."
+    data_tests: [unique, not_null]
+  - name: usuario_unificado_sk
+    description: "Seudónimo de la persona: HMAC-SHA256(sal, 'BASE|' || usuario_base_id); NULL si la tarjeta no se pudo vincular (ADR-008)."
+  - name: modo_id
+    description: "Modo emisor de la tarjeta (FK a dim_modo)."
+    data_tests:
+    - not_null
+    - relationships:
+        arguments: {to: ref('dim_modo'), field: modo_id}
+  - name: metodo_vinculo
+    description: "Cómo se vinculó la tarjeta a la persona: formato (regex TC-/10 dígitos/MR) o inversion_md5 (Aerómetro); NULL sin vínculo."
+    data_tests:
+    - accepted_values:
+        arguments: {values: [formato, inversion_md5]}
+  - name: tiene_vinculo
+    description: "TRUE si usuario_unificado_sk no es nulo."
+  - name: en_padron
+    description: "TRUE si la persona tiene fila en el padrón aplicado de Transmetro (silver_usuarios)."
+    data_tests: [not_null]
+  - name: perfil
+    description: "Perfil vigente del padrón (silver_usuarios); NULL si no está en el padrón."
+  - name: zona_residencia_id
+    description: "Zona de residencia conformada del padrón (FK a dim_zona); NULL si no está en el padrón."
+    data_tests:
+    - relationships:
+        arguments: {to: ref('dim_zona'), field: zona_id}
+  - name: estado_padron
+    description: "ACTIVA / INACTIVA según el padrón aplicado; SIN_PADRON si la persona no aparece en él."
+    data_tests:
+    - not_null
+    - accepted_values:
+        arguments: {values: [ACTIVA, INACTIVA, SIN_PADRON]}
+  - name: n_abordajes_tarjeta
+    description: "Abordajes válidos de esta tarjeta en silver_abordajes (COUNT por modo, llave)."
+    data_tests: [not_null]
+  - name: n_abordajes_persona
+    description: "Abordajes válidos de la persona en todos sus modos (COUNT por usuario_unificado_sk)."
+  - name: n_modos_usados
+    description: "COUNT(DISTINCT modo_id) de silver_abordajes por usuario_unificado_sk (persona); 0 si nunca abordó."
+    data_tests:
+    - not_null
+    - dbt_utils.accepted_range:
+        arguments: {min_value: 0, max_value: 4}
+  - name: es_multimodal
+    description: "TRUE si n_modos_usados > 1 (la persona usa más de un sistema)."
+    data_tests: [not_null]
+
+- name: dim_padron_historia
+  description: >
+    Historia SCD Tipo 2 del padrón de Transmetro, seudonimizada: una fila por versión de cada tarjeta, desde
+    silver_padron_scd2 (ADR-009) unido a silver_usuarios por (modo, tarjeta) para sustituir la llave nativa por
+    usuario_sk. Conserva las tarjetas dadas de baja (historizar, no borrar). Agrupada por usuario_sk.
+  data_tests:
+  - dbt_utils.unique_combination_of_columns:
+      arguments:
+        combination_of_columns: [usuario_sk, version]
+  - dbt_utils.equal_rowcount:
+      arguments:
+        compare_model: ref('silver_padron_scd2')
+  columns:
+  - name: usuario_sk
+    description: "Seudónimo de la tarjeta (FK a dim_usuario)."
+    data_tests:
+    - not_null
+    - relationships:
+        arguments: {to: ref('dim_usuario'), field: usuario_sk}
+  - name: usuario_unificado_sk
+    description: "Seudónimo de la persona (dim_usuario)."
+  - name: modo_id
+    description: "Modo del formato de la tarjeta del padrón (TM, TU, MR)."
+  - name: version
+    description: "Número de versión por tarjeta (ROW_NUMBER por seq en Silver)."
+    data_tests: [not_null]
+  - name: seq
+    description: "Secuencia del log CDC que originó la versión; única en el log."
+    data_tests: [unique, not_null]
+  - name: operacion
+    description: "Operación del log: INSERT, UPDATE, DELETE."
+    data_tests:
+    - accepted_values:
+        arguments: {values: [INSERT, UPDATE, DELETE]}
+  - name: vigente_desde
+    description: "commit_ts de la operación (DATETIME)."
+    data_tests: [not_null]
+  - name: vigente_hasta
+    description: "commit_ts de la siguiente versión de la misma tarjeta (orden seq); NULL en la vigente."
+  - name: es_vigente
+    description: "TRUE en la última versión de cada tarjeta (una por tarjeta)."
+    data_tests: [not_null]
+  - name: estado
+    description: "INACTIVA si la operación fue DELETE; ACTIVA en caso contrario."
+    data_tests:
+    - accepted_values:
+        arguments: {values: [ACTIVA, INACTIVA]}
+  - name: perfil
+    description: "Perfil vigente en esa versión (último no nulo hasta la operación)."
+  - name: zona_residencia_id
+    description: "Zona de residencia conformada vigente en esa versión (FK a dim_zona)."
+    data_tests:
+    - relationships:
+        arguments: {to: ref('dim_zona'), field: zona_id}
+  - name: alta_implicita
+    description: "TRUE en la primera versión de una tarjeta cuya primera operación no fue INSERT."
+  - name: alta_repetida
+    description: "TRUE en un INSERT sobre tarjeta ya existente (aplicado como UPDATE)."
+  - name: baja_sin_alta_previa
+    description: "TRUE en un DELETE sin INSERT anterior."
+  - name: commit_ts_fuera_de_orden
+    description: "TRUE cuando vigente_hasta < vigente_desde (hora aleatoria dentro del día en el generador); la vigencia sigue seq."
+  - name: fuente_sk
+    description: "FK a dim_fuente del log CDC crudo."
+    data_tests:
+    - not_null
+    - relationships:
+        arguments: {to: ref('dim_fuente'), field: fuente_sk}
+
+- name: dim_fuente
+  description: >
+    Dimensión de linaje (restricción dura 4). Grano: un objeto crudo ingerido a Bronze (fuente, archivo, objeto_gcs,
+    ingest_date) observado en silver_abordajes, silver_metroriel_viajes, silver_estaciones o silver_padron_scd2.
+    En streaming un archivo lógico se reparte en varios objetos jsonl (lotes de offsets de Kafka).
+  columns:
+  - name: fuente_sk
+    description: "TO_HEX(SHA256(fuente|archivo|objeto_gcs|ingest_date)); la misma expresión se calcula en cada hecho."
+    data_tests: [unique, not_null]
+  - name: fuente
+    description: "Nombre lógico de la fuente (igual a la tabla externa de Bronze): transmetro_validaciones, tu_paradas, …"
+    data_tests: [not_null]
+  - name: archivo
+    description: "Archivo crudo de origen tal como lo entregó el operador."
+    data_tests: [not_null]
+  - name: objeto_gcs
+    description: "Ruta gs:// del objeto en Bronze (partición ingest_date=…)."
+    data_tests: [not_null]
+  - name: ingest_date
+    description: "Fecha de ingesta a Bronze (partición Hive)."
+    data_tests: [not_null]
+  - name: via
+    description: "Vía de ingesta derivada del nombre de la fuente: streaming (TM, AM), cdc (padrón), batch (resto)."
+    data_tests:
+    - not_null
+    - accepted_values:
+        arguments: {values: [batch, streaming, cdc]}
+  - name: tipo_contenido
+    description: "operacion (abordajes/viajes), catalogo (estaciones) o padron (CDC)."
+    data_tests:
+    - accepted_values:
+        arguments: {values: [operacion, catalogo, padron]}
+  - name: modo_id
+    description: "Modo al que pertenece la fuente (el padrón es de Transmetro)."
+    data_tests:
+    - relationships:
+        arguments: {to: ref('dim_modo'), field: modo_id}
+  - name: n_filas_silver
+    description: "Filas válidas en Silver provenientes de ese objeto (conteo de apoyo para conciliación)."
+
+# ------------------------------------------------------------------------------------------------ hechos
+- name: fct_abordaje
+  description: >
+    Hecho principal (ADR-004). Grano: una validación de una tarjeta de un usuario en un modo, en una estación o
+    parada, en un instante. Una fila por fila de silver_abordajes (Transmetro válidas, Transurbano cobros exitosos,
+    entrada de cada viaje cerrado de MetroRiel, Aerómetro válidos), con usuario_sk/usuario_unificado_sk de
+    silver_usuarios en lugar de la llave nativa. Particionada por fecha; cluster por modo_id, zona_id.
+  data_tests:
+  - dbt_utils.equal_rowcount:
+      arguments:
+        compare_model: ref('silver_abordajes')
+  columns:
+  - name: abordaje_sk
+    description: "Llave del abordaje = abordaje_id de Silver: modo|id nativo (TM validacion_id, MR trip_id, AM boarding_id, TU registro_hash|n_repeticion)."
+    data_tests: [unique, not_null]
+  - name: tiempo_sk
+    description: "FK a dim_tiempo: AAAAMMDD*100 + hora del instante local del abordaje."
+    data_tests:
+    - not_null
+    - relationships:
+        arguments: {to: ref('dim_tiempo'), field: tiempo_sk}
+  - name: fecha
+    description: "DATE(fecha_hora) local; columna de partición."
+    data_tests: [not_null]
+  - name: hora
+    description: "Hora local 0–23 del abordaje."
+    data_tests: [not_null]
+  - name: modo_id
+    description: "FK a dim_modo (TM, TU, MR, AM)."
+    data_tests:
+    - not_null
+    - accepted_values:
+        arguments: {values: [TM, TU, MR, AM]}
+    - relationships:
+        arguments: {to: ref('dim_modo'), field: modo_id}
+  - name: estacion_sk
+    description: "FK a dim_estacion (estación de entrada en MetroRiel)."
+    data_tests:
+    - not_null
+    - relationships:
+        arguments: {to: ref('dim_estacion'), field: estacion_sk}
+  - name: zona_id
+    description: "FK a dim_zona: zona conformada de la estación/parada."
+    data_tests:
+    - not_null
+    - relationships:
+        arguments: {to: ref('dim_zona'), field: zona_id}
+  - name: usuario_sk
+    description: "FK a dim_usuario: HMAC-SHA256 de (modo|llave nativa) obtenido de silver_usuarios por (modo_id, llave_nativa). La llave nativa no se copia."
+    data_tests:
+    - not_null
+    - relationships:
+        arguments: {to: ref('dim_usuario'), field: usuario_sk}
+  - name: usuario_unificado_sk
+    description: "Seudónimo de la persona (dim_usuario.usuario_unificado_sk); permite contar transbordos entre modos."
+  - name: fuente_sk
+    description: "FK a dim_fuente: hash de (fuente|archivo|objeto_gcs|ingest_date) de la fila Silver."
+    data_tests:
+    - not_null
+    - relationships:
+        arguments: {to: ref('dim_fuente'), field: fuente_sk}
+  - name: fecha_hora
+    description: "Instante local del abordaje (DATETIME America/Guatemala) = silver_abordajes.fecha_hora_local."
+    data_tests: [not_null]
+  - name: monto_q
+    description: "Medida ADITIVA: monto cobrado en quetzales (NUMERIC); 0 es válido (adulto mayor, transbordo gratuito)."
+    data_tests: [not_null]
+  - name: abordajes
+    description: "Medida ADITIVA: constante 1 (un abordaje = un viaje según definiciones_oficiales.md §1); SUM = viajes."
+    data_tests:
+    - not_null
+    - accepted_values:
+        arguments: {values: [1], quote: false}
+  - name: tipo_validacion
+    description: "Tipo nativo: TM ENTRADA/TRANSBORDO; TU OK; MR ENTRADA; AM BOARDING."
+    data_tests:
+    - accepted_values:
+        arguments: {values: [ENTRADA, TRANSBORDO, OK, BOARDING]}
+  - name: es_transbordo_interno
+    description: "TRUE si es un TRANSBORDO de Transmetro (tarifa reducida dentro del mismo sistema)."
+    data_tests: [not_null]
+  - name: franja
+    description: "Franja horaria desnormalizada de dim_tiempo (para Tableau)."
+  - name: es_hora_pico
+    description: "Desnormalizado de dim_tiempo (05–08, 16–19)."
+    data_tests: [not_null]
+  - name: es_dia_habil
+    description: "Desnormalizado de dim_tiempo (lunes–viernes no feriado)."
+    data_tests: [not_null]
+  - name: fuente
+    description: "Linaje: nombre lógico de la fuente de Bronze."
+    data_tests: [not_null]
+  - name: archivo
+    description: "Linaje: archivo crudo de origen."
+    data_tests: [not_null]
+  - name: objeto_gcs
+    description: "Linaje: objeto gs:// de Bronze."
+  - name: ingest_date
+    description: "Linaje: fecha de ingesta a Bronze."
+    data_tests: [not_null]
+  - name: linea_num
+    description: "Linaje streaming (TM, AM): número de línea en el archivo publicado a Kafka; NULL en batch."
+  - name: kafka_offset
+    description: "Linaje streaming (TM, AM): offset de Kafka; NULL en batch."
+
+- name: fct_viaje_metroriel
+  description: >
+    Hecho de viaje cerrado de MetroRiel (grano: un viaje con entrada y salida), desde silver_metroriel_viajes con
+    usuario seudonimizado. Conserva origen–destino real; su entrada también está en fct_abordaje (abordaje_sk
+    'MR|trip_id'). Particionado por fecha_entrada; cluster por zona de origen y destino.
+  data_tests:
+  - dbt_utils.equal_rowcount:
+      arguments:
+        compare_model: ref('silver_metroriel_viajes')
+  columns:
+  - name: trip_id
+    description: "Id del viaje del operador (silver_metroriel_viajes.trip_id)."
+    data_tests: [unique, not_null]
+  - name: abordaje_sk
+    description: "'MR|' || trip_id: llave del abordaje correspondiente en fct_abordaje (drill-across)."
+    data_tests:
+    - not_null
+    - relationships:
+        arguments: {to: ref('fct_abordaje'), field: abordaje_sk}
+  - name: modo_id
+    description: "Siempre MR (FK a dim_modo)."
+    data_tests:
+    - relationships:
+        arguments: {to: ref('dim_modo'), field: modo_id}
+  - name: tiempo_sk_entrada
+    description: "FK a dim_tiempo de la hora de entrada (role-playing)."
+    data_tests:
+    - not_null
+    - relationships:
+        arguments: {to: ref('dim_tiempo'), field: tiempo_sk}
+  - name: tiempo_sk_salida
+    description: "FK a dim_tiempo de la hora de salida (role-playing), desde fecha_hora_salida_local."
+    data_tests:
+    - not_null
+    - relationships:
+        arguments: {to: ref('dim_tiempo'), field: tiempo_sk}
+  - name: fecha_entrada
+    description: "DATE de la entrada; columna de partición."
+    data_tests: [not_null]
+  - name: fecha_salida
+    description: "DATE de la salida."
+  - name: hora_entrada
+    description: "Hora local 0–23 de la entrada."
+  - name: estacion_sk_origen
+    description: "FK a dim_estacion de la estación de entrada."
+    data_tests:
+    - not_null
+    - relationships:
+        arguments: {to: ref('dim_estacion'), field: estacion_sk}
+  - name: estacion_sk_destino
+    description: "FK a dim_estacion de la estación de salida."
+    data_tests:
+    - not_null
+    - relationships:
+        arguments: {to: ref('dim_estacion'), field: estacion_sk}
+  - name: zona_id_origen
+    description: "FK a dim_zona de la estación de entrada."
+    data_tests:
+    - not_null
+    - relationships:
+        arguments: {to: ref('dim_zona'), field: zona_id}
+  - name: zona_id_destino
+    description: "FK a dim_zona de la estación de salida."
+    data_tests:
+    - not_null
+    - relationships:
+        arguments: {to: ref('dim_zona'), field: zona_id}
+  - name: cambia_de_zona
+    description: "TRUE si zona de origen ≠ zona de destino."
+  - name: usuario_sk
+    description: "FK a dim_usuario (HMAC de MR|card, desde silver_usuarios)."
+    data_tests:
+    - not_null
+    - relationships:
+        arguments: {to: ref('dim_usuario'), field: usuario_sk}
+  - name: usuario_unificado_sk
+    description: "Seudónimo de la persona."
+  - name: fuente_sk
+    description: "FK a dim_fuente (archivo metroriel_viajes)."
+    data_tests:
+    - not_null
+    - relationships:
+        arguments: {to: ref('dim_fuente'), field: fuente_sk}
+  - name: fecha_hora_entrada
+    description: "DATETIME local de entrada (entry_ts)."
+    data_tests: [not_null]
+  - name: fecha_hora_salida
+    description: "DATETIME local de salida (exit_ts)."
+    data_tests: [not_null]
+  - name: monto_q
+    description: "Medida ADITIVA: tarifa en quetzales (fare_gtq)."
+    data_tests: [not_null]
+  - name: duracion_s
+    description: "Medida ADITIVA: duración del viaje en segundos (duration_s del operador); útil como total de tiempo a bordo."
+    data_tests: [not_null]
+  - name: duracion_min
+    description: "Medida ADITIVA: duracion_s / 60 redondeado a 2 decimales. El promedio (no aditivo) se recalcula como SUM(duracion_min)/SUM(viajes)."
+  - name: viajes
+    description: "Medida ADITIVA: constante 1."
+    data_tests: [not_null]
+  - name: franja
+    description: "Franja de la hora de entrada (dim_tiempo)."
+  - name: es_hora_pico
+    description: "Desnormalizado de dim_tiempo para la hora de entrada."
+  - name: es_dia_habil
+    description: "Desnormalizado de dim_tiempo para la fecha de entrada."
+  - name: fuente
+    description: "Linaje: fuente lógica (metroriel_viajes)."
+  - name: archivo
+    description: "Linaje: archivo crudo."
+  - name: objeto_gcs
+    description: "Linaje: objeto gs:// de Bronze."
+  - name: ingest_date
+    description: "Linaje: fecha de ingesta."
+
+- name: fct_uso_usuario_dia
+  description: >
+    Snapshot periódico: una fila por tarjeta seudonimizada × fecha × modo, calculada directamente desde
+    silver_abordajes + silver_usuarios + dim_tiempo (camino independiente de fct_abordaje para la prueba de fuego
+    'viajes del mes'). Base de la pregunta de transbordo. Particionada por fecha; cluster por modo y persona.
+  data_tests:
+  - dbt_utils.unique_combination_of_columns:
+      arguments:
+        combination_of_columns: [usuario_sk, fecha, modo_id]
+  columns:
+  - name: usuario_sk
+    description: "FK a dim_usuario (tarjeta seudonimizada)."
+    data_tests:
+    - not_null
+    - relationships:
+        arguments: {to: ref('dim_usuario'), field: usuario_sk}
+  - name: usuario_unificado_sk
+    description: "Seudónimo de la persona (agrupa las tarjetas de la misma persona entre modos)."
+  - name: fecha
+    description: "Día del snapshot; columna de partición."
+    data_tests: [not_null]
+  - name: tiempo_sk_dia
+    description: "AAAAMMDD*100: tiempo_sk de la hora 0 del día (FK a dim_tiempo a nivel día)."
+    data_tests:
+    - relationships:
+        arguments: {to: ref('dim_tiempo'), field: tiempo_sk}
+  - name: modo_id
+    description: "FK a dim_modo."
+    data_tests:
+    - not_null
+    - relationships:
+        arguments: {to: ref('dim_modo'), field: modo_id}
+  - name: abordajes
+    description: "Medida ADITIVA: COUNT de abordajes válidos de la tarjeta ese día en ese modo."
+    data_tests: [not_null]
+  - name: monto_q
+    description: "Medida ADITIVA: SUM(monto_q) del día."
+    data_tests: [not_null]
+  - name: abordajes_hora_pico
+    description: "Medida ADITIVA: COUNTIF(es_hora_pico) según dim_tiempo."
+    data_tests: [not_null]
+  - name: estaciones_distintas
+    description: "Medida NO ADITIVA: COUNT(DISTINCT estacion_sk) del día."
+  - name: zona_id_mas_frecuente
+    description: "FK a dim_zona: zona con más abordajes de la tarjeta ese día (empate → menor zona_id)."
+    data_tests:
+    - not_null
+    - relationships:
+        arguments: {to: ref('dim_zona'), field: zona_id}
+  - name: primera_hora
+    description: "MIN(hora) del día (0–23)."
+  - name: ultima_hora
+    description: "MAX(hora) del día (0–23)."
+  - name: es_dia_habil
+    description: "Desnormalizado de dim_tiempo."
+
+- name: fct_cobertura_zona_modo
+  description: >
+    Hecho sin medidas (factless): una fila por (zona, modo) con al menos una estación o parada en silver_estaciones.
+    Cobertura del tablero: dim_zona LEFT JOIN este hecho; zona sin fila = sin servicio.
+  data_tests:
+  - dbt_utils.unique_combination_of_columns:
+      arguments:
+        combination_of_columns: [zona_id, modo_id]
+  columns:
+  - name: zona_id
+    description: "FK a dim_zona."
+    data_tests:
+    - not_null
+    - relationships:
+        arguments: {to: ref('dim_zona'), field: zona_id}
+  - name: modo_id
+    description: "FK a dim_modo."
+    data_tests:
+    - not_null
+    - accepted_values:
+        arguments: {values: [TM, TU, MR, AM]}
+    - relationships:
+        arguments: {to: ref('dim_modo'), field: modo_id}
+  - name: n_estaciones
+    description: "Conteo de apoyo (ADITIVO entre zonas y modos): estaciones/paradas del modo en la zona."
+    data_tests: [not_null]
+  - name: n_lineas_rutas
+    description: "COUNT(DISTINCT linea_ruta_eje) del modo en la zona."
+  - name: fuente_sk
+    description: "FK a dim_fuente del catálogo crudo del operador."
+    data_tests:
+    - not_null
+    - relationships:
+        arguments: {to: ref('dim_fuente'), field: fuente_sk}
+  - name: tiene_servicio
+    description: "Constante TRUE: la existencia de la fila es el hecho (factless)."
+
+- name: fct_cambio_padron
+  description: >
+    Hecho de transacción: una operación del log CDC aplicada al padrón (INSERT/UPDATE/DELETE), desde silver_padron_scd2
+    con usuario_sk de silver_usuarios. Regla de tarjetas_activas_despues: delta_activas = +1 si la operación deja ACTIVA
+    una tarjeta antes INACTIVA o inexistente, −1 si deja INACTIVA una ACTIVA, 0 en otro caso; saldo = SUM(delta)
+    acumulado por seq. Invariante: último saldo = tarjetas vigentes ACTIVA (assert_saldo_tarjetas_activas_igual_vigentes).
+  columns:
+  - name: seq
+    description: "Secuencia del log CDC (orden de aplicación); llave del hecho."
+    data_tests: [unique, not_null]
+  - name: tiempo_sk
+    description: "FK a dim_tiempo: AAAAMMDD*100 + hora de commit_ts."
+    data_tests:
+    - not_null
+    - relationships:
+        arguments: {to: ref('dim_tiempo'), field: tiempo_sk}
+  - name: fecha
+    description: "DATE(commit_ts)."
+    data_tests: [not_null]
+  - name: fecha_hora
+    description: "commit_ts de la operación (DATETIME)."
+  - name: usuario_sk
+    description: "FK a dim_usuario (tarjeta seudonimizada)."
+    data_tests:
+    - not_null
+    - relationships:
+        arguments: {to: ref('dim_usuario'), field: usuario_sk}
+  - name: usuario_unificado_sk
+    description: "Seudónimo de la persona."
+  - name: modo_id
+    description: "Modo del formato de la tarjeta (TM, TU, MR); FK a dim_modo."
+    data_tests:
+    - relationships:
+        arguments: {to: ref('dim_modo'), field: modo_id}
+  - name: version
+    description: "Versión SCD2 que produce la operación (dim_padron_historia.version)."
+  - name: operacion
+    description: "INSERT, UPDATE o DELETE."
+    data_tests:
+    - not_null
+    - accepted_values:
+        arguments: {values: [INSERT, UPDATE, DELETE]}
+  - name: estado_resultante
+    description: "Estado de la tarjeta tras la operación: INACTIVA si DELETE, ACTIVA en otro caso."
+  - name: estado_previo
+    description: "Estado de la versión anterior de la misma tarjeta (LAG por seq); NULL si la tarjeta no existía."
+  - name: perfil
+    description: "Perfil vigente tras la operación."
+  - name: zona_residencia_id
+    description: "Zona de residencia conformada tras la operación (FK a dim_zona)."
+    data_tests:
+    - relationships:
+        arguments: {to: ref('dim_zona'), field: zona_id}
+  - name: alta_implicita
+    description: "TRUE si la primera operación de la tarjeta no fue INSERT."
+  - name: baja_sin_alta_previa
+    description: "TRUE en un DELETE sin INSERT anterior."
+  - name: alta_repetida
+    description: "TRUE en un INSERT sobre tarjeta ya existente."
+  - name: operaciones
+    description: "Medida ADITIVA: constante 1."
+  - name: delta_activas
+    description: "Medida ADITIVA (+1, −1, 0): cambio en el número de tarjetas activas que produce la operación."
+    data_tests:
+    - accepted_values:
+        arguments: {values: [-1, 0, 1], quote: false}
+  - name: tarjetas_activas_despues
+    description: "Medida SEMI ADITIVA (saldo): tarjetas activas acumuladas tras esta operación (SUM(delta_activas) OVER (ORDER BY seq)). Se compara entre instantes; no se suma en el tiempo."
+    data_tests:
+    - not_null
+    - dbt_utils.accepted_range:
+        arguments: {min_value: 0}
+  - name: fuente_sk
+    description: "FK a dim_fuente del log CDC crudo."
+    data_tests:
+    - not_null
+    - relationships:
+        arguments: {to: ref('dim_fuente'), field: fuente_sk}
+
+# ------------------------------------------------------------------------------------------------ agregados (Tableau)
+- name: agg_demanda_modo_zona_hora
+  description: >
+    Agregado para Tableau (demanda por modo, zona y hora): fct_abordaje × dim_tiempo agrupado por fecha, hora, modo y
+    zona. Particionado por fecha; cluster por modo y zona.
+  data_tests:
+  - dbt_utils.unique_combination_of_columns:
+      arguments:
+        combination_of_columns: [tiempo_sk, modo_id, zona_id]
+  columns:
+  - name: tiempo_sk
+    description: "FK a dim_tiempo."
+    data_tests:
+    - not_null
+    - relationships:
+        arguments: {to: ref('dim_tiempo'), field: tiempo_sk}
+  - name: fecha
+    description: "Fecha (partición)."
+  - name: hora
+    description: "Hora 0–23."
+  - name: franja
+    description: "Franja de dim_tiempo."
+  - name: es_hora_pico
+    description: "De dim_tiempo."
+  - name: es_dia_habil
+    description: "De dim_tiempo."
+  - name: dia_semana
+    description: "1 = lunes … 7 = domingo."
+  - name: dia_semana_nombre
+    description: "Nombre del día en español."
+  - name: modo_id
+    description: "FK a dim_modo."
+    data_tests:
+    - relationships:
+        arguments: {to: ref('dim_modo'), field: modo_id}
+  - name: zona_id
+    description: "FK a dim_zona."
+    data_tests:
+    - relationships:
+        arguments: {to: ref('dim_zona'), field: zona_id}
+  - name: abordajes
+    description: "Medida ADITIVA: SUM(abordajes)."
+  - name: monto_q
+    description: "Medida ADITIVA: SUM(monto_q)."
+  - name: usuarios_distintos
+    description: "Medida NO ADITIVA: COUNT(DISTINCT usuario_sk) en la celda; no se suma entre horas, zonas ni modos."
+  - name: estaciones_con_demanda
+    description: "Medida NO ADITIVA: COUNT(DISTINCT estacion_sk) en la celda."
+
+- name: agg_cobertura_zona
+  description: >
+    Agregado para Tableau (cobertura): una fila por zona de dim_zona con oferta (fct_cobertura_zona_modo) y demanda
+    (fct_abordaje). sin_servicio = ninguna estación ni parada de ningún modo.
+  data_tests:
+  - dbt_utils.equal_rowcount:
+      arguments:
+        compare_model: ref('dim_zona')
+  columns:
+  - name: zona_id
+    description: "FK a dim_zona."
+    data_tests:
+    - unique
+    - not_null
+    - relationships:
+        arguments: {to: ref('dim_zona'), field: zona_id}
+  - name: zona_nombre
+    description: "Nombre canónico."
+  - name: tipo
+    description: "zona_ciudad o municipio."
+  - name: municipio
+    description: "Municipio."
+  - name: orden
+    description: "Orden de presentación."
+  - name: n_modos_con_servicio
+    description: "Filas de fct_cobertura_zona_modo en la zona (0–4)."
+    data_tests: [not_null]
+  - name: n_estaciones
+    description: "SUM(n_estaciones) de fct_cobertura_zona_modo."
+  - name: modos_con_servicio
+    description: "Modos con estación en la zona, STRING ordenado."
+  - name: abordajes_totales
+    description: "Medida ADITIVA: SUM(abordajes) de fct_abordaje en la zona."
+  - name: monto_q_total
+    description: "Medida ADITIVA: SUM(monto_q)."
+  - name: usuarios_distintos
+    description: "Medida NO ADITIVA: COUNT(DISTINCT usuario_sk) en la zona."
+  - name: n_modos_con_demanda
+    description: "COUNT(DISTINCT modo_id) con abordajes en la zona."
+  - name: tiene_servicio
+    description: "TRUE si hay al menos una fila en fct_cobertura_zona_modo."
+    data_tests: [not_null]
+  - name: sin_servicio
+    description: "TRUE si ningún modo tiene estación ni parada en la zona (respuesta directa a la pregunta 2)."
+    data_tests: [not_null]
+  - name: tiene_estacion_sin_demanda
+    description: "TRUE si hay oferta (estaciones) pero ningún abordaje."
+
+- name: agg_transbordo
+  description: >
+    Agregado para Tableau (transbordo): una fila por persona seudonimizada (usuario_unificado_sk) desde
+    fct_uso_usuario_dia, con número de modos usados, combinación de modos y abordajes.
+  columns:
+  - name: usuario_unificado_sk
+    description: "Seudónimo de la persona (ADR-008)."
+    data_tests: [unique, not_null]
+  - name: n_modos
+    description: "Medida NO ADITIVA: COUNT(DISTINCT modo_id) de la persona (1–4)."
+    data_tests:
+    - not_null
+    - dbt_utils.accepted_range:
+        arguments: {min_value: 1, max_value: 4}
+  - name: modos
+    description: "Modos usados, STRING ordenado (p. ej. 'MR,TM')."
+  - name: abordajes
+    description: "Medida ADITIVA: SUM(abordajes)."
+  - name: monto_q
+    description: "Medida ADITIVA: SUM(monto_q)."
+  - name: dias_activos
+    description: "COUNT(DISTINCT fecha) con al menos un abordaje."
+  - name: dias_tm
+    description: "Días con abordajes en Transmetro."
+  - name: dias_tu
+    description: "Días con abordajes en Transurbano."
+  - name: dias_mr
+    description: "Días con abordajes en MetroRiel."
+  - name: dias_am
+    description: "Días con abordajes en Aerómetro."
+  - name: es_multimodal
+    description: "TRUE si n_modos > 1."
+    data_tests: [not_null]
+
+- name: agg_transbordo_resumen
+  description: "Resumen de agg_transbordo por número de modos: usuarios, porcentaje, abordajes y combinación más frecuente."
+  columns:
+  - name: n_modos
+    description: "Número de modos usados por la persona (1–4)."
+    data_tests: [unique, not_null]
+  - name: es_multimodal
+    description: "n_modos > 1."
+  - name: usuarios
+    description: "Personas con ese número de modos."
+    data_tests: [not_null]
+  - name: pct_usuarios
+    description: "Medida NO ADITIVA: usuarios / total de personas × 100."
+  - name: abordajes
+    description: "Medida ADITIVA: abordajes de esas personas."
+  - name: abordajes_por_usuario
+    description: "Medida NO ADITIVA: abordajes / usuarios."
+  - name: combinacion_mas_frecuente
+    description: "Combinación de modos más común dentro del grupo."
+  - name: usuarios_combinacion
+    description: "Personas con esa combinación."
+
+- name: agg_metroriel_zonas
+  description: >
+    Agregado para Tableau (caso MetroRiel): una fila por zona con abordajes por modo, totales, usuarios distintos y
+    ranking; es_zona_metroriel marca las zonas 12, 8, 1, 6 y 17 del enunciado.
+  data_tests:
+  - dbt_utils.equal_rowcount:
+      arguments:
+        compare_model: ref('dim_zona')
+  columns:
+  - name: zona_id
+    description: "FK a dim_zona."
+    data_tests:
+    - unique
+    - not_null
+    - relationships:
+        arguments: {to: ref('dim_zona'), field: zona_id}
+  - name: zona_nombre
+    description: "Nombre canónico."
+  - name: tipo
+    description: "zona_ciudad o municipio."
+  - name: orden
+    description: "Orden de presentación."
+  - name: es_zona_metroriel
+    description: "TRUE para GT-Z12, GT-Z08, GT-Z01, GT-Z06, GT-Z17 (zonas de la línea de MetroRiel según el enunciado)."
+    data_tests: [not_null]
+  - name: n_estaciones_mr
+    description: "Estaciones de MetroRiel en la zona (fct_cobertura_zona_modo)."
+  - name: abordajes_tm
+    description: "Medida ADITIVA: abordajes de Transmetro en la zona."
+  - name: abordajes_tu
+    description: "Medida ADITIVA: abordajes de Transurbano."
+  - name: abordajes_mr
+    description: "Medida ADITIVA: abordajes (entradas) de MetroRiel."
+  - name: abordajes_am
+    description: "Medida ADITIVA: abordajes de Aerómetro."
+  - name: abordajes_totales
+    description: "Medida ADITIVA: suma de los cuatro modos."
+  - name: usuarios_distintos
+    description: "Medida NO ADITIVA: COUNT(DISTINCT usuario_sk) en la zona."
+  - name: personas_distintas
+    description: "Medida NO ADITIVA: COUNT(DISTINCT usuario_unificado_sk) en la zona."
+  - name: pct_metroriel
+    description: "Medida NO ADITIVA: abordajes_mr / abordajes_totales × 100."
+  - name: ranking
+    description: "RANK() por abordajes_totales descendente (1 = zona con más demanda; empates por orden)."
