@@ -35,7 +35,11 @@ Rendimiento de la vía streaming en la VM (e2-standard-2, Kafka de un nodo): pro
 | Silver (`silver_abordajes`, grano abordaje) | 1 647 569 | TM 362 106 · TU 786 398 (solo cobros exitosos) · MR 295 511 · AM 203 554 |
 | Silver (`silver_usuarios`) | 117 205 | TM 43 257 · TU 36 567 · MR 22 885 · AM 14 496; 100 % con identidad unificada |
 | Cuarentena | 11 913 | ver Calidad |
-| Gold | *pendiente F4* | |
+| Gold (`fct_abordaje`) | 1 647 569 | = `silver_abordajes` (prueba `assert_abordajes_gold_igual_silver`) |
+| Gold (`fct_viaje_metroriel`) | 295 511 | viajes cerrados |
+| Gold (`fct_uso_usuario_dia`) | 1 376 322 | usuario × día × modo |
+| Gold (`dim_usuario`) | 117 205 | seudonimizada, sin llave nativa |
+| Features (`usuario_features`) | 56 848 | una fila por persona, corte 2026-07-16 |
 
 ## Calidad
 ### Registros en cuarentena por regla y fuente
@@ -104,4 +108,15 @@ Los DELETE marcan la tarjeta como inactiva y conservan perfil y zona previos; 63
 
 ## Cobertura
 ### Zonas con y sin servicio; usuarios que usan más de un modo
-*Pendiente (F4, F6).*
+Medido en `gold.agg_cobertura_zona` y `gold.agg_transbordo_resumen` (detalle en `docs/evidence/gold_resumen.md`).
+
+| Métrica | Valor |
+|---|---:|
+| Zonas del universo conformado (`dim_zona`) | 26 |
+| Zonas con servicio de al menos un modo | 15 |
+| Zonas sin servicio de ningún modo | 11 (Zonas 2, 3, 5, 14, 15, 16, 19, 21, 24, 25 y Santa Catarina Pinula) |
+| Zonas por modo | Transmetro 15 · Transurbano 15 · Aerómetro 9 · MetroRiel 5 |
+| Personas con abordajes (identidad unificada, ADR-008) | 56 848 |
+| Usan 1 modo / 2 / 3 / 4 | 15 363 (27,0 %) / 25 048 (44,1 %) / 14 004 (24,6 %) / 2 433 (4,3 %) |
+| **Usuarios que usan más de un sistema** | **41 485 (73,0 %)** |
+| Viajes del mes (junio 2026), dos caminos independientes | 1 093 235 = 1 093 235 |

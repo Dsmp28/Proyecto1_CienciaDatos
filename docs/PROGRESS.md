@@ -1,6 +1,6 @@
 # Estado del proyecto
 
-**Fase actual:** F4 — Gold dimensional (F3 cerrada el 2026-09-20; DAG de F5 escrito, pendiente de correr en la VM)
+**Fase actual:** F5/F6 — demo de idempotencia corriendo en la VM (DAG completo × 2); features listas; insumos de Tableau y recomendación en construcción (F4 cerrada el 2026-09-21)
 **Último paso completado:** F1 cerrada: 9 archivos en Bronze por batch, streaming (Kafka→GCS, 114 objetos deterministas) y CDC; conciliación origen = Bronze (1 730 184 filas, diferencia 0); segunda corrida sin cambios. Tablas externas `bronze.*` creadas. HMAC verificado. Subagente construyendo `dbt/models/staging/` (F2).
 **Siguiente paso:** revisar y commitear Staging + CDC aplicado (métricas 1.2), luego Silver + cuarentena (F3) con las reglas de `docs/governance/reglas_calidad.md`.
 

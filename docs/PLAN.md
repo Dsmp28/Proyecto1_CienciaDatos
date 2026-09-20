@@ -44,16 +44,16 @@ Detalle de diseño (grano, matriz del bus, identidad, costos): `docs/modelo/`, `
 - [x] SCD2 del padrón con ventanas; conteo por regla en METRICAS
 
 ## F4 — Gold (1.4)
-- [ ] Dimensiones conformadas + 5 hechos; `dim_usuario` con HMAC
-- [ ] Particionado/clustering; `tests/test_gold_lineage.py`
-- [ ] Diagrama Mermaid, DDL, diccionario YAML, `dbt docs`
+- [x] Dimensiones conformadas + 5 hechos; `dim_usuario` con HMAC
+- [x] Particionado/clustering; `tests/test_gold_lineage.py`
+- [x] Diagrama Mermaid, DDL, diccionario YAML, `dbt docs`
 
 ## F5 — Orquestación e idempotencia (1.5)
 - [x] DAG completo con reintentos y bitácora; `ops.run_metrics`
 - [ ] `make demo-idempotencia` + evidencia en `docs/evidence/`
 
 ## F6 — Features, Tableau, recomendación (2.3, 2.1, 2.2)
-- [ ] `features.usuario_features` desde Silver, `fecha_corte`, prueba anti-fuga, diccionario
+- [x] `features.usuario_features` desde Silver, `fecha_corte`, prueba anti-fuga, diccionario
 - [ ] Vistas agregadas Gold, `.tds`, `docs/tableau/GUIA_TABLERO.md`, `analysis/*.sql` con tiempos
 - [ ] Borrador de recomendación (≤ 2 páginas) con cifra y consulta por afirmación
 
