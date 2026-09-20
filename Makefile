@@ -63,7 +63,11 @@ vm-sync: ## Copia el código del repo a la VM por IAP (sin datos, sin .venv, sin
 	COPYFILE_DISABLE=1 git ls-files -z | xargs -0 tar czf /tmp/red-metropolitana-src.tgz --no-xattrs
 	gcloud compute scp /tmp/red-metropolitana-src.tgz $(VM_NAME):/tmp/ --zone $(ZONE) --project $(PROJECT_ID) --tunnel-through-iap --quiet
 	gcloud compute ssh $(VM_NAME) --zone $(ZONE) --project $(PROJECT_ID) --tunnel-through-iap --quiet -- \
-	  'sudo mkdir -p $(VM_DIR) && sudo tar xzf /tmp/red-metropolitana-src.tgz -C $(VM_DIR) && sudo chown -R $$(id -u):$$(id -g) $(VM_DIR) && echo sincronizado'
+	  'sudo mkdir -p $(VM_DIR)/airflow/logs $(VM_DIR)/datos_red && sudo tar xzf /tmp/red-metropolitana-src.tgz -C $(VM_DIR) --no-same-owner \
+	   && sudo chown -R 50000:0 $(VM_DIR)/airflow/logs $(VM_DIR)/dbt $(VM_DIR)/datos_red && sudo chmod -R g+rwX $(VM_DIR)/airflow/logs $(VM_DIR)/dbt $(VM_DIR)/datos_red \
+	   && echo sincronizado'
+	# Los directorios que escribe el contenedor (logs, dbt/target, datos_red) pertenecen al usuario airflow (uid 50000);
+	# el resto queda de root y es legible por todos. Nunca chown -R al usuario de SSH: rompe los logs de las tareas.
 
 vm-up: ## Reejecuta el script de arranque en la VM (instala Docker, levanta la pila)
 	gcloud compute ssh $(VM_NAME) --zone $(ZONE) --project $(PROJECT_ID) --tunnel-through-iap --quiet -- 'sudo google_metadata_script_runner startup'
