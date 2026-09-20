@@ -1,8 +1,8 @@
 # Estado del proyecto
 
-**Fase actual:** F5/F6 — demo de idempotencia corriendo en la VM (DAG completo × 2); features listas; insumos de Tableau y recomendación en construcción (F4 cerrada el 2026-09-21)
-**Último paso completado:** F1 cerrada: 9 archivos en Bronze por batch, streaming (Kafka→GCS, 114 objetos deterministas) y CDC; conciliación origen = Bronze (1 730 184 filas, diferencia 0); segunda corrida sin cambios. Tablas externas `bronze.*` creadas. HMAC verificado. Subagente construyendo `dbt/models/staging/` (F2).
-**Siguiente paso:** revisar y commitear Staging + CDC aplicado (métricas 1.2), luego Silver + cuarentena (F3) con las reglas de `docs/governance/reglas_calidad.md`.
+**Fase actual:** F5/F7 — demo de idempotencia del DAG completo corriendo en la VM (2 corridas); guía de defensa, README y checklist en redacción. F0–F4, features (2.3), insumos de Tableau (2.1), recomendación (2.2), seguridad (3.3), linaje y escaneo de secretos ya evidenciados.
+**Último paso completado:** corregidos tres defectos detectados en la primera corrida del DAG en la nube (permisos de logs por `vm-sync`, `docs/` de solo lectura en el contenedor, 429 de BigQuery por escrituras fila a fila en `ops.*`); código sincronizado a la VM; demo relanzada (2026-09-21 05:34 UTC).
+**Siguiente paso:** recoger `docs/evidence/idempotencia_<ts>.md`, completar Rendimiento e Idempotencia en `docs/METRICAS.md` desde `ops.run_metrics`, revisar GUIA_DEFENSA/README/checklist, reporte de costo y recursos encendidos, cierre.
 
 ## Bloqueos
 Ninguno. (Facturación vinculada el 2026-09-20; generador disponible en `docs/generar_red_metropolitana.py`; datos en `datos_red/`, ignorados por git.)
