@@ -1,0 +1,72 @@
+<?xml version='1.0' encoding='utf-8' ?>
+<!--
+  Fuente de datos de Tableau Desktop para el tablero 2.1 (Red Metropolitana, capa Gold de BigQuery).
+  Conector nativo de Google BigQuery, SIN credenciales: al abrir el archivo Tableau pide iniciar sesión con OAuth
+  (cuenta de Google con acceso al proyecto cienciadatos-509301). Si Tableau no reconoce el usuario o el proyecto de
+  facturación, usar Datos > Editar conexión y volver a seleccionar: proyecto de facturación cienciadatos-509301,
+  proyecto cienciadatos-509301, dataset gold (ver docs/tableau/README.md).
+
+  Estructura del XML basada en el ejemplo oficial de atributos de conexión de BigQuery
+  (https://help.tableau.com/current/pro/desktop/en-us/examples_googlebigquery.htm): class='bigquery',
+  connection-dialect='google-bql' (SQL estándar), CATALOG/project = proyecto de los datos, EXECCATALOG = proyecto
+  de facturación, schema = dataset. Los joins forman la estrella fct_abordaje × 5 dimensiones conformadas
+  (docs/modelo/matriz_bus.md). dim_fuente se une en Tableau por fuente_sk si se necesita el linaje en el tablero
+  (docs/tableau/GUIA_TABLERO.md §Linaje).
+-->
+<datasource caption='Red Metropolitana · Gold (BigQuery)' formatted-name='red_metropolitana_gold' inline='true' source-platform='mac' version='18.1' xmlns:user='http://www.tableausoftware.com/xml/user'>
+  <connection class='federated'>
+    <named-connections>
+      <named-connection caption='cienciadatos-509301 · gold' name='bigquery.gold'>
+        <connection CATALOG='cienciadatos-509301' EXECCATALOG='cienciadatos-509301' authentication='yes' class='bigquery' connection-dialect='google-bql' connection-protocol='native-api' login_title='Sign in to Google BigQuery' project='cienciadatos-509301' schema='gold' server='googleapis.com/bigquery' username='' />
+      </named-connection>
+    </named-connections>
+    <!-- Estrella: fct_abordaje (hecho) LEFT JOIN dimensiones. dim_tiempo con INNER (toda llave existe: prueba relationships). -->
+    <relation join='left' type='join'>
+      <clause type='join'>
+        <expression op='='>
+          <expression op='[fct_abordaje].[usuario_sk]' />
+          <expression op='[dim_usuario].[usuario_sk]' />
+        </expression>
+      </clause>
+      <relation join='left' type='join'>
+        <clause type='join'>
+          <expression op='='>
+            <expression op='[fct_abordaje].[estacion_sk]' />
+            <expression op='[dim_estacion].[estacion_sk]' />
+          </expression>
+        </clause>
+        <relation join='left' type='join'>
+          <clause type='join'>
+            <expression op='='>
+              <expression op='[fct_abordaje].[zona_id]' />
+              <expression op='[dim_zona].[zona_id]' />
+            </expression>
+          </clause>
+          <relation join='left' type='join'>
+            <clause type='join'>
+              <expression op='='>
+                <expression op='[fct_abordaje].[modo_id]' />
+                <expression op='[dim_modo].[modo_id]' />
+              </expression>
+            </clause>
+            <relation join='inner' type='join'>
+              <clause type='join'>
+                <expression op='='>
+                  <expression op='[fct_abordaje].[tiempo_sk]' />
+                  <expression op='[dim_tiempo].[tiempo_sk]' />
+                </expression>
+              </clause>
+              <relation connection='bigquery.gold' name='fct_abordaje' table='[gold].[fct_abordaje]' type='table' />
+              <relation connection='bigquery.gold' name='dim_tiempo' table='[gold].[dim_tiempo]' type='table' />
+            </relation>
+            <relation connection='bigquery.gold' name='dim_modo' table='[gold].[dim_modo]' type='table' />
+          </relation>
+          <relation connection='bigquery.gold' name='dim_zona' table='[gold].[dim_zona]' type='table' />
+        </relation>
+        <relation connection='bigquery.gold' name='dim_estacion' table='[gold].[dim_estacion]' type='table' />
+      </relation>
+      <relation connection='bigquery.gold' name='dim_usuario' table='[gold].[dim_usuario]' type='table' />
+    </relation>
+    <aliases enabled='yes' />
+  </connection>
+</datasource>

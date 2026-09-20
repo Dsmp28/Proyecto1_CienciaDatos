@@ -33,8 +33,10 @@ pipeline (`var('fecha_referencia')`), nunca la fecha del sistema.
 - Para Transmetro, además, la tarjeta debe estar vigente en el padrón (SCD2, `activo = true` a la fecha de referencia).
   Una tarjeta dada de baja (DELETE del CDC) conserva su historial de viajes pero no cuenta como usuario activo.
 - Para los otros tres operadores no existe padrón: "usuario" es la llave distinta observada en sus archivos de operación.
-- "Usuario" es siempre una tarjeta seudonimizada por modo; solo cuenta como la misma persona entre modos si existe
-  el vínculo determinista descrito en ADR-008.
+- "Usuario" se cuenta a nivel de **persona** (identidad unificada `usuario_unificado_sk`, ADR-008) en todos los KPI
+  y en las features; el conteo por tarjeta seudonimizada (`usuario_sk`) se reporta solo como detalle. Con la fecha de
+  referencia 2026-07-16 la ventana es 2026-06-16 a 2026-07-15 y el resultado oficial es **53 820 personas activas**
+  (110 762 tarjetas), calculado igual en `analysis/h6_kpis.sql` y en `features.usuario_features`.
 
 ## 3. Dueños por dominio
 
