@@ -99,12 +99,62 @@ Los DELETE marcan la tarjeta como inactiva y conservan perfil y zona previos; 63
 | Aerómetro (`user_hash`) | 14 496 | 203 554 |
 
 ## Rendimiento
-### Duración por etapa, tamaño en almacenamiento por capa, tiempo de las consultas del tablero
-*Pendiente (F5, F6).*
+### Duración por etapa (DAG `red_metropolitana` en la VM e2-standard-2; `ops.run_metrics`, metrica `duracion_s`)
+Corridas `demo-idempotencia-20260921T001141-1` y `-2` (2026-09-21). Duración total: 588 s y 558 s.
+
+| Etapa | Corrida 1 (s) | Corrida 2 (s) |
+|---|---:|---:|
+| generar_o_verificar_datos | 2,7 | 2,7 |
+| ingesta_batch (7 archivos ya en manifiesto → omitidos) | 15,4 | 13,6 |
+| ingesta_cdc | 10,1 | 8,3 |
+| kafka_productor (omitido por manifiesto) | 6,5 | 6,1 |
+| kafka_consumidor (lag 0, espera de inactividad 30 s) | 35,0 | 34,8 |
+| tablas_externas_bronze | 14,9 | 13,1 |
+| conciliar_bronze | 13,0 | 14,7 |
+| publicar_clave_hmac | 4,7 | 4,1 |
+| dbt_deps / dbt_seed | 6,0 / 23,9 | 5,3 / 26,5 |
+| dbt_staging (15 modelos + 79 pruebas) | 70,1 | 72,7 |
+| dbt_silver (17 modelos + 161 pruebas) | 128,3 | 132,0 |
+| dbt_gold (17 modelos + 197 pruebas) | 130,9 | 126,8 |
+| dbt_features (2 modelos + 58 pruebas) | 44,9 | 41,4 |
+| dbt_docs | 39,6 | 38,5 |
+| pruebas_python | 7,3 | 7,1 |
+| registrar_metricas | 16,5 | 12,7 |
+
+Primera carga de Bronze (F1, sin manifiesto previo): batch 7 archivos ≈ 2 min; streaming productor 5,8 s + 2,1 s, consumidor 77,8 s (566 775 mensajes); regeneración y verificación de datos 1 min 46 s.
+
+### Tamaño en almacenamiento por capa (`ops.run_metrics`, metrica `bytes_capa`, corrida 2)
+| Capa | Filas | Tamaño |
+|---|---:|---:|
+| Bronze (GCS, 121 objetos) | 1 730 184 | 294,9 MiB |
+| Staging (15 tablas) | 1 869 850 | 836,7 MiB |
+| Silver (17 tablas, incluidas 6 de validación con todas las filas) | 5 283 384 | 2 414,2 MiB |
+| Cuarentena (2 tablas) | 11 927 | 3,9 MiB |
+| Gold (17 tablas) | 3 590 561 | 1 439,9 MiB |
+| Features (2 tablas) | 56 882 | 17,5 MiB |
+
+### Tiempo de las consultas del tablero (`analysis/*.sql`, sin caché, `bq show -j`)
+| Hoja | Cifra principal | Job (ms) | Bytes |
+|---|---|---:|---:|
+| H1 demanda modo × hora | 55,05 % de abordajes en hora pico | 230 | 0,79 MB |
+| H2 demanda por zona | Zona 17 = 148 554 (9,02 %) | 1 367 | 0,81 MB |
+| H3 cobertura | 11 de 26 zonas sin servicio | 203 | 8,18 MB |
+| H4 transbordo | 72,98 % multimodal | 190 | 1,32 MB |
+| H5 caso MetroRiel | 5 zonas del trazado = top 5 (43,68 %) | 267 | 0,30 MB |
+| H6 KPIs | viajes junio 1 093 235; 53 820 personas activas | 1 173 | 157,7 MB |
+| H7 linaje de una cifra | 725 viajes → 2 objetos de Bronze | 173 | 4,23 MB |
+| H8 estación candidata | Zona 17: 23 704 personas con ≥ 2 modos | 4 118 | 256,5 MB |
+| viajes_del_mes A / B | 1 093 235 = 1 093 235 | 662 / 345 | 168,1 / 93,2 MB |
 
 ## Idempotencia
-### Conteos de la primera y la segunda corrida
-*Pendiente (F5): `make demo-idempotencia`, evidencia en `docs/evidence/`.*
+### Conteos de la primera y la segunda corrida (`make demo-idempotencia`, 2026-09-21)
+Dos corridas completas del DAG en la nube (`demo-idempotencia-20260921T001141-1` y `-2`, 588 s y 558 s), 17 de 17 tareas
+en success en ambas. `ingest/conteos_capas.py` comparó **64 tablas** de bronze, staging, silver, quarantine, gold y features
+más los objetos y bytes de `gs://cienciadatos-509301-lake/bronze/`: **todo idéntico** (121 objetos, 309 266 388 bytes;
+`fct_abordaje` 1 647 569 = 1 647 569; `registros_rechazados` 11 913 = 11 913; `usuario_features` 56 848 = 56 848).
+Evidencia completa: `docs/evidence/idempotencia_20260921T001141.md` (+ instantáneas JSON de cada corrida).
+Cómo se logra: manifiesto por sha256 en Bronze (segunda corrida: 9 archivos omitidos, 0 objetos nuevos), objetos de
+streaming con nombre determinista por ventana de offsets, capas reconstruidas por completo con `fecha_referencia` fija.
 
 ## Cobertura
 ### Zonas con y sin servicio; usuarios que usan más de un modo

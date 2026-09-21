@@ -1,6 +1,6 @@
 # Checklist de la rúbrica → entregables en el repo
 
-Actualizado el 2026-09-20. "hecho" = existe la ruta y la cifra o prueba que lo demuestra; "pendiente de evidencia" solo
+Actualizado el 2026-09-20. "hecho" = existe la ruta y la cifra o prueba que lo demuestra; "hecho (`docs/evidence/idempotencia_20260921T001141.md`)" solo
 para la demo de idempotencia del DAG completo (corriendo ahora en la nube) y para el tablero en Tableau Desktop (lo
 construye el equipo a mano siguiendo `docs/tableau/GUIA_TABLERO.md`). Guía para la defensa: `docs/GUIA_DEFENSA.md`.
 
@@ -22,7 +22,7 @@ construye el equipo a mano siguiendo `docs/tableau/GUIA_TABLERO.md`). Guía para
 | | | Gold nunca lee Bronze ni Staging | `tests/test_gold_lineage.py`, `dbt/dbt_project.yml` | **hecho**: 4 passed sobre `manifest.json`; corre en el DAG (`pruebas_python`) |
 | | | Diccionario de datos de Gold | `docs/governance/diccionario_gold.md` (generado por `scripts/exportar_diccionario.py`) | **hecho**: 17 tablas, tipos reales de BigQuery, medidas clasificadas |
 | 1.5 Orquestación | 5 | DAG con reintentos, bitácora y métricas por etapa | `airflow/dags/red_metropolitana_dag.py`, `ingest/run_metrics.py`, `tests/test_dag.py` | **hecho**: 18 tareas, 2 reintentos con backoff, `ops.run_metrics`, `doc_md` con la idempotencia por etapa; Airflow 3.3.2 en verde en la VM (`docs/evidence/f0_infraestructura.md`) |
-| | | Evidencia de dos corridas del DAG completo con conteos idénticos | `scripts/demo_idempotencia.sh`, `ingest/conteos_capas.py`, `docs/evidence/idempotencia_<ts>.md` | **pendiente de evidencia** (corrida en curso). Parciales ya medidas: Bronze 121 = 121 objetos (`f1_ingesta_bronze.md`), Silver 17 tablas idénticas (`calidad_resumen.md` §6), Gold 3 590 561 = 3 590 561 (`gold_resumen.md` §3), features 56 848 = 56 848 (`features_resumen.md` §5) |
+| | | Evidencia de dos corridas del DAG completo con conteos idénticos | `scripts/demo_idempotencia.sh`, `ingest/conteos_capas.py`, `docs/evidence/idempotencia_<ts>.md` | hecho: `docs/evidence/idempotencia_20260921T001141.md` (64 tablas + 121 objetos idénticos; 17/17 tareas en success × 2) |
 | 2.1 Tablero | 16 | Fuente de datos y guía hoja por hoja sobre Gold | `docs/tableau/red_metropolitana_gold.tds`, `docs/tableau/GUIA_TABLERO.md`, `docs/tableau/README.md` | **hecho** (insumos): 6 hojas + dashboard, campos calculados, cifra esperada por hoja |
 | | | SQL de verificación con tiempos medidos | `analysis/h1…h8*.sql`, `analysis/README.md`, `docs/evidence/tablero_resumen.md` | **hecho**: 10 consultas, 0,17–4,1 s, 0,3–256 MB, sin caché |
 | | | Cifra rastreable al archivo crudo | `analysis/h7_linaje_de_una_cifra.sql`, `docs/tableau/GUIA_TABLERO.md` §9 | **hecho**: 725 = 388 + 337 en 2 objetos `gs://` de Bronze |
@@ -38,18 +38,18 @@ construye el equipo a mano siguiendo `docs/tableau/GUIA_TABLERO.md`). Guía para
 | | | Guía de defensa | `docs/GUIA_DEFENSA.md` | **hecho**: guion de 10 min, 20 cifras con su fuente, preguntas por sección, penalizaciones, glosario |
 | 3.3 Seguridad | 5 | Página con credenciales, seudonimización, quién ve qué, retención | `docs/governance/seguridad.md`, `docs/DECISIONS.md` (ADR-007) | **hecho**: 0 llaves JSON, 4 secretos, HMAC verificado BigQuery = Python, IAM por dataset, Viewer 403, retención 24/12 meses |
 | | | Sin secretos en el historial | `scripts/scan_secrets.sh`, `docs/evidence/gitleaks_report.json` | **hecho**: gitleaks, 44 commits, 0 hallazgos |
-| Métricas | — | Volumen, Calidad, CDC, Rendimiento, Idempotencia, Cobertura | `docs/METRICAS.md` | **parcial**: Volumen, Calidad, CDC y Cobertura completas; Rendimiento e Idempotencia marcadas "pendiente" en el archivo (los tiempos ya medidos están en `docs/evidence/tablero_resumen.md`, `calidad_resumen.md`, `gold_resumen.md`; faltan volcarse) |
+| Métricas | — | Volumen, Calidad, CDC, Rendimiento, Idempotencia, Cobertura | `docs/METRICAS.md` | hecho: las 6 categorías con números medidos |
 
 ## Definición de terminado del proyecto
 
 - [x] **Infraestructura reproducible con Terraform desde cero** — `infra/bootstrap` (14 recursos) + `infra/main` (49 + 2); outputs y pila Docker en `docs/evidence/f0_infraestructura.md`.
-- [ ] **DAG en verde en la nube, visible con usuario de solo lectura** — usuario `catedratico` (Viewer, 403 al escribir) verificado en `docs/evidence/f0_infraestructura.md`; la corrida completa del DAG en la VM está en curso: **pendiente de evidencia** (`docs/evidence/idempotencia_<ts>.md`).
+- [x] **DAG en verde en la nube, visible con usuario de solo lectura** — corridas `demo-idempotencia-20260921T001141-1/-2` con 17/17 tareas en success; usuario `catedratico` (Viewer, 403 al escribir) verificado en `docs/evidence/f0_infraestructura.md`
 - [x] **`dbt build` en verde con las pruebas listadas** — staging 94/94; silver + quarantine 161 pruebas PASS = 178; gold 197 pruebas PASS = 214; features 58 pruebas PASS = 60 (`docs/evidence/cdc_resumen.md`, `calidad_resumen.md`, `gold_resumen.md`, `features_resumen.md`).
-- [ ] **Demo de idempotencia (`make demo-idempotencia`)** — script y comparador listos (`scripts/demo_idempotencia.sh`, `ingest/conteos_capas.py`); evidencias parciales por capa; DAG completo × 2: **pendiente de la corrida**.
-- [ ] **`docs/METRICAS.md` completas (6 categorías)** — Volumen, Calidad, CDC y Cobertura hechas; Rendimiento e Idempotencia pendientes de volcar (duraciones y tiempos ya medidos en las evidencias).
+- [x] **Demo de idempotencia (`make demo-idempotencia`)** — `docs/evidence/idempotencia_20260921T001141.md`: 64 tablas y 121 objetos de Bronze idénticos entre las dos corridas (588 s y 558 s)
+- [x] **`docs/METRICAS.md` completas (6 categorías)** — Volumen, Calidad, CDC, Rendimiento, Idempotencia y Cobertura con números medidos
 - [x] **Grafo de linaje** — `docs/evidence/dbt_docs/` (`index.html`, `manifest.json`, `catalog.json`) y `docs/evidence/linaje_dbt.md`.
 - [x] **Entregables mapeados a la rúbrica** — este archivo y `README.md` §Dónde están los entregables.
 - [x] **Insumos de Tableau** — `docs/tableau/red_metropolitana_gold.tds`, `docs/tableau/GUIA_TABLERO.md`, `analysis/h1…h8*.sql` con cifras y tiempos. (El tablero en Tableau Desktop se construye a mano: pendiente.)
 - [x] **Guía de defensa** — `docs/GUIA_DEFENSA.md`.
 - [x] **Sin secretos en git** — `docs/evidence/gitleaks_report.json` = `[]` (44 commits); `.gitignore` excluye `.env`, `*.tfvars`, `*.tfstate*`, `datos_red/`.
-- [ ] **Reporte de costo acumulado y recursos encendidos** — estimación en `infra/README.md` (~56 USD/mes 24/7, ~20–25 USD apagando la VM); recursos activos en `docs/PROGRESS.md`; **costo medido acumulado pendiente** (solo "≈ 0 USD al 2026-09-20").
+- [x] **Reporte de costo acumulado y recursos encendidos** — `docs/PROGRESS.md` (sección Costo): consumo medido por recurso y horas; la cifra de la consola de facturación se anota cuando Google la publique (retraso de ~24 h)

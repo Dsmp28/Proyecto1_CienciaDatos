@@ -1,0 +1,113 @@
+{
+  "bucket": "cienciadatos-509301-lake",
+  "gcs_bronze": {
+    "bytes": 309266388,
+    "objetos": 121,
+    "por_fuente": {
+      "aerometro_boardings": {
+        "bytes": 72966490,
+        "objetos": 41
+      },
+      "am_estaciones": {
+        "bytes": 687,
+        "objetos": 1
+      },
+      "cdc_padron_usuarios": {
+        "bytes": 2149136,
+        "objetos": 1
+      },
+      "metroriel_viajes": {
+        "bytes": 55311001,
+        "objetos": 1
+      },
+      "mr_estaciones": {
+        "bytes": 537,
+        "objetos": 1
+      },
+      "tm_estaciones": {
+        "bytes": 7387,
+        "objetos": 1
+      },
+      "transmetro_validaciones": {
+        "bytes": 135692243,
+        "objetos": 73
+      },
+      "transurbano_transacciones": {
+        "bytes": 43125718,
+        "objetos": 1
+      },
+      "tu_paradas": {
+        "bytes": 13189,
+        "objetos": 1
+      }
+    }
+  },
+  "generado_ts": "2026-09-21T06:31:18+00:00",
+  "proyecto": "cienciadatos-509301",
+  "tablas": {
+    "bronze.aerometro_boardings": 203554,
+    "bronze.am_estaciones": 14,
+    "bronze.cdc_padron_usuarios": 31050,
+    "bronze.metroriel_viajes": 299100,
+    "bronze.mr_estaciones": 22,
+    "bronze.tm_estaciones": 104,
+    "bronze.transmetro_validaciones": 363221,
+    "bronze.transurbano_transacciones": 832791,
+    "bronze.tu_paradas": 328,
+    "features.diccionario_features": 34,
+    "features.usuario_features": 56848,
+    "gold.agg_cobertura_zona": 26,
+    "gold.agg_demanda_modo_zona_hora": 37619,
+    "gold.agg_metroriel_zonas": 26,
+    "gold.agg_transbordo": 56848,
+    "gold.agg_transbordo_resumen": 4,
+    "gold.dim_estacion": 468,
+    "gold.dim_fuente": 121,
+    "gold.dim_modo": 4,
+    "gold.dim_padron_historia": 28844,
+    "gold.dim_tiempo": 1080,
+    "gold.dim_usuario": 117205,
+    "gold.dim_zona": 26,
+    "gold.fct_abordaje": 1647569,
+    "gold.fct_cambio_padron": 28844,
+    "gold.fct_cobertura_zona_modo": 44,
+    "gold.fct_uso_usuario_dia": 1376322,
+    "gold.fct_viaje_metroriel": 295511,
+    "quarantine.registros_rechazados": 11913,
+    "quarantine.resumen_por_regla": 14,
+    "silver.feriados_gt": 13,
+    "silver.franjas_horarias": 24,
+    "silver.silver_abordajes": 1647569,
+    "silver.silver_aerometro_boardings": 203554,
+    "silver.silver_am_hash_map": 70000,
+    "silver.silver_estaciones": 468,
+    "silver.silver_metroriel_viajes": 295511,
+    "silver.silver_padron_scd2": 28844,
+    "silver.silver_transmetro_validaciones": 362106,
+    "silver.silver_transurbano_transacciones": 827788,
+    "silver.silver_usuarios": 117205,
+    "silver.val_aerometro_boardings": 203554,
+    "silver.val_cdc_padron_usuarios": 31050,
+    "silver.val_estaciones": 468,
+    "silver.val_metroriel_viajes": 299100,
+    "silver.val_transmetro_validaciones": 363221,
+    "silver.val_transurbano_transacciones": 832791,
+    "silver.zonas": 26,
+    "silver.zonas_mapeo": 92,
+    "staging.stg_aerometro_boardings": 203554,
+    "staging.stg_am_estaciones": 14,
+    "staging.stg_catalogo_usuarios_am": 14496,
+    "staging.stg_catalogo_usuarios_mr": 22885,
+    "staging.stg_catalogo_usuarios_tm": 43255,
+    "staging.stg_catalogo_usuarios_tu": 36567,
+    "staging.stg_cdc_padron_usuarios": 31050,
+    "staging.stg_metroriel_viajes": 299100,
+    "staging.stg_mr_estaciones": 22,
+    "staging.stg_padron_cdc_aplicado": 22462,
+    "staging.stg_padron_cdc_resumen": 1,
+    "staging.stg_tm_estaciones": 104,
+    "staging.stg_transmetro_validaciones": 363221,
+    "staging.stg_transurbano_transacciones": 832791,
+    "staging.stg_tu_paradas": 328
+  }
+}

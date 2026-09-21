@@ -1,8 +1,8 @@
 # Estado del proyecto
 
-**Fase actual:** F5/F7 — demo de idempotencia del DAG completo corriendo en la VM (2 corridas); guía de defensa, README y checklist en redacción. F0–F4, features (2.3), insumos de Tableau (2.1), recomendación (2.2), seguridad (3.3), linaje y escaneo de secretos ya evidenciados.
-**Último paso completado:** corregidos tres defectos detectados en la primera corrida del DAG en la nube (permisos de logs por `vm-sync`, `docs/` de solo lectura en el contenedor, 429 de BigQuery por escrituras fila a fila en `ops.*`); código sincronizado a la VM; demo relanzada (2026-09-21 05:34 UTC).
-**Siguiente paso:** recoger `docs/evidence/idempotencia_<ts>.md`, completar Rendimiento e Idempotencia en `docs/METRICAS.md` desde `ops.run_metrics`, revisar GUIA_DEFENSA/README/checklist, reporte de costo y recursos encendidos, cierre.
+**Fase actual:** F7 cerrada (2026-09-21). Proyecto completo: F0–F7 con evidencia. Pendiente solo lo que hace el equipo a mano: construir el tablero en Tableau Desktop con `docs/tableau/GUIA_TABLERO.md` y anotar el costo de la consola.
+**Último paso completado:** `make demo-idempotencia` en verde en la nube (corridas `demo-idempotencia-20260921T001141-1/-2`, 64 tablas y 121 objetos idénticos, 17/17 tareas en success); métricas de Rendimiento e Idempotencia registradas; checklist de rúbrica completo.
+**Siguiente paso:** el equipo construye el tablero en Tableau (guía hoja por hoja) y ensaya con `docs/GUIA_DEFENSA.md`; apagar la VM con `make vm-stop` cuando no se use; extras opcionales (sección 12 del plan) solo con autorización.
 
 ## Bloqueos
 Ninguno. (Facturación vinculada el 2026-09-20; generador disponible en `docs/generar_red_metropolitana.py`; datos en `datos_red/`, ignorados por git.)
@@ -16,8 +16,23 @@ Ninguno. (Facturación vinculada el 2026-09-20; generador disponible en `docs/ge
 - Presupuesto 60 USD/mes con alertas a <correo-del-propietario>.
 
 ## Costo acumulado en GCP
-≈ 0 USD al 2026-09-20 (recursos recién creados). Cuenta de prueba gratuita: todo el consumo sale de los 300 USD de crédito.
+Medición propia al 2026-09-21 06:40 UTC (la consola de facturación publica el costo real con ~24 h de retraso; anotar aquí la cifra de
+**Facturación → Informes → proyecto cienciadatos-509301** cuando aparezca):
 
-## Datos (verificado en el generador)
-Filas de origen: transmetro 363 221 · transurbano 832 791 · metroriel 299 100 · aerometro 203 554 · cdc 31 050 · catálogos 104 / 328 / 22 / 14.
-`fecha_referencia = 2026-07-16`. Detalle en ADR-008, ADR-009 y ADR-010.
+| Recurso | Uso medido | Precio de lista | Costo estimado |
+|---|---|---|---:|
+| VM e2-standard-2 `vm-pipeline` | encendida desde 2026-09-21 04:00 UTC: 2,7 h | 0,067 USD/h | 0,18 USD |
+| Disco pd-balanced 30 GB | 2,7 h | 3,00 USD/mes | 0,01 USD |
+| IP externa estática | 2,7 h en uso | 0,005 USD/h | 0,01 USD |
+| BigQuery consultas | ≈ 6 builds completos × ~5 GB + análisis ≈ 40 GB escaneados | 1 TiB/mes gratis | 0 USD |
+| BigQuery almacenamiento | ≈ 5 GB (staging + silver + gold + features) | 10 GiB/mes gratis | 0 USD |
+| GCS | 0,31 GB en Bronze + estado de Terraform | 5 GB/mes gratis | 0 USD |
+| Secret Manager, Logging, egreso | 4 secretos, < 1 GB | nivel gratuito | 0 USD |
+| **Total estimado de la sesión** | | | **≈ 0,20 USD** |
+
+Proyección: ~57 USD/mes con la VM 24×7 o ~25 USD/mes apagándola fuera de uso (`make vm-stop`); todo se descuenta de los 300 USD de crédito de la prueba gratuita.
+
+## Recursos que siguen encendidos (2026-09-21 06:40 UTC)
+- VM `vm-pipeline` **ENCENDIDA** (Kafka, Airflow, Postgres, Caddy). Apagar con `make vm-stop`; volver a encender con `make vm-start` (la IP y el dominio no cambian).
+- Bucket lake, bucket de estado, 8 datasets de BigQuery, 4 secretos, presupuesto de 60 USD/mes con alertas: sin costo apreciable mientras la VM está apagada.
+- Para eliminar todo: `make destroy` (conserva el bucket de estado por `prevent_destroy`).

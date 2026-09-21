@@ -50,16 +50,16 @@ Detalle de diseño (grano, matriz del bus, identidad, costos): `docs/modelo/`, `
 
 ## F5 — Orquestación e idempotencia (1.5)
 - [x] DAG completo con reintentos y bitácora; `ops.run_metrics`
-- [ ] `make demo-idempotencia` + evidencia en `docs/evidence/`
+- [x] `make demo-idempotencia` + evidencia en `docs/evidence/idempotencia_20260921T001141.md` (64 tablas idénticas, 17/17 tareas en verde × 2)
 
 ## F6 — Features, Tableau, recomendación (2.3, 2.1, 2.2)
 - [x] `features.usuario_features` desde Silver, `fecha_corte`, prueba anti-fuga, diccionario
-- [ ] Vistas agregadas Gold, `.tds`, `docs/tableau/GUIA_TABLERO.md`, `analysis/*.sql` con tiempos
-- [ ] Borrador de recomendación (≤ 2 páginas) con cifra y consulta por afirmación
+- [x] Vistas agregadas Gold, `.tds`, `docs/tableau/GUIA_TABLERO.md`, `analysis/*.sql` con tiempos
+- [x] Borrador de recomendación (≤ 2 páginas) con cifra y consulta por afirmación
 
 ## F7 — Gobernanza, documentación, seguridad, cierre (3.1–3.3)
-- [ ] Diccionario de Gold exportado, definiciones oficiales con dueños, prueba de fuego "viajes del mes"
-- [ ] README, página de seguridad, `gitleaks`, `RUBRICA_CHECKLIST.md`, `GUIA_DEFENSA.md`
+- [x] Diccionario de Gold exportado, definiciones oficiales con dueños, prueba de fuego "viajes del mes"
+- [x] README, página de seguridad, `gitleaks`, `RUBRICA_CHECKLIST.md`, `GUIA_DEFENSA.md`
 - [ ] Reporte de costo acumulado y recursos encendidos
 
 ## Extras (solo tras F7 y con autorización)
