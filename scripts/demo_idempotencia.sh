@@ -29,6 +29,15 @@ print(f"{c.get('success', 0)}/{len(tis)} ok" + (", " + resto if resto else ""))
 PYEOF
 )
 
+# Lista las tareas que no terminaron en success (excluye registrar_fallo); vacío = todo en verde.
+PY_NO_VERDES=$(cat <<'PYEOF'
+import json, sys
+tis = json.load(sys.stdin).get("task_instances", [])
+malas = [f"{t['task_id']}={t.get('state')}" for t in tis if t["task_id"] != "registrar_fallo" and t.get("state") != "success"]
+print(", ".join(malas))
+PYEOF
+)
+
 REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$REPO"
 
@@ -159,6 +168,12 @@ disparar_y_esperar() {  # disparar_y_esperar <dag_run_id>; deja DURACION_S y EST
   DURACION_S=$(( $(date +%s) - inicio ))
   log "Corrida $run_id terminó en estado $ESTADO tras ${DURACION_S}s"
   [[ "$ESTADO" == "success" ]] || fallo "la corrida $run_id no terminó en success; revisa la UI de Airflow"
+  # El estado de la corrida no basta: todas las tareas (salvo registrar_fallo, que solo corre si algo falló) deben
+  # estar en success. Así una tarea fallida con reintentos agotados nunca pasa como corrida válida.
+  local no_verdes
+  no_verdes="$(api GET "/dags/$DAG_ID/dagRuns/$run_id/taskInstances?limit=100" | "$PY" -c "$PY_NO_VERDES")"
+  [[ -z "$no_verdes" ]] || fallo "la corrida $run_id tiene tareas no exitosas: $no_verdes"
+  log "  las 17 tareas de la corrida $run_id están en success"
 }
 
 snapshot() {  # snapshot <base sin extensión>
