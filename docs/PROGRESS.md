@@ -32,7 +32,7 @@ Medición propia al 2026-09-21 06:40 UTC (la consola de facturación publica el 
 
 Proyección: ~57 USD/mes con la VM 24×7 o ~25 USD/mes apagándola fuera de uso (`make vm-stop`); todo se descuenta de los 300 USD de crédito de la prueba gratuita.
 
-## Recursos que siguen encendidos (2026-09-21 06:40 UTC)
-- VM `vm-pipeline` **ENCENDIDA** (Kafka, Airflow, Postgres, Caddy). Apagar con `make vm-stop`; volver a encender con `make vm-start` (la IP y el dominio no cambian).
+## Recursos activos (2026-09-21 06:45 UTC)
+- VM `vm-pipeline` **APAGADA** desde 2026-09-21 06:45 UTC (`make vm-stop`). Encender con `make vm-start`; la IP <IP_VM> y el dominio se conservan, y la pila de Docker arranca sola (`restart: unless-stopped`).
 - Bucket lake, bucket de estado, 8 datasets de BigQuery, 4 secretos, presupuesto de 60 USD/mes con alertas: sin costo apreciable mientras la VM está apagada.
 - Para eliminar todo: `make destroy` (conserva el bucket de estado por `prevent_destroy`).
