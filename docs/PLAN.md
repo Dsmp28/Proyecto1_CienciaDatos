@@ -63,4 +63,7 @@ Detalle de diseño (grano, matriz del bus, identidad, costos): `docs/modelo/`, `
 - [ ] Reporte de costo acumulado y recursos encendidos
 
 ## Extras (solo tras F7 y con autorización)
-GitHub Actions `dbt test` → modelos incrementales → `dbt source freshness` → transbordo por cercanía.
+- [x] GitHub Actions `dbt test` en cada push (autorizado 2026-09-21; ADR-011; `.github/workflows/dbt_test.yml`, `infra/main/ci.tf`)
+- [ ] Modelos incrementales
+- [ ] `dbt source freshness`
+- [ ] Transbordo por cercanía en tiempo y espacio

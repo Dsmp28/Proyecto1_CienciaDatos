@@ -1,0 +1,112 @@
+# Extra (sección 12 del plan): el pipeline se valida solo en cada push.
+#
+# Dos trabajos:
+#   1. pruebas-sin-nube: siempre. pytest (linaje de Gold sobre manifest.json, prohibición de CURRENT_DATE,
+#      ingesta, DAG), `dbt parse` y `terraform validate`. No toca GCP.
+#   2. dbt-test: solo si el repositorio tiene configuradas las variables GCP_WIF_PROVIDER y
+#      GCP_CI_SERVICE_ACCOUNT (salida de `terraform output` con `github_repo` definido). Se autentica por
+#      Workload Identity Federation (sin llaves JSON) y ejecuta las 510 pruebas de dbt contra BigQuery.
+name: dbt test
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write   # token OIDC para Workload Identity Federation
+
+env:
+  PYTHON_VERSION: "3.12"
+  DBT_PROFILES_DIR: dbt
+  GCP_PROJECT_ID: cienciadatos-509301
+
+jobs:
+  pruebas-sin-nube:
+    name: pytest, dbt parse y terraform validate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+
+      - name: Instalar dependencias
+        run: pip install -r requirements.txt
+
+      - name: Pruebas de Python (sin red)
+        run: python -m pytest -q tests
+
+      - name: dbt deps + parse (sin conexión)
+        run: |
+          cd dbt
+          dbt deps --no-use-colors
+          dbt parse --no-use-colors
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_wrapper: false
+
+      - name: terraform fmt y validate
+        run: |
+          terraform fmt -check -recursive infra
+          for d in infra/bootstrap infra/main; do
+            (cd "$d" && terraform init -backend=false -input=false >/dev/null && terraform validate -no-color)
+          done
+
+      - name: Sintaxis de scripts y del compose
+        run: |
+          bash -n scripts/demo_idempotencia.sh scripts/scan_secrets.sh vm/startup.sh
+          python - <<'EOF'
+          import yaml, pathlib
+          yaml.safe_load(pathlib.Path("vm/docker-compose.yml").read_text())
+          print("vm/docker-compose.yml: YAML válido")
+          EOF
+
+  dbt-test:
+    name: dbt test contra BigQuery
+    needs: pruebas-sin-nube
+    if: ${{ vars.GCP_WIF_PROVIDER != '' && vars.GCP_CI_SERVICE_ACCOUNT != '' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+
+      - name: Instalar dependencias
+        run: pip install -r requirements.txt
+
+      - name: Autenticación en GCP (Workload Identity Federation, sin llaves)
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ vars.GCP_WIF_PROVIDER }}
+          service_account: ${{ vars.GCP_CI_SERVICE_ACCOUNT }}
+          project_id: ${{ env.GCP_PROJECT_ID }}
+
+      - name: dbt deps
+        run: cd dbt && dbt deps --no-use-colors
+
+      - name: "dbt test (510 pruebas: unicidad, no nulos, relaciones, conciliación, linaje)"
+        run: |
+          cd dbt
+          dbt test --no-use-colors --vars '{"run_id": "ci-${{ github.run_id }}"}'
+
+      - name: Prueba de linaje de Gold sobre el manifest recién generado
+        run: python -m pytest -q tests/test_gold_lineage.py
+
+      - name: Publicar resultados como artefacto
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dbt-run-results
+          path: |
+            dbt/target/run_results.json
+            dbt/target/manifest.json
+          retention-days: 14

@@ -129,3 +129,13 @@ variable "lake_bronze_nearline_days" {
   type        = number
   default     = 0
 }
+
+variable "github_repo" {
+  description = "Repositorio de GitHub (formato 'propietario/nombre') autorizado a autenticarse por Workload Identity Federation para ejecutar `dbt test` en CI. Vacío = no se crea nada de CI."
+  type        = string
+  default     = ""
+  validation {
+    condition     = var.github_repo == "" || can(regex("^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$", var.github_repo))
+    error_message = "github_repo debe tener el formato propietario/nombre."
+  }
+}

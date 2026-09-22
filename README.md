@@ -239,3 +239,15 @@ PASS = 214; features 58 pruebas, PASS = 60 (`docs/evidence/*.md`). El DAG ejecut
 3. Toda decisión no trivial se registra como ADR; cada fase cierra con pruebas en verde, cifras en `docs/METRICAS.md`,
    evidencia en `docs/evidence/` y commit (Conventional Commits en español).
 4. Antes de entregar: `make test`, `make dbt-test`, `make scan-secrets`, `make demo-idempotencia`, y `make vm-stop`.
+
+## Integración continua (extra)
+`.github/workflows/dbt_test.yml` corre en cada push y pull request:
+
+1. **Sin nube** (siempre): `pytest`, `dbt parse`, `terraform validate`, sintaxis de scripts y del compose.
+2. **`dbt test` contra BigQuery** (cuando el repositorio tenga las variables `GCP_WIF_PROVIDER` y `GCP_CI_SERVICE_ACCOUNT`):
+   autenticación por Workload Identity Federation, sin llaves JSON.
+
+Activación: en `infra/main/terraform.tfvars` poner `github_repo = "propietario/nombre"`, ejecutar `make plan && make apply`
+y copiar los outputs `ci_workload_identity_provider` y `ci_service_account_email` a *Settings → Secrets and variables →
+Actions → Variables* del repositorio. Detalle en ADR-011.
+
