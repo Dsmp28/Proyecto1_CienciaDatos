@@ -8,7 +8,7 @@
 #   scripts/demo_idempotencia.sh --sin-disparar A.json B.json   # solo compara dos instantáneas
 #
 # Variables de entorno (todas opcionales):
-#   AIRFLOW_URL      URL pública de Airflow (por defecto https://airflow.<IP_VM>.sslip.io;
+#   AIRFLOW_URL      URL pública de Airflow (por defecto se toma de `terraform output airflow_url`;
 #                    si está vacía se intenta `terraform output -raw airflow_url` en infra/main).
 #   AIRFLOW_USER     usuario admin (por defecto admin).
 #   PROJECT_ID       proyecto de GCP con el secreto airflow-admin-password (cienciadatos-509301).
@@ -45,7 +45,7 @@ PY="${PY:-$REPO/.venv/bin/python}"
 DAG_ID="red_metropolitana"
 PROJECT_ID="${PROJECT_ID:-cienciadatos-509301}"
 AIRFLOW_USER="${AIRFLOW_USER:-admin}"
-AIRFLOW_URL="${AIRFLOW_URL:-https://airflow.<IP_VM>.sslip.io}"
+AIRFLOW_URL="${AIRFLOW_URL:-}"   # vacío = se obtiene de infra/main (terraform output -raw airflow_url)
 EVIDENCIA_DIR="${EVIDENCIA_DIR:-$REPO/docs/evidence}"
 INTERVALO_S="${INTERVALO_S:-30}"
 TIMEOUT_MIN="${TIMEOUT_MIN:-60}"
