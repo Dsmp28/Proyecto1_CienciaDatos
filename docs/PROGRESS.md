@@ -1,6 +1,8 @@
 # Estado del proyecto
 
 **Fase actual:** F7 cerrada (2026-09-21). Proyecto completo: F0–F7 con evidencia. Pendiente solo lo que hace el equipo a mano: construir el tablero en Tableau Desktop con `docs/tableau/GUIA_TABLERO.md` y anotar el costo de la consola.
+**Extra completado (2026-09-22):** GitHub Actions `dbt test` (ADR-011): workflow + identidad federada en Terraform; espejo local del trabajo `dbt test`: 510 pruebas PASS en 402 s. Pendiente: nombre del repositorio remoto para activar el trabajo con nube.
+
 **Último paso completado:** `make demo-idempotencia` en verde en la nube (corridas `demo-idempotencia-20260921T001141-1/-2`, 64 tablas y 121 objetos idénticos, 17/17 tareas en success); métricas de Rendimiento e Idempotencia registradas; checklist de rúbrica completo.
 **Siguiente paso:** el equipo construye el tablero en Tableau (guía hoja por hoja) y ensaya con `docs/GUIA_DEFENSA.md`; apagar la VM con `make vm-stop` cuando no se use; extras opcionales (sección 12 del plan) solo con autorización.
 
@@ -32,7 +34,7 @@ Medición propia al 2026-09-21 06:40 UTC (la consola de facturación publica el 
 
 Proyección: ~57 USD/mes con la VM 24×7 o ~25 USD/mes apagándola fuera de uso (`make vm-stop`); todo se descuenta de los 300 USD de crédito de la prueba gratuita.
 
-## Recursos activos (2026-09-21 06:45 UTC)
-- VM `vm-pipeline` **APAGADA** desde 2026-09-21 06:45 UTC (`make vm-stop`). Encender con `make vm-start`; la IP <IP_VM> y el dominio se conservan, y la pila de Docker arranca sola (`restart: unless-stopped`).
+## Recursos activos (2026-09-22 01:10 UTC)
+- VM `vm-pipeline` **ENCENDIDA** de nuevo desde 2026-09-22 01:03 UTC (`make vm-start`) para el avance en clase; la pila arrancó sola y Airflow responde con el certificado de Let's Encrypt (verificado desde la VM). Apagar con `make vm-stop` al terminar.
 - Bucket lake, bucket de estado, 8 datasets de BigQuery, 4 secretos, presupuesto de 60 USD/mes con alertas: sin costo apreciable mientras la VM está apagada.
 - Para eliminar todo: `make destroy` (conserva el bucket de estado por `prevent_destroy`).

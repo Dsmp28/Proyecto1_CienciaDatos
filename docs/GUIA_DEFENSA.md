@@ -14,6 +14,13 @@ Convenciones de esta guía: **(a)** qué se hizo · **(b)** por qué (decisión 
 
 ---
 
+
+> **Aviso de red para el día de la demo (visto el 2026-09-21).** Algunas redes institucionales interceptan HTTPS con un
+> firewall (Fortinet) que sustituye el certificado y muestra una página de bloqueo al abrir
+> `https://airflow.<IP_VM>.sslip.io`. El servidor está bien (desde la VM el certificado es de Let's Encrypt).
+> Antes de presentar: comprobar el enlace desde el celular con datos móviles y tener ese hotspot como respaldo, o pedir
+> con antelación que se permita el dominio `*.sslip.io`. La demo `make demo-idempotencia` usa la misma URL.
+
 ## 0. Guion de 10 minutos (demo en vivo)
 
 Preparar antes: VM encendida (`make vm-start`, tarda ~2 min en levantar la pila), `.venv` creado (`make venv`),
