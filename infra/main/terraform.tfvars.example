@@ -4,8 +4,8 @@
 project_id         = "cienciadatos-509301"
 region             = "us-central1"
 zone               = "us-central1-a"
-billing_account_id = "XXXXXX-XXXXXX-XXXXXX"
-alert_email        = "<correo-del-propietario>"
+billing_account_id = "XXXXXX-XXXXXX-XXXXXX" # `gcloud billing accounts list`
+alert_email        = "correo-del-propietario@example.com"
 
 # VM
 machine_type = "e2-standard-2"
@@ -17,7 +17,7 @@ budget_amount_usd = 60
 create_budget     = true
 
 # Accesos opcionales (vacío = sin binding)
-tableau_user_email = "" # p. ej. "<correo-del-propietario>" para Tableau Desktop vía OAuth (solo gold)
+tableau_user_email = "" # cuenta de Google del analista para Tableau Desktop vía OAuth (solo gold)
 auditor_email      = "" # auditor de fraude: dataViewer en silver
 
 labels = {
