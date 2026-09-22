@@ -41,8 +41,8 @@ resource "google_iam_workload_identity_pool_provider" "github" {
     "attribute.actor"      = "assertion.actor"
     "attribute.ref"        = "assertion.ref"
   }
-  # Solo este repositorio puede intercambiar tokens.
-  attribute_condition = "assertion.repository == \"${var.github_repo}\""
+  # Solo este repositorio y su propietario pueden intercambiar tokens (un fork tiene otro `repository`).
+  attribute_condition = "assertion.repository == \"${var.github_repo}\" && assertion.repository_owner == \"${split("/", var.github_repo)[0]}\""
 
   oidc {
     issuer_uri = "https://token.actions.githubusercontent.com"
@@ -58,13 +58,14 @@ resource "google_service_account" "ci_dbt" {
   description  = "Ejecuta `dbt test` desde CI. Solo lectura de datos; escribe únicamente en ops (store_failures)."
 }
 
-# El repositorio (vía el pool) puede actuar como la SA.
+# Solo las ejecuciones sobre la rama main (push) pueden actuar como la SA; las pull requests
+# ejecutan únicamente el trabajo sin nube.
 resource "google_service_account_iam_member" "ci_wif_user" {
   count = local.ci_habilitado ? 1 : 0
 
   service_account_id = google_service_account.ci_dbt[0].name
   role               = "roles/iam.workloadIdentityUser"
-  member             = "principalSet://iam.googleapis.com/${google_iam_workload_identity_pool.github[0].name}/attribute.repository/${var.github_repo}"
+  member             = "principalSet://iam.googleapis.com/${google_iam_workload_identity_pool.github[0].name}/attribute.ref/refs/heads/main"
 }
 
 resource "google_project_iam_member" "ci_job_user" {

@@ -45,7 +45,7 @@ resource "google_compute_firewall" "allow_https" {
   direction   = "INGRESS"
   priority    = 1000
 
-  source_ranges = ["0.0.0.0/0"]
+  source_ranges = var.https_source_ranges # ver hardening.tf: acotar fuera de la demo
   target_tags   = ["airflow"]
 
   allow {

@@ -140,7 +140,7 @@ services:
   # Postgres 16: base de metadata de Airflow (misma imagen que el compose oficial).
   # ---------------------------------------------------------------------------
   postgres:
-    image: postgres:16
+    image: postgres:16.15
     environment:
       TZ: ${TZ:-America/Guatemala}
       POSTGRES_USER: airflow
@@ -291,7 +291,7 @@ services:
   # únicamente abre 443 y el Caddyfile fuerza el desafío ACME TLS-ALPN-01 (puerto 443).
   # ---------------------------------------------------------------------------
   caddy:
-    image: caddy:2
+    image: caddy:2.11.4
     ports:
       - "443:443"
     environment:

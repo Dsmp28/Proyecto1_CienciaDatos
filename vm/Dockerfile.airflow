@@ -21,20 +21,18 @@ RUN apt-get update \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
-# Dependencias del pipeline (dbt, Kafka, Google Cloud). Versiones de dbt fijadas
-# según el stack del proyecto; las librerías de Google se dejan flotantes para
-# que pip las concilie con las que ya trae el provider google de la imagen.
+# Dependencias del pipeline (dbt, Kafka, Google Cloud), con versiones fijas y las
+# constraints oficiales de Airflow para que pip no mueva la versión de ningún
+# provider (p. ej. apache-airflow-providers-fab, que corrige CVE de autenticación).
 USER airflow
 RUN pip install --no-cache-dir \
+    --constraint "https://raw.githubusercontent.com/apache/airflow/constraints-${AIRFLOW_VERSION}/constraints-3.12.txt" \
     "apache-airflow==${AIRFLOW_VERSION}" \
     "dbt-core==1.12.5" \
     "dbt-bigquery==1.12.1" \
-    confluent-kafka \
-    google-cloud-storage \
-    google-cloud-bigquery \
-    google-cloud-secret-manager \
-    pyyaml \
-    "pytest>=8"
+    "confluent-kafka==2.15.1" \
+    "pyyaml==6.0.3" \
+    "pytest==9.1.1"
 
 # Sanidad: dbt debe importar y quedar en el PATH del usuario airflow.
 RUN dbt --version

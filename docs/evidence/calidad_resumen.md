@@ -141,10 +141,10 @@ Ningún valor de zona/sector/district sin mapear (R05 = 0; `assert_zonas_mapeada
 | fuente | regla_id | llave_usuario | linea_num | kafka_offset | registro_original (recortado) | run_id | ts_cuarentena |
 |---|---|---|---:|---:|---|---|---|
 | cdc_padron_usuarios | R07 | SIN-TARJETA | – | – | `1000,2026-06-02T09:27:00,UPDATE,SIN-TARJETA,trabajador,Zona 12,ACTIVA` | manual | 2026-07-16 00:00:00 UTC |
-| metroriel_viajes | R04 | MR0053756 | – | – | `{"trip_id": 100046, "card": "MR0053756", "entry": {"station": 7, …` | manual | 2026-07-16 00:00:00 UTC |
-| transmetro_validaciones | R01 | TC-00046121 | 10046 | 10045 | `10008,TC-00046121,TM-L12-02,L12,2026-06-02 05:27:16,1.00,ENTRADA` | manual | 2026-07-16 00:00:00 UTC |
-| transurbano_transacciones | R02 | 0000045574 | – | – | `01/06/2026,04:00:30,0000045574,,R-102,130,1` | manual | 2026-07-16 00:00:00 UTC |
-| transurbano_transacciones | R03 | 0000006929 | – | – | `01/08/2027,04:09:02,0000006929,R-104-3,R-104,130,2` | manual | 2026-07-16 00:00:00 UTC |
+| metroriel_viajes | R04 | MR…53756 | – | – | `{"trip_id": 100046, "card": "MR…53756", "entry": {"station": 7, …` | manual | 2026-07-16 00:00:00 UTC |
+| transmetro_validaciones | R01 | TC-…46121 | 10046 | 10045 | `10008,TC-…46121,TM-L12-02,L12,2026-06-02 05:27:16,1.00,ENTRADA` | manual | 2026-07-16 00:00:00 UTC |
+| transurbano_transacciones | R02 | …045574 | – | – | `01/06/2026,04:00:30,…045574,,R-102,130,1` | manual | 2026-07-16 00:00:00 UTC |
+| transurbano_transacciones | R03 | …006929 | – | – | `01/08/2027,04:09:02,…006929,R-104-3,R-104,130,2` | manual | 2026-07-16 00:00:00 UTC |
 
 `ts_cuarentena` = `TIMESTAMP(fecha_referencia)` porque `var('run_ts')` no se pasó (corrida manual); Airflow la pasará
 por `--vars` junto con `run_id`. Nunca `CURRENT_TIMESTAMP`. `linea_num`/`kafka_offset` solo existen en streaming.

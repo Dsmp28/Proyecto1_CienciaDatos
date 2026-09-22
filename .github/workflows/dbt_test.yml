@@ -1,11 +1,14 @@
 # Extra (sección 12 del plan): el pipeline se valida solo en cada push.
 #
 # Dos trabajos:
-#   1. pruebas-sin-nube: siempre. pytest (linaje de Gold sobre manifest.json, prohibición de CURRENT_DATE,
-#      ingesta, DAG), `dbt parse` y `terraform validate`. No toca GCP.
-#   2. dbt-test: solo si el repositorio tiene configuradas las variables GCP_WIF_PROVIDER y
+#   1. pruebas-sin-nube: siempre (push y pull request). pytest (linaje de Gold sobre manifest.json,
+#      prohibición de CURRENT_DATE, ingesta, DAG), `dbt parse`, `terraform validate` y sintaxis. No toca GCP.
+#   2. dbt-test: solo en push a main y solo si el repositorio tiene las variables GCP_WIF_PROVIDER y
 #      GCP_CI_SERVICE_ACCOUNT (salida de `terraform output` con `github_repo` definido). Se autentica por
 #      Workload Identity Federation (sin llaves JSON) y ejecuta las 510 pruebas de dbt contra BigQuery.
+#
+# Seguridad: acciones fijadas por SHA (Dependabot las actualiza), `id-token: write` solo en el trabajo que
+# lo necesita, nunca `pull_request_target`. Una PR desde un fork no recibe token OIDC ni variables.
 name: dbt test
 
 on:
@@ -16,21 +19,25 @@ on:
 
 permissions:
   contents: read
-  id-token: write   # token OIDC para Workload Identity Federation
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
 
 env:
   PYTHON_VERSION: "3.12"
   DBT_PROFILES_DIR: dbt
+  DBT_SEND_ANONYMOUS_USAGE_STATS: "false"
   GCP_PROJECT_ID: cienciadatos-509301
 
 jobs:
   pruebas-sin-nube:
     name: pytest, dbt parse y terraform validate
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
         with:
           python-version: ${{ env.PYTHON_VERSION }}
           cache: pip
@@ -47,7 +54,7 @@ jobs:
           dbt deps --no-use-colors
           dbt parse --no-use-colors
 
-      - uses: hashicorp/setup-terraform@v3
+      - uses: hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269862dd # v3
         with:
           terraform_wrapper: false
 
@@ -70,12 +77,15 @@ jobs:
   dbt-test:
     name: dbt test contra BigQuery
     needs: pruebas-sin-nube
-    if: ${{ vars.GCP_WIF_PROVIDER != '' && vars.GCP_CI_SERVICE_ACCOUNT != '' }}
-    runs-on: ubuntu-latest
+    if: ${{ github.event_name != 'pull_request' && vars.GCP_WIF_PROVIDER != '' && vars.GCP_CI_SERVICE_ACCOUNT != '' }}
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      id-token: write   # token OIDC para Workload Identity Federation (solo este trabajo)
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
         with:
           python-version: ${{ env.PYTHON_VERSION }}
           cache: pip
@@ -84,7 +94,7 @@ jobs:
         run: pip install -r requirements.txt
 
       - name: Autenticación en GCP (Workload Identity Federation, sin llaves)
-        uses: google-github-actions/auth@v2
+        uses: google-github-actions/auth@c200f3691d83b41bf9bbd8638997a462592937ed # v2
         with:
           workload_identity_provider: ${{ vars.GCP_WIF_PROVIDER }}
           service_account: ${{ vars.GCP_CI_SERVICE_ACCOUNT }}
@@ -103,10 +113,10 @@ jobs:
 
       - name: Publicar resultados como artefacto
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: dbt-run-results
           path: |
             dbt/target/run_results.json
             dbt/target/manifest.json
-          retention-days: 14
+          retention-days: 7

@@ -49,3 +49,12 @@ El tráfico a Airflow va por HTTPS (Caddy + Let's Encrypt); Kafka y Postgres no 
 - **Cuarentena: 12 meses**, tiempo suficiente para que el operador corrija la fuente y se reprocese.
 - **Padrón SCD2: mientras la tarjeta esté activa más 24 meses** tras la baja, para conservar el historial de sus viajes
   (exigencia del enunciado de no borrar tarjetas dadas de baja).
+
+## 5. Revisión de seguridad previa a la publicación del repositorio (2026-09-23)
+Auditoría del repositorio, su historial, el Terraform y el estado real de GCP antes de hacer público el código.
+- **Sin secretos en el repo ni en el historial**: gitleaks limpio; ninguna llave de cuenta de servicio (solo llaves gestionadas por Google); `.env`, `*.tfvars`, `*.tfstate` y `profiles.yml` con credenciales nunca versionados. La IP de la VM, los correos personales y la cuenta de facturación se redactan de todos los commits antes de publicar (`<IP_VM>`, `<correo-del-propietario>`).
+- **Identificadores públicos que no son secretos**: ID de proyecto, nombres de bucket y correo de la cuenta de servicio no otorgan acceso sin un binding IAM; los buckets tienen prevención de acceso público y acceso uniforme.
+- **Cuenta de servicio por defecto de Compute desprivilegiada** (`infra/main/hardening.tf`): venía con `roles/editor` heredado y nada la usa.
+- **Airflow expuesto en 443**: contraseñas aleatorias de 24 caracteres, límite de intentos de inicio de sesión de Airflow, cabeceras HSTS/nosniff/DENY en Caddy, versión 3.3.2 (última; corrige las CVE de autenticación de 2026) con providers fijados por las constraints oficiales. Riesgo residual aceptado: un administrador de Airflow ejecuta código en la VM con la identidad `sa-pipeline-vm`; mitigación: `https_source_ranges` para acotar el 443 a las IP del equipo fuera de la demo.
+- **CI**: identidad federada solo para el repositorio, su propietario y la rama `main`; las pull requests no reciben token OIDC; acciones fijadas por SHA y Dependabot semanal.
+- **Pendientes que dependen del propietario**: verificación en dos pasos con llave física en la cuenta Owner; eliminar la red `default` del proyecto (reglas `default-allow-ssh/rdp`), que Terraform no gestiona.

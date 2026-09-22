@@ -202,7 +202,7 @@ INFORME="${BASE}.md"
 {
   echo "# Demo de idempotencia — DAG \`$DAG_ID\` ($TS)"
   echo
-  echo "Dos corridas consecutivas disparadas por la REST API v2 de Airflow ($AIRFLOW_URL); después de cada una,"
+  echo "Dos corridas consecutivas disparadas por la REST API v2 de Airflow (https://airflow.<IP_VM>.sslip.io); después de cada una,"
   echo "\`ingest/conteos_capas.py\` toma el COUNT(*) de todas las tablas de bronze/staging/silver/quarantine/gold/features"
   echo "y el número de objetos y bytes en \`gs://\$LAKE_BUCKET/bronze/\`."
   echo
