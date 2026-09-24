@@ -1,15 +1,30 @@
 # Actualizaciones semanales de dependencias (acciones fijadas por SHA, paquetes de Python e imágenes Docker).
+# Python: solo parches y menores agrupados; los saltos de versión mayor (p. ej. google-cloud-*) rompen las
+# restricciones de dbt-bigquery y se revisan a mano.
 version: 2
 updates:
   - package-ecosystem: github-actions
     directory: /
     schedule:
       interval: weekly
+    groups:
+      acciones:
+        patterns: ["*"]
   - package-ecosystem: pip
     directory: /
     schedule:
       interval: weekly
+    groups:
+      python-menores:
+        patterns: ["*"]
+        update-types: ["minor", "patch"]
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
   - package-ecosystem: docker
     directory: /vm
     schedule:
       interval: weekly
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]

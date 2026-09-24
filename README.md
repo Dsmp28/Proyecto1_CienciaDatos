@@ -58,6 +58,8 @@ Las restricciones duras del diseño (Gold nunca lee Bronze, nada se descarta sin
 cifra rastreable al archivo crudo, features desde Silver, nunca `CURRENT_DATE`, HMAC antes de Gold) están en `CLAUDE.md`
 y se verifican con `make test` y `make dbt-test`.
 
+Repositorio: https://github.com/Dsmp28/Proyecto1_CienciaDatos · CI: GitHub Actions (`dbt test` en cada push a `main`).
+
 ## Requisitos
 
 - macOS o Linux con `gcloud` (≥ 585), `terraform` (≥ 1.9; probado con 1.15.8), `docker` + `compose` (solo en la VM;

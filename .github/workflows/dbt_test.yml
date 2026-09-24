@@ -26,7 +26,7 @@ concurrency:
 
 env:
   PYTHON_VERSION: "3.12"
-  DBT_PROFILES_DIR: dbt
+  DBT_PROFILES_DIR: ${{ github.workspace }}/dbt
   DBT_SEND_ANONYMOUS_USAGE_STATS: "false"
   GCP_PROJECT_ID: cienciadatos-509301
 
