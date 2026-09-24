@@ -53,3 +53,6 @@ construye el equipo a mano siguiendo `docs/tableau/GUIA_TABLERO.md`). Guía para
 - [x] **Guía de defensa** — `docs/GUIA_DEFENSA.md`.
 - [x] **Sin secretos en git** — `docs/evidence/gitleaks_report.json` = `[]` (44 commits); `.gitignore` excluye `.env`, `*.tfvars`, `*.tfstate*`, `datos_red/`.
 - [x] **Reporte de costo acumulado y recursos encendidos** — `docs/PROGRESS.md` (sección Costo): consumo medido por recurso y horas; la cifra de la consola de facturación se anota cuando Google la publique (retraso de ~24 h)
+
+## Extra entregado
+- [x] **GitHub Actions `dbt test` en cada push** — `.github/workflows/dbt_test.yml`, identidad federada en `infra/main/ci.tf`; corrida en verde en `main` con 510/510 pruebas (https://github.com/Dsmp28/Proyecto1_CienciaDatos/actions).

@@ -1,7 +1,7 @@
 # Estado del proyecto
 
 **Fase actual:** F7 cerrada (2026-09-21). Proyecto completo: F0–F7 con evidencia. Pendiente solo lo que hace el equipo a mano: construir el tablero en Tableau Desktop con `docs/tableau/GUIA_TABLERO.md` y anotar el costo de la consola.
-**Publicación (2026-09-23):** repositorio público https://github.com/Dsmp28/Proyecto1_CienciaDatos; historial con autoría por área (5 integrantes); revisión de seguridad aplicada (`docs/governance/seguridad.md` §5); CI activado con identidad federada (variables `GCP_WIF_PROVIDER` y `GCP_CI_SERVICE_ACCOUNT` definidas en GitHub); SA por defecto desprivilegiada y red `default` eliminada.
+**Publicación (2026-09-23):** repositorio público https://github.com/Dsmp28/Proyecto1_CienciaDatos; historial con autoría por área (5 integrantes); revisión de seguridad aplicada (`docs/governance/seguridad.md` §5); CI activado con identidad federada y **en verde en `main`** (corrida 35952988477: pytest + dbt parse + terraform validate, y `dbt test` 510/510 contra BigQuery); SA por defecto desprivilegiada y red `default` eliminada.
 
 **Extra completado (2026-09-22):** GitHub Actions `dbt test` (ADR-011): workflow + identidad federada en Terraform; espejo local del trabajo `dbt test`: 510 pruebas PASS en 402 s. Pendiente: nombre del repositorio remoto para activar el trabajo con nube.
 
