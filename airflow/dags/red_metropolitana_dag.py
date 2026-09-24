@@ -13,7 +13,7 @@ import logging
 from datetime import datetime, timedelta, timezone
 
 from airflow.providers.standard.operators.bash import BashOperator
-from airflow.sdk import DAG, TaskGroup
+from airflow.sdk import DAG, Param, TaskGroup
 
 log = logging.getLogger(__name__)
 
@@ -31,11 +31,15 @@ PYTHON = "python"
 TPL_INGEST_DATE = "{{ ds if dag_run.logical_date else '' }}"
 TPL_RUN_TS = "{{ ts if dag_run.logical_date else dag_run.run_after.isoformat() }}"
 
+# Los parámetros de la corrida (`params`) llegan a los scripts SOLO por variables de entorno, nunca
+# interpolados en el comando de Bash: así un valor con metacaracteres de shell es inerte (revisión de
+# seguridad 2026-09-23) y cada script lo valida con su propio tipo (float/int).
 ENV_COMUN = {
     "RUN_ID": "{{ run_id }}",
     "INGEST_DATE": TPL_INGEST_DATE,
     "PYTHONPATH": CWD,
     "ESCALA": "{{ params.escala }}",  # vacío = escala oficial del generador (0.08)
+    "IDLE_SEGUNDOS": "{{ params.idle_segundos }}",  # espera de inactividad del consumidor de Kafka
 }
 
 DBT_VARS = '{"run_id": "{{ run_id }}", "run_ts": "' + TPL_RUN_TS + '"}'
@@ -139,7 +143,13 @@ with DAG(
     default_args=DEFAULT_ARGS,
     tags=["red-metropolitana"],
     doc_md=DOC_MD,
-    params={"escala": "", "idle_segundos": 30},
+    # Parámetros tipados: la API y la UI rechazan valores que no cumplan el esquema.
+    params={
+        "escala": Param("", type=["string", "null"], pattern=r"^([0-9]*\.?[0-9]+)?$",
+                        description="Fracción del volumen del generador; vacío = 0.08 (oficial)"),
+        "idle_segundos": Param(30, type="integer", minimum=1, maximum=3600,
+                               description="Segundos sin mensajes tras los que el consumidor de Kafka termina"),
+    },
 ) as dag:
     generar_o_verificar_datos = _bash("generar_o_verificar_datos", f"{PYTHON} ingest/generar_o_verificar.py")
 
@@ -148,10 +158,8 @@ with DAG(
         ingesta_cdc = _bash("ingesta_cdc", f"{PYTHON} ingest/batch_to_gcs.py --via cdc")
         with TaskGroup(group_id="ingesta_streaming", tooltip="Kafka: productor y consumidor a GCS") as ingesta_streaming:
             kafka_productor = _bash("kafka_productor", f"{PYTHON} -m ingest.kafka_producer")
-            kafka_consumidor = _bash(
-                "kafka_consumidor",
-                f"{PYTHON} -m ingest.kafka_consumer_gcs --idle-segundos {{{{ params.idle_segundos }}}}",
-            )
+            # `--idle-segundos` se toma de la variable de entorno IDLE_SEGUNDOS (ver ENV_COMUN).
+            kafka_consumidor = _bash("kafka_consumidor", f"{PYTHON} -m ingest.kafka_consumer_gcs")
             kafka_productor >> kafka_consumidor
 
     tablas_externas_bronze = _bash("tablas_externas_bronze", f"{PYTHON} ingest/bronze_external_tables.py --verificar --estricto")

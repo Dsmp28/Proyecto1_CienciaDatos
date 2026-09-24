@@ -65,7 +65,7 @@ x-airflow-common: &airflow-common
     DBT_PROFILES_DIR: /opt/airflow/dbt
     DBT_PROJECT_DIR: /opt/airflow/dbt
   volumes:
-    - ../airflow/dags:/opt/airflow/dags
+    - ../airflow/dags:/opt/airflow/dags:ro   # solo lectura: una tarea comprometida no puede plantar DAGs
     - ../airflow/logs:/opt/airflow/logs
     - ../airflow/plugins:/opt/airflow/plugins
     - ../dbt:/opt/airflow/dbt

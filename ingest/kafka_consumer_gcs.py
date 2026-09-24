@@ -446,7 +446,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--bucket", default=common.LAKE_BUCKET, help="bucket del lago (env LAKE_BUCKET)")
     parser.add_argument("--max-mensajes-lote", type=int, default=5000, help="tamaño N de la ventana de offsets por partición (mensajes por objeto)")
     parser.add_argument("--max-segundos-lote", type=float, default=5.0, help="cada cuánto se escriben las ventanas parciales al final del log")
-    parser.add_argument("--idle-segundos", type=float, default=20.0, help="termina tras este tiempo sin mensajes y lag 0")
+    parser.add_argument("--idle-segundos", type=float, default=float(os.environ.get("IDLE_SEGUNDOS") or 20.0),
+                        help="termina tras este tiempo sin mensajes y lag 0 (env IDLE_SEGUNDOS)")
     parser.add_argument("--max-tiempo", type=float, default=3600.0, help="tope de seguridad en segundos")
     parser.add_argument("--salida-local", type=Path, help="escribe en este directorio en vez de GCS (implica --dry-run)")
     parser.add_argument("--dry-run", action="store_true", help="sin GCS ni métricas; requiere --salida-local. env INGEST_DRY_RUN=1")

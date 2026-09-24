@@ -105,7 +105,10 @@ def test_entorno_de_las_tareas_bash(dag):
         assert tarea.env["PYTHONPATH"] == "/opt/airflow"
         assert "ESCALA" in tarea.env and "INGEST_DATE" in tarea.env
     assert "--select tag:gold" in dag.get_task("transformacion_dbt.dbt_gold").bash_command
-    assert "{{ params.idle_segundos }}" in dag.get_task("ingesta_bronze.ingesta_streaming.kafka_consumidor").bash_command
+    consumidor = dag.get_task("ingesta_bronze.ingesta_streaming.kafka_consumidor")
+    # Los params llegan por entorno, nunca interpolados en el comando (inyección de shell).
+    assert consumidor.env["IDLE_SEGUNDOS"] == "{{ params.idle_segundos }}"
+    assert "params." not in consumidor.bash_command
 
 
 # ---------------------------------------------------------------------------
