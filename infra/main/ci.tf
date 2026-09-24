@@ -85,6 +85,15 @@ resource "google_bigquery_dataset_iam_member" "ci_data_viewer" {
   member     = google_service_account.ci_dbt[0].member
 }
 
+# Las tablas externas de Bronze leen objetos de GCS: la SA de CI necesita listar/leer el lake (solo lectura).
+resource "google_storage_bucket_iam_member" "ci_lake_viewer" {
+  count = local.ci_habilitado ? 1 : 0
+
+  bucket = google_storage_bucket.lake.name
+  role   = "roles/storage.objectViewer"
+  member = google_service_account.ci_dbt[0].member
+}
+
 resource "google_bigquery_dataset_iam_member" "ci_ops_editor" {
   count = local.ci_habilitado ? 1 : 0
 
