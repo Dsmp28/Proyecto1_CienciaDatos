@@ -27,3 +27,6 @@ labels = {
 
 # Opcional: mover bronze/ a NEARLINE tras N días (0 = desactivado)
 lake_bronze_nearline_days = 0
+
+# Cuentas revisoras de solo lectura (catedrático, evaluadores)
+reviewer_emails = [] # p. ej. ["revisor@example.com"]

@@ -35,6 +35,7 @@ sistema de transporte sabe dónde estuvo cada persona, a qué hora, todos los d�
 | Auditor de fraude | Detalle por individuo con llave nativa | `silver`, `quarantine` | dataViewer en `silver` (`auditor_email` en Terraform); nunca en `gold` hace falta |
 | Ingeniería de datos (pipeline) | Todo | todos | `sa-pipeline-vm` dataEditor por dataset |
 | Catedrático (revisión) | Ver corridas del DAG | UI de Airflow | usuario `catedratico`, rol Viewer (verificado: 403 al escribir) |
+| Revisor externo en GCP (`reviewer_emails`, `infra/main/revisores.tf`) | Revisar todo el proyecto sin poder cambiar nada ni leer secretos | Consola del proyecto, `bronze`…`features` y `ops` (no `ops_secrets`), lake, VM/red, IAM, logs, APIs | Roles granulares de solo lectura a nivel de proyecto; dataViewer por dataset; objectViewer solo en el lake (nunca en el bucket de estado); nada en la organización ni en facturación |
 | Nadie más | — | `ops_secrets` | solo la SA del pipeline y el propietario del proyecto |
 
 Regla: **el detalle por individuo (Silver) no se comparte con analistas**; ven Gold, donde la persona es un seudónimo.
