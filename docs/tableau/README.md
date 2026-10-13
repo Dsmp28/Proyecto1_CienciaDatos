@@ -4,6 +4,11 @@ Tableau se conecta **solo** a la capa Gold (`cienciadatos-509301.gold`, región 
 Bronze (CLAUDE.md, stack). Todas las cifras del tablero se verifican con los SQL de `analysis/` (ver
 `docs/tableau/GUIA_TABLERO.md` y `docs/evidence/tablero_resumen.md`).
 
+## Tablero publicado en Tableau Cloud
+
+Dashboard: https://us-east-1.online.tableau.com/#/site/urlcienciadedatos-segundosemestre2026/views/RedMetropolitana-Tablero/RedMetropolitana-demandacoberturatransbordoyMetroRiel
+(requiere usuario del sitio del curso; detalles y captura en `docs/evidence/tablero_tableau_cloud.md`).
+
 ## Archivos
 
 | Archivo | Qué es |

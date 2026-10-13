@@ -17,3 +17,14 @@ Captura: `tablero_tableau_cloud.jpg`.
 
 Pendiente para el equipo (afinado estético, según `docs/tableau/GUIA_TABLERO.md`): filtros globales de fecha y modo,
 KPIs de la hoja H6, parámetro "Fecha de referencia" y acciones de resaltado entre hojas.
+
+## Enlace al tablero publicado
+
+- **Dashboard (proyecto `Samples`, visible para los usuarios del sitio):** https://us-east-1.online.tableau.com/#/site/urlcienciadedatos-segundosemestre2026/views/RedMetropolitana-Tablero/RedMetropolitana-demandacoberturatransbordoyMetroRiel
+- Libro completo (seis pestañas): https://us-east-1.online.tableau.com/#/site/urlcienciadedatos-segundosemestre2026/workbooks/5678092
+- Copia de trabajo en el Espacio personal del autor (misma estructura, no compartible): https://us-east-1.online.tableau.com/#/site/urlcienciadedatos-segundosemestre2026/workbooks/5677874
+
+Requisitos de acceso: Tableau Cloud no permite acceso anónimo; el enlace pide iniciar sesión en el sitio
+`urlcienciadedatos-segundosemestre2026` (el sitio del curso, administrado por el catedrático). Quien no tenga usuario en el
+sitio puede ver la captura `docs/evidence/tablero_tableau_cloud.jpg` y reproducir cada cifra con `analysis/h1…h5*.sql`
+o con la validación automática de `docs/evidence/tablero_validacion_mcp.md`.
