@@ -40,3 +40,8 @@ Proyección: ~57 USD/mes con la VM 24×7 o ~25 USD/mes apagándola fuera de uso 
 - VM `vm-pipeline` **ENCENDIDA** de nuevo desde 2026-09-22 01:03 UTC (`make vm-start`) para el avance en clase; la pila arrancó sola y Airflow responde con el certificado de Let's Encrypt (verificado desde la VM). Apagar con `make vm-stop` al terminar.
 - Bucket lake, bucket de estado, 8 datasets de BigQuery, 4 secretos, presupuesto de 60 USD/mes con alertas: sin costo apreciable mientras la VM está apagada.
 - Para eliminar todo: `make destroy` (conserva el bucket de estado por `prevent_destroy`).
+
+## Validación final del tablero (2026-10-12)
+- Conector MCP de Tableau Cloud configurado (PAT) y probado: el libro "Red Metropolitana - Tablero Gold" se leyó con
+  `get-view-data` y las 5 hojas coinciden con consultas en vivo a `gold` (`docs/evidence/tablero_validacion_mcp.md`).
+- Código y documentación en `main` = `origin/main`; CI en verde. Fecha de corte del proyecto: 2026-10-12 23:59.

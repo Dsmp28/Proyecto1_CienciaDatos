@@ -70,3 +70,23 @@ Bronze (CLAUDE.md, stack). Todas las cifras del tablero se verifican con los SQL
   dashboard reducen los bytes leídos (H7 lee 4,2 MB de 1,65 M de filas).
 - Costo: consultas del tablero entre 0,3 MB y 257 MB procesados; muy por debajo del TB gratuito mensual.
 - Nunca conectar a `silver`, `staging` ni `bronze` desde Tableau: rompe la restricción "Tableau → Gold únicamente".
+
+## Conector MCP de Tableau Cloud (validación automática del tablero)
+
+El servidor oficial `@tableau/mcp-server` permite que un asistente (Claude Code) lea el libro publicado y descargue los
+datos de cada hoja para compararlos con Gold. Se autentica con un **token de acceso personal** (PAT) de Tableau Cloud:
+**Configuración de la cuenta → Tokens de acceso personal → Crear token**. El valor del token es un secreto: se guarda
+solo en la configuración local del asistente (`~/.claude.json`), nunca en el repositorio.
+
+```
+claude mcp add tableau -s user \
+  -e SERVER=https://us-east-1.online.tableau.com \
+  -e SITE_NAME=urlcienciadedatos-segundosemestre2026 \
+  -e PAT_NAME=<nombre-del-token> \
+  -e PAT_VALUE=<valor-del-token> \
+  -- npx -y @tableau/mcp-server@latest
+```
+
+Tras reiniciar el asistente (`/mcp` lo lista), herramientas útiles: `list-workbooks`, `get-workbook`, `list-views`,
+`get-view-data` (CSV de la hoja), `get-view-image`, `query-datasource`. Resultado de la validación hoja por hoja:
+`docs/evidence/tablero_validacion_mcp.md` (5 de 5 hojas coinciden con `gold`).
