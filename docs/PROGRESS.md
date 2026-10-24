@@ -45,3 +45,10 @@ Proyección: ~57 USD/mes con la VM 24×7 o ~25 USD/mes apagándola fuera de uso 
 - Conector MCP de Tableau Cloud configurado (PAT) y probado: el libro "Red Metropolitana - Tablero Gold" se leyó con
   `get-view-data` y las 5 hojas coinciden con consultas en vivo a `gold` (`docs/evidence/tablero_validacion_mcp.md`).
 - Código y documentación en `main` = `origin/main`; CI en verde. Fecha de corte del proyecto: 2026-10-12 23:59.
+
+## Corrección en caliente de Caddy (2026-10-23)
+- Un revisor recibía "Bad Request: The referrer header is missing" al iniciar sesión en Airflow. Causa: `Referrer-Policy no-referrer`
+  en `vm/Caddyfile`; el navegador omitía Referer y la protección CSRF de Airflow (HTTPS estricto) rechazaba el POST.
+  Cambiado a `same-origin` y recargado Caddy sin cortar el servicio (`caddy reload`) mientras corría el DAG.
+- Lección operativa: `sed -i` sobre un archivo montado como volumen de un solo archivo cambia el inodo y el contenedor sigue viendo
+  el viejo; aplicar con `docker compose cp` + `caddy reload --config`, o recrear el contenedor.
