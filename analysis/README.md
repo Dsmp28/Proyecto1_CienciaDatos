@@ -19,6 +19,7 @@ los slot-ms, los bytes procesados y el tiempo total medido con `time` desde la C
 | Gobernanza (camino A) | `viajes_del_mes_a.sql` | viajes junio 2026 = 1 093 235 | 662 | 5 735 | 168,1 MB | 1,85 |
 | Gobernanza (camino B) | `viajes_del_mes_b.sql` | viajes junio 2026 = 1 093 235 | 345 | 2 924 | 93,2 MB | 1,52 |
 
+| `idempotencia_dos_corridas.sql` | Las dos últimas corridas completas del DAG lado a lado (filas por tabla y capa, bandera igual/difiere) desde `ops.run_metrics`; para mostrar la idempotencia en la consola de BigQuery | 64 tablas iguales |
 Notas:
 - Los `agg_*` responden en < 0,3 s con < 10 MB; las consultas que leen `fct_abordaje` completa (H6, H8) suben a
   1–4 s y 150–260 MB. H7 lee solo 4,2 MB de `fct_abordaje` gracias a la partición por `fecha` y al cluster por
