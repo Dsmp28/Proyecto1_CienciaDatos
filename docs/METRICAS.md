@@ -170,3 +170,40 @@ Medido en `gold.agg_cobertura_zona` y `gold.agg_transbordo_resumen` (detalle en 
 | Usan 1 modo / 2 / 3 / 4 | 15 363 (27,0 %) / 25 048 (44,1 %) / 14 004 (24,6 %) / 2 433 (4,3 %) |
 | **Usuarios que usan más de un sistema** | **41 485 (73,0 %)** |
 | Viajes del mes (junio 2026), dos caminos independientes | 1 093 235 = 1 093 235 |
+
+
+# Proyecto 2 · Métricas medidas (fase 1)
+
+## Problema (población, positivos y tasa por corte, con la cuenta)
+| Corte | Población | Positivos | Tasa positiva |
+|---|---:|---:|---|
+| A (2026-07-01) | 51 955 | 5 869 | 5,869 / 51,955 = 0.113 |
+| B (2026-07-31) | 50 483 | 5 159 | 5,159 / 50,483 = 0.102 (no se usa hasta 2.2) |
+| C (2026-08-30) | 49 853 | — | etiqueta oculta |
+
+Costo de la unidad persona: Aerómetro 16 930 / 16 930 hashes invertidos; 0 tarjetas sin vínculo; con la unidad tarjeta
+7 038 de 15 808 positivos (0.445) serían falsos abandonos (`analysis/p2_costo_unidad.sql`).
+
+## Validación (CV estratificada 5 pliegues en A, siempre junto a las líneas base)
+| Modelo | AP media ± sd | ROC-AUC | Brier |
+|---|---|---:|---:|
+| Baseline constante | 0,1130 ± 0,0000 | 0,500 | 0,100 |
+| Baseline una feature (`dias_desde_ultimo`) | 0,4101 ± 0,0186 | 0,842 | — |
+| Logística L2 (λ* 0,316) | 0,4459 ± 0,0160 | 0,850 | 0,078 |
+| Logística L1 (λ* 0,1) | 0,4459 ± 0,0160 | 0,850 | 0,078 |
+| Logística ElasticNet (λ* 0,1) | 0,4459 ± 0,0160 | 0,850 | 0,078 |
+
+## Fuga
+- Prueba de recorte (corte A, datos completos vs recortados al 2026-06-30): 51 955 filas comparadas, 0 diferencias en 39
+  columnas (`docs/evidence/p2/prueba_recorte.md`); borrador ingenuo: 4 features con fuga detectadas (14 467 / 15 381 /
+  13 990 / 46 715 filas distintas) + 2 diferencias numéricas corregidas.
+- Prueba de invariancia: pendiente (fase 2).
+
+## Rendimiento (fase 1)
+| Etapa | Segundos |
+|---|---:|
+| Carga desde cero (suma de tareas del DAG, corrida `desde-cero-20261101T212525`) | 877 |
+| Cálculo de features (`transformacion_dbt.dbt_churn`, 3 cortes) | 92 |
+| Prueba de recorte (seeds + run recorte + test + comparación) | ≈ 330 |
+| Entrenamiento fase 1 (carga 20 s + CV 566 s + ajuste 8 s) | 594 |
+| Predicción | pendiente (fase 2) |

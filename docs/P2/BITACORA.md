@@ -11,3 +11,9 @@ La evaluación única del corte B se registra aquí con el marcador `<!-- EVALUA
 | 2026-11-01 | `fe6a7a6`, `bde4952` | Hallazgos de la revisión de seguridad corregidos: nombres de landing solo del catálogo; sin llaves nativas en `features` | — |
 | 2026-11-01 | — | Imagen de Airflow reconstruida (constraints limitadas a `apache-airflow*`: la rama de constraints cambió y chocaba con dbt-core) | `make vm-sync && make vm-up` |
 | 2026-11-01 | — | OK del propietario al vaciado; `make desde-cero CONFIRMAR=BORRAR-cienciadatos-509301` (reset de P1 + carga v2) | `docs/evidence/p2/reset_*.md`, `conteos_bronze.md`, `tiempos.md` (pendiente de completar al terminar) |
+| 2026-11-01 | `bda04fc`, `eb42c69`, `3102775` | Tres defectos reales de "desde cero" corregidos: selección indirecta cautelosa en dbt; 409 al crear `ops` en paralelo; matplotlib y `predecir.py` en la VM | corridas `desde-cero-20261101T203117` (fallo en staging), `…T205808` (fallo en churn: prueba con llave nativa), `…T212525` (éxito tras limpiar `pruebas_python`) |
+| 2026-11-01 | `deac113` | 1.1 cerrado: Bronze = LEEME (3 405 575, diferencia 0); tiempos por etapa (877 s) | `docs/evidence/p2/conteos_bronze.md`, `tiempos.md` |
+| 2026-11-01 | `681ef8c`, `f08a88d` | 1.2 cerrado: población A/B/C, costo de la unidad | `analysis/p2_poblacion.sql`, `analysis/p2_costo_unidad.sql` |
+| 2026-11-01 | `4752076` | 1.4: primera corrida de la fase 1 (594 s) sobre el dataset previo a la corrección de redondeo | `docs/evidence/p2/fase1_*.md` |
+| 2026-11-01 | `acf425d` | 1.3 cerrado: prueba de recorte 0 diferencias; borrador ingenuo con 4 fugas; medias con sumas exactas | `make prueba-recorte` |
+| 2026-11-01 | — | Reentrenamiento de la fase 1 sobre el dataset definitivo (mismos folds) | `make ml-entrenar FASE=1` |

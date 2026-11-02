@@ -5,20 +5,20 @@ Informes: `docs/P2/INFORME_FASE1.md`, `docs/P2/INFORME_FASE2.md`. Bitácora: `do
 
 | Sección | Pts | Entregable exigido | Ruta en el repo | Estado y prueba |
 |---|---|---|---|---|
-| 1.1 Datos nuevos desde cero | 5 | Comando único desde entorno vacío | `README.md` §Proyecto 2 → `make desde-cero CONFIRMAR=BORRAR-<proyecto>` (`scripts/desde_cero.sh`, `scripts/reset_p2.py`, `ingest/landing.py`) | en curso |
-| | | Tabla de conteos (archivo, esperadas, cargadas, diferencia) | `docs/evidence/p2/conteos_bronze.md` | pendiente |
-| | | Tabla de tiempos (etapa, segundos) | `docs/evidence/p2/tiempos.md` | pendiente |
-| 1.2 Etiqueta, población y unidad | 8 | Definición de la etiqueta en una frase | `docs/P2/INFORME_FASE1.md` §1.2; `dbt/models/features/churn/churn_etiqueta.sql` | pendiente |
+| 1.1 Datos nuevos desde cero | 5 | Comando único desde entorno vacío | `README.md` §Proyecto 2 → `make desde-cero CONFIRMAR=BORRAR-<proyecto>` (`scripts/desde_cero.sh`, `scripts/reset_p2.py`, `ingest/landing.py`) | **hecho**: corrida `desde-cero-20261101T212525`, 18 tareas success (ml omitidas hasta tener modelo) |
+| | | Tabla de conteos (archivo, esperadas, cargadas, diferencia) | `docs/evidence/p2/conteos_bronze.md` | **hecho**: 3 405 575 = 3 405 575, diferencia 0 en 9 archivos |
+| | | Tabla de tiempos (etapa, segundos) | `docs/evidence/p2/tiempos.md` | **hecho**: 19 etapas, suma 877 s |
+| 1.2 Etiqueta, población y unidad | 8 | Definición de la etiqueta en una frase | `docs/P2/INFORME_FASE1.md` §1.2; `dbt/models/features/churn/churn_etiqueta.sql` | **hecho** |
 | | | Unidad elegida y justificación (3–5 líneas) | `docs/DECISIONS.md` ADR-014; informe §1.2 | hecho (ADR) |
-| | | Tabla de población A y B con la cuenta escrita | `analysis/p2_poblacion.sql` → informe §1.2 | pendiente |
-| | | Costo de la unidad (número y proporción) | `analysis/p2_costo_unidad.sql` → informe §1.2 | pendiente |
-| 1.3 Features y auditoría de fuga | 12 | Corte como parámetro; tabla con A, B y C, una fila por unidad y corte | `dbt/models/features/churn/churn_dataset.sql` (var `fechas_corte`) | pendiente (build v2) |
-| | | Diccionario (nombre, qué mide, ventana ≤ 28, tabla Silver) | `dbt/models/features/churn/churn_diccionario.sql` → `docs/P2/diccionario_churn.md` | pendiente |
-| | | Prueba de recorte (0 diferencias + features que fallaron antes) | `make prueba-recorte` → `docs/evidence/p2/prueba_recorte.md`, `prueba_recorte_fallos.json` | pendiente |
+| | | Tabla de población A y B con la cuenta escrita | `analysis/p2_poblacion.sql` → informe §1.2 | **hecho**: A 5,869 / 51,955 = 0.113; B 5,159 / 50,483 = 0.102 |
+| | | Costo de la unidad (número y proporción) | `analysis/p2_costo_unidad.sql` → informe §1.2 | **hecho**: AM 16 930/16 930; 7 038 de 15 808 = 0.445 falsos churn con tarjeta |
+| 1.3 Features y auditoría de fuga | 12 | Corte como parámetro; tabla con A, B y C, una fila por unidad y corte | `dbt/models/features/churn/churn_dataset.sql` (var `fechas_corte`) | **hecho**: 51 955 + 50 483 + 49 853 filas; muestra en `docs/evidence/p2/churn_dataset_muestra.csv` |
+| | | Diccionario (nombre, qué mide, ventana ≤ 28, tabla Silver) | `dbt/models/features/churn/churn_diccionario.sql` → `docs/P2/diccionario_churn.md` | **hecho**: 39 columnas, ventana máx. 28 d |
+| | | Prueba de recorte (0 diferencias + features que fallaron antes) | `make prueba-recorte` → `docs/evidence/p2/prueba_recorte.md`, `prueba_recorte_ingenuo.md`, `prueba_recorte_fallos.json` | **hecho**: 0 diferencias; 4 fugas + 2 redondeos registrados |
 | 1.4 Baseline y logística | 15 | Métrica elegida (3–5 líneas) | ADR-016; informe §1.4 | hecho (ADR) |
-| | | Tabla ≥ 4 filas (2 baselines + logísticas) con media y sd, mismos folds | `make ml-entrenar FASE=1` → `docs/evidence/p2/fase1_modelos.md`; `ml/artefactos/folds_A.csv` | pendiente |
-| | | Gráfica métrica vs λ | `docs/evidence/p2/figuras/ap_vs_lambda.png` | pendiente |
-| | | 5 coeficientes hacia el abandono interpretados | `docs/evidence/p2/fase1_coeficientes.md` → informe §1.4 | pendiente |
+| | | Tabla ≥ 4 filas (2 baselines + logísticas) con media y sd, mismos folds | `make ml-entrenar FASE=1` → `docs/evidence/p2/fase1_modelos.md`; `ml/artefactos/folds_A.csv` | **hecho**: AP 0,446 vs 0,113 / 0,410 |
+| | | Gráfica métrica vs λ | `docs/evidence/p2/figuras/ap_vs_lambda.png` | **hecho** |
+| | | 5 coeficientes hacia el abandono interpretados | `docs/evidence/p2/fase1_coeficientes.md` → informe §1.4 | **hecho** |
 | 2.1 Ensemble y sesgo-varianza | 10 | Tabla con ensemble, métrica train y val; línea sesgo-varianza por modelo; top-10 permutación en validación; decisión | `make ml-entrenar FASE=2` → `fase2_modelos.md`, `fase2_sesgo_varianza.md`, `fase2_importancias.md`, `fase2_decision.md` | pendiente |
 | 2.2 Umbral por costo y test único | 12 | Fórmula de ganancia con la cuenta; curva ganancia vs umbral; test B (fecha, commit, métrica, matriz, ganancia) | `docs/evidence/p2/umbral.md`, `figuras/ganancia_vs_umbral.png`; `make ml-test-b` → `docs/evidence/p2/test_b.md`, `docs/P2/BITACORA.md` | pendiente |
 | 2.3 KMeans y PCA | 8 | k por codo y silueta; PCA 2D con varianza; tabla de segmentos con nombre y tasa; ≥ 2 acciones | `make ml-segmentos` → `segmentos.md`, `segmentos_k.md`, `acciones.md`, `figuras/{codo,silueta,pca_segmentos}.png` | pendiente |

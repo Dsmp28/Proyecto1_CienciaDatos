@@ -101,7 +101,59 @@ del enunciado ("algún DELETE antes de t") y la alternativa ("estado de baja vig
 
 ## 1.3 Features a la fecha de corte y auditoría de fuga
 
-[pendiente: diccionario, tabla de features (A, B, C), prueba de recorte con las features que fallaron antes de corregir]
+**La fecha de corte es un parámetro.** Los modelos dbt `dbt/models/features/churn/` iteran la variable `fechas_corte`
+(`["2026-07-01", "2026-07-31", "2026-08-30"]`) con la macro `cortes_cte()`; cambiar la lista o pasarla por `--vars` produce
+las filas de cualquier otro corte con el mismo código. Todas las ventanas miden lo mismo en los tres cortes:
+`ventana_max_dias = 28` (7, 14 y 28 días, o "estado en t" para el padrón), vigilado por `tests/test_ventanas_churn.py` y
+por la prueba singular `assert_churn_ventana_max_28`. Solo entran registros válidos (Silver excluye la cuarentena).
+
+**Tabla de features** (`features.churn_dataset`, una fila por unidad y corte, columnas `unidad_id, fecha_corte, corte,
+features…, etiqueta`, más `fecha_referencia` y `run_id` de linaje; muestra con 12 personas presentes en los tres cortes en
+`docs/evidence/p2/churn_dataset_muestra.csv`):
+
+| Corte | Filas | Unidades distintas | Etiqueta | `n_abordajes_28d` mín. | `dias_desde_ultimo` (mín.–máx.) |
+|---|---:|---:|---|---:|---|
+| A | 51 955 | 51 955 | 0/1 | 2 | 1–28 |
+| B | 50 483 | 50 483 | 0/1 (no se usa hasta 2.2) | 2 | 1–28 |
+| C | 49 853 | 49 853 | nula (horizonte no observado) | 2 | 1–28 |
+
+36 640 personas aparecen en los tres cortes (una fila por corte, como pide el enunciado).
+
+**Diccionario** (`docs/P2/diccionario_churn.md`, generado desde `features.churn_diccionario`; la prueba
+`assert_churn_diccionario_cubre_columnas` exige que cubra exactamente las columnas del dataset): 39 columnas, cada una con
+qué mide, ventana (7 d, 14 d, 28 d, "estado en t", etiqueta [t, t+30)) y tabla Silver de origen. Ninguna ventana supera
+28 días.
+
+**Prueba de recorte** (`make prueba-recorte`). Las features del corte A se calculan dos veces: con los datos completos y
+con el target `recorte`, que reconstruye staging, Silver, cuarentena y el dataset en datasets `*_recorte` ignorando en
+**staging** todo evento posterior al 30 de junio (como si los archivos crudos terminaran ahí; en MetroRiel la salida
+posterior al recorte se anula y el viaje cae en cuarentena como "sin salida", igual que en un archivo truncado).
+`ml/prueba_recorte.py` compara ambas tablas: conjunto de unidades, `EXCEPT DISTINCT` en los dos sentidos y filas
+distintas por columna (floats con tolerancia 10⁻⁶).
+
+Resultado con la versión final (`docs/evidence/p2/prueba_recorte.md`): **51 955 filas comparadas, 0 unidades solo en un
+lado, 0 diferencias en las 39 columnas.**
+
+Features que fallaron antes de corregirlas (`docs/evidence/p2/prueba_recorte_ingenuo.md`, modelo
+`churn_features_ingenuo` conservado en `dbt/models/features/churn/auditoria/` para que la prueba sea repetible;
+`prueba_recorte_fallos.json`):
+
+| Feature del borrador | Filas distintas | Causa | Corrección |
+|---|---:|---|---|
+| `perfil_padron_final` | 14 467 | `silver_usuarios.perfil` es el perfil tras todo el log CDC: un cambio posterior al corte se filtraba. | Perfil del último evento con `vigente_desde < t` (`perfil_padron_a_t`, desde `silver_padron_scd2`). |
+| `estado_padron_final` | 15 381 | Estado final del padrón: refleja altas y bajas posteriores a t. | Se retira; el estado en t se usa solo para la población, con eventos anteriores a t. |
+| `es_vigente_padron` | 13 990 | `es_vigente` es verdadero cuando no hay un evento siguiente: depende del futuro. | Eliminada; solo conteos de eventos anteriores a t. |
+| `n_registros_operacion` | 46 715 | Contaba filas de todo el periodo. | Eliminada; la actividad se mide con abordajes de la ventana. |
+| `duracion_media_mr_min` | 4 | No era fuga: `AVG` en FLOAT suma en distinto orden y 4 personas caían en el empate del 6.º decimal. | Media con suma entera exacta. |
+| `hora_media` | 2 | Ídem. | Suma entera exacta; `hora_sd` igual. |
+
+Los dos controles del borrador (`n_abordajes_28d`, `dias_desde_ultimo`) dieron 0 diferencias. Una fuga latente que la prueba
+no puede ver con estos datos: la duración de MetroRiel sin exigir salida anterior a t (ningún viaje de MetroRiel cruza la
+medianoche del 1 de julio); la versión final exige `fecha_hora_salida_local < t` de todos modos.
+
+**Otras salvaguardas:** `churn_dataset` no contiene llaves nativas ni el identificador base
+(`assert_churn_sin_llaves_nativas`); features solo referencian Silver y seeds (`tests/test_gold_lineage.py`); la etiqueta
+solo es nula cuando el horizonte no cabe en los datos (`assert_churn_etiqueta_nula_sii_sin_horizonte`).
 
 ## 1.4 Líneas base y regresión logística regularizada
 
