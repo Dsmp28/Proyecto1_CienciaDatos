@@ -40,6 +40,9 @@ ENV_COMUN = {
     "PYTHONPATH": CWD,
     "ESCALA": "{{ params.escala }}",  # vacío = escala oficial del generador (0.08)
     "IDLE_SEGUNDOS": "{{ params.idle_segundos }}",  # espera de inactividad del consumidor de Kafka
+    "ORIGEN_DATOS": "{{ params.origen_datos }}",  # landing | generador | local
+    "VERSION_DATOS": "{{ params.version_datos }}",  # versión en gs://<lake>/landing/datos_red/<versión>/
+    "VERIFICAR_HASHES": "{{ params.verificar_hashes }}",  # True/False: verificar sha256 contra expected_hashes
 }
 
 DBT_VARS = '{"run_id": "{{ run_id }}", "run_ts": "' + TPL_RUN_TS + '"}'
@@ -109,10 +112,13 @@ Podría programarse `@daily` sin cambios: cada etapa es idempotente y `catchup=F
 
 Parámetros: `escala` (vacío = escala oficial 0.08 del generador; otro valor regenera los datos
 sin verificar hashes) e `idle_segundos` (el consumidor Kafka termina tras ese tiempo sin mensajes).
+`origen_datos` (`landing` por defecto, `generador` o `local`) y `version_datos` (`v2`) eligen de dónde salen
+los 9 archivos crudos; `verificar_hashes` (por defecto `true`) activa la comparación de sha256. Todos llegan a
+los scripts solo por variables de entorno.
 
 | Etapa | Qué hace | Por qué es idempotente |
 |---|---|---|
-| `generar_o_verificar_datos` | Genera los 9 archivos crudos si faltan y verifica su sha256 contra `ingest/expected_hashes.json`. | Solo genera si falta algo; la huella fija detecta cambios. |
+| `generar_o_verificar_datos` | Con `origen_datos=landing` baja de `gs://<lake>/landing/datos_red/<versión>/` los archivos que falten o difieran; con `generador` los genera (huella P1); con `local` no toca nada. Luego verifica su sha256 contra `ingest/expected_hashes.json`. | Solo descarga lo que no coincide con el MANIFEST; la huella fija detecta cambios. |
 | `ingesta_bronze.ingesta_batch` / `ingesta_cdc` | Sube catálogos, MetroRiel, Transurbano y el log CDC a `gs://<lake>/bronze/<fuente>/ingest_date=…`. | `ops.ingest_manifest`: un archivo con el mismo sha256 se marca `omitido`, no se vuelve a subir. |
 | `ingesta_bronze.ingesta_streaming.kafka_productor` → `kafka_consumidor` | Publica Transmetro y Aerómetro en Kafka y el consumidor escribe objetos por ventana de offsets. | El productor omite archivos ya publicados; los objetos tienen nombre determinista por (tópico, partición, offsets). |
 | `tablas_externas_bronze` | `CREATE OR REPLACE EXTERNAL TABLE` Hive sobre cada prefijo y verifica `COUNT(*)`. | DDL declarativo. |
@@ -149,6 +155,12 @@ with DAG(
                         description="Fracción del volumen del generador; vacío = 0.08 (oficial)"),
         "idle_segundos": Param(30, type="integer", minimum=1, maximum=3600,
                                description="Segundos sin mensajes tras los que el consumidor de Kafka termina"),
+        "origen_datos": Param("landing", type="string", enum=["landing", "generador", "local"],
+                              description="De dónde salen los 9 archivos crudos"),
+        "version_datos": Param("v2", type="string", pattern=r"^[a-z0-9_-]{1,40}$",
+                               description="Versión de los datos en gs://<lake>/landing/datos_red/"),
+        "verificar_hashes": Param(True, type="boolean",
+                                  description="Verificar el sha256 de los archivos contra expected_hashes"),
     },
 ) as dag:
     generar_o_verificar_datos = _bash("generar_o_verificar_datos", f"{PYTHON} ingest/generar_o_verificar.py")

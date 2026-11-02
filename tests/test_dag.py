@@ -66,7 +66,8 @@ def test_dag_id_y_configuracion(dag):
     assert dag.catchup is False
     assert dag.max_active_runs == 1
     assert "red-metropolitana" in dag.tags
-    assert dict(dag.params) == {"escala": "", "idle_segundos": 30}
+    assert dict(dag.params) == {"escala": "", "idle_segundos": 30, "origen_datos": "landing",
+                               "version_datos": "v2", "verificar_hashes": True}
 
 
 def test_dag_sin_ciclos(dag):
@@ -109,6 +110,15 @@ def test_entorno_de_las_tareas_bash(dag):
     # Los params llegan por entorno, nunca interpolados en el comando (inyección de shell).
     assert consumidor.env["IDLE_SEGUNDOS"] == "{{ params.idle_segundos }}"
     assert "params." not in consumidor.bash_command
+
+
+def test_params_de_datos_llegan_por_entorno(dag):
+    gen = dag.get_task("generar_o_verificar_datos")
+    assert gen.env["ORIGEN_DATOS"] == "{{ params.origen_datos }}"
+    assert gen.env["VERSION_DATOS"] == "{{ params.version_datos }}"
+    assert gen.env["VERIFICAR_HASHES"] == "{{ params.verificar_hashes }}"
+    for tarea in dag.tasks:
+        assert "params." not in tarea.bash_command, tarea.task_id
 
 
 # ---------------------------------------------------------------------------

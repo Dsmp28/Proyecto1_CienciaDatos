@@ -70,10 +70,12 @@ def test_catalogo_tiene_9_fuentes_y_7_batch_cdc():
 
 
 def test_expected_hashes_cubre_las_9_fuentes():
-    huellas = json.loads((REPO / "ingest" / "expected_hashes.json").read_text())["archivos"]
-    assert set(huellas) == set(common.FUENTES)
-    for v in huellas.values():
-        assert len(v["sha256"]) == 64 and v["filas_datos"] > 0 and v["bytes"] > 0
+    # Huella v2 (Proyecto 2) y huella del generador (Proyecto 1).
+    for nombre in ("expected_hashes.json", "expected_hashes_p1.json"):
+        huellas = json.loads((REPO / "ingest" / nombre).read_text())["archivos"]
+        assert set(huellas) == set(common.FUENTES), nombre
+        for v in huellas.values():
+            assert len(v["sha256"]) == 64 and v["filas_datos"] > 0 and v["bytes"] > 0
 
 
 # ---------------------------------------------------------------------------

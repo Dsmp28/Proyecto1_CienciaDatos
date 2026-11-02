@@ -2,15 +2,22 @@
 
 Uso:
     python ingest/generar_o_verificar.py [--json] [--sin-verificar] [--regenerar]
+                                         [--origen {landing,generador,local}] [--version v2]
 
-Flujo:
-1. Si falta alguno de los 9 archivos del catálogo (o se pide --regenerar), ejecuta el
-   generador oficial `docs/generar_red_metropolitana.py`. El generador escribe siempre en
-   `./datos_red` relativo a su cwd, así que se lanza con cwd = raíz del repo (o el padre
-   de DATOS_DIR cuando DATOS_DIR apunta a otro sitio).
-2. Calcula sha256, filas de datos y bytes de cada archivo y los compara con
-   `ingest/expected_hashes.json` (huella de la corrida oficial: ESCALA=0.08, semilla 2026).
-   Cualquier diferencia termina con código 1, salvo `--sin-verificar`.
+Origen de los datos (`--origen` o env ORIGEN_DATOS, default `landing`; `--version` o env
+VERSION_DATOS, default `v2`):
+- `landing`: si falta algún archivo o su sha256 no coincide con `ingest/expected_hashes.json`
+  (datos v2 del Proyecto 2), los baja de `gs://<lake>/landing/datos_red/<version>/`
+  con `ingest.landing.descargar` y luego verifica.
+- `generador`: comportamiento del Proyecto 1; si falta algo (o --regenerar) ejecuta
+  `docs/generar_red_metropolitana.py` y compara con `ingest/expected_hashes_p1.json`.
+  El generador escribe siempre en `./datos_red` relativo a su cwd, así que se lanza con
+  cwd = padre de DATOS_DIR.
+- `local`: nunca descarga ni genera; solo verifica lo que haya en DATOS_DIR.
+
+Verificación: calcula sha256, filas de datos y bytes de cada archivo y los compara con la huella
+del origen elegido. Cualquier diferencia termina con código 1, salvo `--sin-verificar` o la env
+VERIFICAR_HASHES en {false, 0, no}.
 3. Imprime una tabla; con `--json` vuelca el resultado en la salida estándar (la tabla va
    a stderr) para que Airflow lo recoja por XCom.
 
@@ -35,7 +42,9 @@ sys.path.insert(0, str(REPO))
 from ingest.common import DATOS_DIR, FUENTES, contar_filas, sha256_archivo  # noqa: E402
 
 GENERADOR = REPO / "docs" / "generar_red_metropolitana.py"
-HASHES_ESPERADOS = REPO / "ingest" / "expected_hashes.json"
+HASHES_ESPERADOS = REPO / "ingest" / "expected_hashes.json"        # datos v2 (Proyecto 2)
+HASHES_ESPERADOS_P1 = REPO / "ingest" / "expected_hashes_p1.json"  # generador (Proyecto 1)
+ORIGENES = ("landing", "generador", "local")
 ESCALA_OFICIAL = "0.08"
 PATRON_ESCALA = re.compile(r"^(ESCALA\s*=\s*)[0-9.]+", re.M)
 
@@ -63,6 +72,29 @@ def sustituir_escala(codigo: str, escala: str) -> str:
     if n != 1:
         raise ValueError("No se encontró la línea `ESCALA = ...` en el generador")
     return nuevo
+
+
+def resolver_origen(arg: str | None, env: str | None) -> str:
+    """Origen de datos: argumento > env ORIGEN_DATOS > `landing`."""
+    valor = (arg or env or "landing").strip().lower()
+    if valor not in ORIGENES:
+        raise ValueError(f"origen={valor!r} inválido; usa uno de {ORIGENES}")
+    return valor
+
+
+def resolver_version(arg: str | None, env: str | None) -> str:
+    """Versión de datos: argumento > env VERSION_DATOS > `v2`."""
+    return (arg or env or "v2").strip()
+
+
+def verificar_desde_env(valor: str | None) -> bool:
+    """False si VERIFICAR_HASHES vale false/0/no (sin distinguir mayúsculas); True en otro caso."""
+    return (valor or "").strip().lower() not in ("false", "0", "no")
+
+
+def huella_esperada_para(origen: str) -> Path:
+    """Archivo de huellas: el del generador (P1) solo con origen `generador`; v2 en los demás."""
+    return HASHES_ESPERADOS_P1 if origen == "generador" else HASHES_ESPERADOS
 
 
 def comparar_hashes(esperado: dict[str, dict], calculado: dict[str, dict]) -> list[dict]:
@@ -161,34 +193,49 @@ def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--json", action="store_true", help="vuelca el resultado como JSON en stdout (tabla a stderr)")
     ap.add_argument("--sin-verificar", action="store_true", help="no falla si los hashes difieren de expected_hashes.json")
-    ap.add_argument("--regenerar", action="store_true", help="ejecuta el generador aunque los archivos existan")
+    ap.add_argument("--regenerar", action="store_true", help="ejecuta el generador aunque los archivos existan (origen generador)")
+    ap.add_argument("--origen", choices=ORIGENES, default=None, help="landing (default, env ORIGEN_DATOS) | generador | local")
+    ap.add_argument("--version", default=None, help="versión en landing (default v2, env VERSION_DATOS)")
     args = ap.parse_args(argv)
+    origen = resolver_origen(args.origen, os.environ.get("ORIGEN_DATOS"))
+    version = resolver_version(args.version, os.environ.get("VERSION_DATOS"))
 
     datos_dir = DATOS_DIR if DATOS_DIR.is_absolute() else REPO / DATOS_DIR
     escala = escala_personalizada(os.environ.get("ESCALA"))
-    verificar = not args.sin_verificar
+    verificar = not args.sin_verificar and verificar_desde_env(os.environ.get("VERIFICAR_HASHES"))
     avisos: list[str] = []
+    esperado = json.loads(huella_esperada_para(origen).read_text(encoding="utf-8"))["archivos"]
 
-    faltan = archivos_faltantes(datos_dir)
     generado = False
-    if faltan or args.regenerar:
-        ejecutar_generador(datos_dir, escala)
-        generado = True
+    descargados: list[str] = []
+    if origen == "generador":
         faltan = archivos_faltantes(datos_dir)
-        if faltan:
-            raise SystemExit(f"El generador terminó pero siguen faltando: {faltan}")
+        if faltan or args.regenerar:
+            ejecutar_generador(datos_dir, escala)
+            generado = True
+            faltan = archivos_faltantes(datos_dir)
+            if faltan:
+                raise SystemExit(f"El generador terminó pero siguen faltando: {faltan}")
+        if escala is not None and verificar:
+            avisos.append(f"ESCALA={escala} distinta de la oficial ({ESCALA_OFICIAL}): se omite la verificación de hashes")
+            verificar = False
+    elif origen == "landing":
+        from ingest import landing  # importación perezosa: solo aquí hace falta GCS
 
-    if escala is not None and verificar:
-        avisos.append(f"ESCALA={escala} distinta de la oficial ({ESCALA_OFICIAL}): se omite la verificación de hashes")
-        verificar = False
+        calculado = calcular_huellas(datos_dir)
+        if any(not f["verificado"] for f in comparar_hashes(esperado, calculado)):
+            print(f"[landing] Descargando versión {version} a {datos_dir}", file=sys.stderr)
+            descargados = landing.descargar(version, datos_dir, solo_faltantes=True)
 
-    esperado = json.loads(HASHES_ESPERADOS.read_text(encoding="utf-8"))["archivos"]
     calculado = calcular_huellas(datos_dir)
     filas = comparar_hashes(esperado, calculado)
     todo_ok = all(f["verificado"] for f in filas)
 
     resultado = {
         "datos_dir": str(datos_dir),
+        "origen": origen,
+        "version": version if origen == "landing" else None,
+        "descargados": descargados,
         "generado": generado,
         "escala": escala or ESCALA_OFICIAL,
         "verificacion_aplicada": verificar,
@@ -201,7 +248,7 @@ def main(argv: list[str] | None = None) -> int:
     for a in avisos:
         print(f"[aviso] {a}", file=salida_tabla)
     print(formatear_tabla(filas), file=salida_tabla)
-    print(("Todos los archivos verificados." if todo_ok else "HAY DIFERENCIAS respecto a expected_hashes.json."),
+    print(("Todos los archivos verificados." if todo_ok else "HAY DIFERENCIAS respecto a la huella esperada."),
           file=salida_tabla)
     if args.json:
         print(json.dumps(resultado, ensure_ascii=False))

@@ -1,0 +1,52 @@
+{
+  "origen": "catedra-v2 (docs/P2_datos_red/LEEME.txt)",
+  "periodo": "2026-06-01..2026-08-29",
+  "nota": "Datos del Proyecto 2 entregados por la cátedra; reemplazan a los del Proyecto 1 (ingest/expected_hashes_p1.json).",
+  "archivos": {
+    "aerometro_boardings.csv": {
+      "sha256": "cb203b5e4a49c27cfaa5012fe0f81f70ee41fe666f84689514df7e72cd442eed",
+      "filas_datos": 387053,
+      "bytes": 23150814
+    },
+    "am_estaciones.csv": {
+      "sha256": "e3acbeed8608fb9a6b9a8df87646bf5294e644aa64bd95484f1424b92ae21723",
+      "filas_datos": 14,
+      "bytes": 687
+    },
+    "cdc_padron_usuarios.csv": {
+      "sha256": "f1b483aba844ad1c5c1da71003c621bcbc8ce231ecf5283e42d18050261f480f",
+      "filas_datos": 77636,
+      "bytes": 5386252
+    },
+    "metroriel_viajes.jsonl": {
+      "sha256": "5fc6b782a29b6b33e218c52d1dc371526e1ae563d3a01b6bf706f3d7ccbc1812",
+      "filas_datos": 590844,
+      "bytes": 109365069
+    },
+    "mr_estaciones.csv": {
+      "sha256": "c302ffbc6f0bdcf926c8eaaf9a5427ec5d38d482cc44431e3aeb20a8febb8e8c",
+      "filas_datos": 22,
+      "bytes": 537
+    },
+    "tm_estaciones.csv": {
+      "sha256": "4d53a95abb4f115b7da7f69db2c392e1748d6704807d81408a5e510f791624d0",
+      "filas_datos": 104,
+      "bytes": 7387
+    },
+    "transmetro_validaciones.csv": {
+      "sha256": "972e9f511d628a18bd5f906ee9074733ea8c380ce1df48dc60db19a62eb9e370",
+      "filas_datos": 713786,
+      "bytes": 47359627
+    },
+    "transurbano_transacciones.csv": {
+      "sha256": "d5c61aee5f642563638bab6b174a397d2fbd5136a368063deeee6715a648bd65",
+      "filas_datos": 1635788,
+      "bytes": 84725793
+    },
+    "tu_paradas.csv": {
+      "sha256": "a888a09c45189cfeac0a0577377d1b4c662923ee55f798d961f418aa2ac93b90",
+      "filas_datos": 328,
+      "bytes": 13189
+    }
+  }
+}
