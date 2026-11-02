@@ -4,6 +4,26 @@ Pipeline de datos de punta a punta para integrar cuatro operadores de transporte
 (Transmetro, Transurbano, MetroRiel, Aerómetro). Se califica con rúbrica de 100 pts y defensa oral.
 Enunciado: `docs/Proyecto 1 Red Metropolitana.pdf`. Plan aprobado: `docs/PLAN.md`.
 
+## Proyecto 2 (en curso desde 2026-11-01; defensa 2026-11-09): ¿quién deja de usar la red?
+Enunciado: `docs/Proyecto 2 Red Metropolitana.pdf`; datos v2 en `docs/P2_datos_red/datos_red/` (525 MB, ignorados; el
+`LEEME.txt` trae los conteos esperados). Clasificación binaria por **persona** (`usuario_unificado_sk`) y fecha de corte:
+etiqueta 1 si no hay abordaje válido en [t, t+30). Cortes A = 2026-07-01 (entrena, CV 5 folds), B = 2026-07-31 (test,
+**una sola vez**), C = 2026-08-30 (predicciones entregadas). Features solo desde Silver, ventanas ≤ 28 días, iguales en
+los tres cortes; población ≥ 2 abordajes en 28 días y sin DELETE del CDC antes de t. Entregas: etiquetas git `fase-1`
+(1.1–1.4) y `fase-2` (2.1–2.4, predicciones de C, presentación). ADR-012 en adelante en `docs/DECISIONS.md`.
+
+Reglas duras del P2 (penalizaciones): (1) ninguna feature mira después de t: prohibido `silver_usuarios.estado_padron/
+perfil/en_padron/zona_residencia/n_registros_operacion` (estado final) y `silver_padron_scd2.vigente_hasta/es_vigente`;
+MetroRiel solo con salida < t. (2) La etiqueta de B se usa **una sola vez** (`make ml-test-b`, con guardia y bitácora).
+(3) `predicciones/predicciones_corte_2026-08-30.csv` no se regenera salvo nueva versión del modelo. (4) El vaciado
+(`make reset` / `make desde-cero`) es destructivo: solo con la frase `CONFIRMAR=BORRAR-<proyecto>` y OK del usuario.
+(5) Nunca rotar la sal HMAC antes de la defensa (los seudónimos deben ser invariantes).
+
+Comandos P2: `make landing-subir VERSION=v2` (datos a `gs://<lake>/landing/datos_red/v2/`), `make reset-dry-run`,
+`make desde-cero CONFIRMAR=…` (vaciar + cargar + evidencia en `docs/evidence/p2/`), `make prueba-recorte`,
+`make ml-entrenar FASE=1|2`, `make ml-test-b`, `make ml-segmentos`, `make ml-predecir`, `make ensayo-invariancia`,
+`python predecir.py --datos <carpeta> --fecha-corte 2026-08-30`.
+
 ## Al retomar una sesión
 Leer en este orden: `CLAUDE.md`, `docs/PLAN.md`, `docs/PROGRESS.md`, `docs/DECISIONS.md`.
 Si el generador `docs/generar_red_metropolitana.py` ya existe, leerlo completo antes de tocar modelos.
