@@ -35,14 +35,14 @@ corte_a AS (
   SELECT DISTINCT fecha_corte FROM `cienciadatos-509301.features.churn_poblacion` WHERE corte = 'A'
 ),
 tarjetas_activas AS (
-  SELECT DISTINCT e.unidad_id, e.modo_id, e.llave_nativa
+  SELECT DISTINCT e.unidad_id, e.modo_id, e.tarjeta_sk
   FROM `cienciadatos-509301.features.churn_eventos` AS e
   JOIN `cienciadatos-509301.features.churn_poblacion` AS p
     ON p.corte = e.corte AND p.unidad_id = e.unidad_id AND p.en_poblacion
   WHERE e.corte = 'A' AND e.tramo = 'ventana'
 ),
 tarjetas_horizonte AS (
-  SELECT DISTINCT unidad_id, modo_id, llave_nativa
+  SELECT DISTINCT unidad_id, modo_id, tarjeta_sk
   FROM `cienciadatos-509301.features.churn_eventos`
   WHERE corte = 'A' AND tramo = 'horizonte'
 ),
@@ -53,11 +53,11 @@ falsos AS (
   SELECT
     'falsos_churn_corte_A' AS bloque, 'tarjetas' AS detalle,
     COUNT(*) AS valor_1,
-    COUNTIF(th.llave_nativa IS NULL) AS valor_2,                              -- tarjetas sin abordajes en el horizonte
-    COUNTIF(th.llave_nativa IS NULL AND ph.unidad_id IS NOT NULL) AS valor_3  -- ... de personas que sí viajaron (falso churn)
+    COUNTIF(th.tarjeta_sk IS NULL) AS valor_2,                              -- tarjetas sin abordajes en el horizonte
+    COUNTIF(th.tarjeta_sk IS NULL AND ph.unidad_id IS NOT NULL) AS valor_3  -- ... de personas que sí viajaron (falso churn)
   FROM tarjetas_activas AS ta
   LEFT JOIN tarjetas_horizonte AS th
-    ON th.unidad_id = ta.unidad_id AND th.modo_id = ta.modo_id AND th.llave_nativa = ta.llave_nativa
+    ON th.unidad_id = ta.unidad_id AND th.modo_id = ta.modo_id AND th.tarjeta_sk = ta.tarjeta_sk
   LEFT JOIN personas_horizonte AS ph ON ph.unidad_id = ta.unidad_id
 )
 -- valor_1 / valor_2 / valor_3 por bloque:
