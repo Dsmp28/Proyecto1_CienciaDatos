@@ -65,8 +65,10 @@ agregados as (
         count(distinct zona_id) as n_zonas_28d,
         safe_divide(countif(es_transbordo_interno), count(*)) as pct_transbordo_interno,
         count(distinct tarjeta_sk) as n_tarjetas_activas_28d,
-        avg(hora) as hora_media,
-        stddev_pop(hora) as hora_sd
+        -- medias y desviaciones con sumas enteras exactas: AVG/STDDEV en float dependen del orden de suma y cambian
+        -- el 6.º decimal entre corridas (lo detectó la prueba de recorte)
+        safe_divide(sum(hora), count(hora)) as hora_media,
+        sqrt(greatest(safe_divide(sum(hora * hora), count(hora)) - pow(safe_divide(sum(hora), count(hora)), 2), 0)) as hora_sd
     from ev
     group by corte, fecha_corte, unidad_id
 ),
@@ -90,7 +92,8 @@ mr as (
     select
         c.corte, u.unidad_id,
         count(*) as viajes_mr_completos_28d,
-        avg(v.duracion_s) / 60 as duracion_media_mr_min
+        -- suma entera exacta / (n*60): evita que el orden de suma de AVG en float cambie el 6.º decimal entre corridas
+        safe_divide(sum(v.duracion_s), count(v.duracion_s) * 60) as duracion_media_mr_min
     from {{ ref('silver_metroriel_viajes') }} as v
     inner join usuarios as u on u.modo_id = v.modo_id and u.llave_nativa = v.llave_nativa
     inner join cortes as c

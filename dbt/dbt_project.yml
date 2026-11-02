@@ -65,7 +65,16 @@ models:
       +tags: ["features"]
       churn:                      # Proyecto 2: dataset de churn por persona y corte (ADR-015)
         +schema: features
-        +tags: ["features", "churn"]
+        # El tag churn se asigna por modelo: los tags de dbt se acumulan por carpeta y auditoria/ no debe heredarlo.
+        churn_eventos: {+tags: ["churn"]}
+        churn_poblacion: {+tags: ["churn"]}
+        churn_etiqueta: {+tags: ["churn"]}
+        churn_features: {+tags: ["churn"]}
+        churn_dataset: {+tags: ["churn"]}
+        churn_diccionario: {+tags: ["churn"]}
+        auditoria:                # entregable 1.3: borrador ingenuo de la prueba de recorte; fuera del DAG (sin tag churn)
+          +enabled: true
+          +tags: ["auditoria_recorte"]
     ops:
       +schema: ops
       +materialized: table

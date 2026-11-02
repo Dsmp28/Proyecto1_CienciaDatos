@@ -1,0 +1,38 @@
+[
+  {
+    "feature": "perfil_padron_final",
+    "filas_distintas": 14467,
+    "causa": "Usaba silver_usuarios.perfil, el perfil del padrón después de TODO el log CDC; un cambio de perfil posterior al corte se filtraba a la feature.",
+    "correccion": "Se usa el perfil del último evento del padrón con vigente_desde < t (perfil_padron_a_t, desde silver_padron_scd2)."
+  },
+  {
+    "feature": "estado_padron_final",
+    "filas_distintas": 15381,
+    "causa": "Usaba silver_usuarios.estado_padron, el estado final del padrón: reflejaba altas, bajas e inactivaciones posteriores al corte.",
+    "correccion": "Se retira de las features; el estado a t (estado_padron_ultimo_a_t) se calcula solo con eventos con vigente_desde < t y se usa únicamente para la población."
+  },
+  {
+    "feature": "es_vigente_padron",
+    "filas_distintas": 13990,
+    "causa": "es_vigente es verdadero cuando no existe un evento siguiente de la tarjeta; depende de eventos posteriores a t.",
+    "correccion": "Se elimina la feature; se usan solo conteos de eventos con vigente_desde < t (n_eventos_padron_previos, n_eventos_padron_28d, tiene_padron_a_t) sin vigente_hasta ni es_vigente."
+  },
+  {
+    "feature": "n_registros_operacion",
+    "filas_distintas": 46715,
+    "causa": "Contaba las filas del catálogo del operador en todo el periodo (silver_usuarios.n_registros_operacion), incluidas las posteriores al corte.",
+    "correccion": "Se elimina; la actividad se mide con conteos de abordajes de churn_eventos en el tramo ventana (fecha < t, máximo 28 días)."
+  },
+  {
+    "feature": "duracion_media_mr_min",
+    "filas_distintas": 4,
+    "causa": "No era fuga: AVG(duracion_s) en FLOAT suma en distinto orden en cada corrida y 4 personas caían justo en el empate del 6.º decimal (p. ej. 31.001562 vs 31.001563).",
+    "correccion": "Media con suma entera exacta: SAFE_DIVIDE(SUM(duracion_s), COUNT(duracion_s) * 60)."
+  },
+  {
+    "feature": "hora_media",
+    "filas_distintas": 2,
+    "causa": "No era fuga: mismo efecto de AVG(hora) en FLOAT (2 filas en el 6.º decimal).",
+    "correccion": "SAFE_DIVIDE(SUM(hora), COUNT(hora)); hora_sd con sumas enteras exactas (sqrt(E[x²] − E[x]²)) por la misma razón."
+  }
+]

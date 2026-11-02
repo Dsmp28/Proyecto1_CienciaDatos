@@ -141,10 +141,15 @@ DBT_RECORTE = cd dbt && dbt run --target recorte --select tag:staging tag:silver
 ml-exportar-features: ## Exporta las features (con tarjetas, sin etiqueta) de FECHA a predicciones/features_corte_<FECHA>.csv
 	$(PY) -m ml.exportar --fecha-corte $(FECHA)
 
-prueba-recorte: ## Recorta los datos a < 2026-07-01, recalcula features en *_recorte y las compara con las completas
-	$(DBT_RECORTE) --vars '{"recorte_datos_hasta": "2026-06-30", "fechas_corte": ["2026-07-01"]}' && \
+prueba-recorte: ## Prueba de recorte real: *_recorte (a), borrador ingenuo en dev (b), fallos del ingenuo (c) y churn_features corregida (d)
+	cd dbt && dbt seed --target recorte
+	$(DBT_RECORTE) tag:auditoria_recorte --vars '{"recorte_datos_hasta": "2026-06-30", "fechas_corte": ["2026-07-01"]}' && \
 	  dbt test --target recorte --select tag:churn --vars '{"recorte_datos_hasta": "2026-06-30", "fechas_corte": ["2026-07-01"]}'
-	$(PY) -m ml.prueba_recorte --corte A --fecha-corte 2026-07-01 --informe docs/evidence/p2/prueba_recorte.md
+	cd dbt && dbt run --target dev --select tag:auditoria_recorte
+	-$(PY) -m ml.prueba_recorte --corte A --fecha-corte 2026-07-01 --tabla churn_features_ingenuo --etiqueta-informe "borrador ingenuo" \
+	  --informe docs/evidence/p2/prueba_recorte_ingenuo.md --salida-fallos tmp/prueba_recorte_fallos_detectados.json
+	$(PY) -m ml.prueba_recorte --corte A --fecha-corte 2026-07-01 --informe docs/evidence/p2/prueba_recorte.md \
+	  --fallos-previos docs/evidence/p2/prueba_recorte_fallos.json
 
 ensayo-invariancia: ## Predice el corte B con datos recortados a < 2026-07-31 y completos; las predicciones deben coincidir
 	$(DBT_RECORTE) --vars '{"recorte_datos_hasta": "2026-07-30", "fechas_corte": ["2026-07-31"]}' && \

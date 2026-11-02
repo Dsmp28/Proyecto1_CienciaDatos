@@ -23,8 +23,20 @@ TOLERANCIA = 1e-6
 CLAVE = cfg.COLUMNA_ID
 # Columnas que por diseño no son features: la letra de corte depende de la posición en fechas_corte, y el linaje cambia.
 IGNORAR = {"corte", "run_id", "fecha_referencia"}
-TABLA_COMPLETA = f"{cfg.PROYECTO}.features.churn_features"
-TABLA_RECORTE = f"{cfg.PROYECTO}.features_recorte.churn_features"
+TABLA_POR_DEFECTO = "churn_features"
+TABLA_COMPLETA = f"{cfg.PROYECTO}.features.{TABLA_POR_DEFECTO}"
+TABLA_RECORTE = f"{cfg.PROYECTO}.features_recorte.{TABLA_POR_DEFECTO}"
+
+
+def tablas_de(tabla: str) -> tuple[str, str]:
+    """Nombres completos de la tabla en `features` (datos completos) y en `features_recorte` (datos recortados)."""
+    return f"{cfg.PROYECTO}.features.{tabla}", f"{cfg.PROYECTO}.features_recorte.{tabla}"
+
+
+def fallos_desde_resultado(res: dict) -> list[dict]:
+    """Una entrada por feature con filas distintas; causa y corrección se completan a mano."""
+    return [{"feature": c, "filas_distintas": n, "causa": "", "correccion": ""}
+            for c, n in res["por_columna"].items() if n]
 
 
 def _distinto_col(a: pd.Series, b: pd.Series, tolerancia: float) -> pd.Series:
@@ -71,9 +83,10 @@ def comparar(completa: pd.DataFrame, recorte: pd.DataFrame, tolerancia: float = 
     }
 
 
-def informe_markdown(res: dict, corte: str, fecha: str, fallos_previos: list[dict] | None = None) -> str:
-    L = ["# Prueba de recorte", "",
-         f"Corte {corte} ({fecha}). `features.churn_features` (datos completos) vs `features_recorte.churn_features` "
+def informe_markdown(res: dict, corte: str, fecha: str, fallos_previos: list[dict] | None = None,
+                     tabla: str = TABLA_POR_DEFECTO, etiqueta: str | None = None) -> str:
+    L = [f"# Prueba de recorte{f' ({etiqueta})' if etiqueta else ''}", "",
+         f"Corte {corte} ({fecha}). `features.{tabla}` (datos completos) vs `features_recorte.{tabla}` "
          f"(datos recortados a < t). Floats con tolerancia {TOLERANCIA}; nulos iguales.", "",
          f"- Filas en completa: {res['filas_completa']}; en recorte: {res['filas_recorte']}; "
          f"comparadas (mismas unidades): {res['filas_comparadas']}",
@@ -116,9 +129,10 @@ def _consultar_features(tabla: str, fecha: str, corte: str | None) -> pd.DataFra
     return job.result().to_dataframe(create_bqstorage_client=False)
 
 
-def cargar_desde_bigquery(corte: str, fecha: str) -> tuple[pd.DataFrame, pd.DataFrame]:
+def cargar_desde_bigquery(corte: str, fecha: str, tabla: str = TABLA_POR_DEFECTO) -> tuple[pd.DataFrame, pd.DataFrame]:
     # En el dataset recortado hay una sola fecha de corte, así que su letra siempre es 'A': se filtra por fecha.
-    return _consultar_features(TABLA_COMPLETA, fecha, corte), _consultar_features(TABLA_RECORTE, fecha, None)
+    completa, recortada = tablas_de(tabla)
+    return _consultar_features(completa, fecha, corte), _consultar_features(recortada, fecha, None)
 
 
 def main(argv=None) -> int:
@@ -126,10 +140,14 @@ def main(argv=None) -> int:
     p.add_argument("--corte", required=True, choices=["A", "B", "C"])
     p.add_argument("--fecha-corte", required=True)
     p.add_argument("--informe", default=None)
+    p.add_argument("--tabla", default=TABLA_POR_DEFECTO, help="tabla a comparar en features y features_recorte")
+    p.add_argument("--etiqueta-informe", default=None, help="texto entre paréntesis en el título del informe")
+    p.add_argument("--salida-fallos", default=None,
+                   help="JSON con {feature, filas_distintas, causa, correccion} de las features con diferencias")
     p.add_argument("--origen", choices=["bigquery"], default="bigquery")
     p.add_argument("--fallos-previos", default=str(cfg.EVIDENCIA / "prueba_recorte_fallos.json"))
     a = p.parse_args(argv)
-    completa, recorte = cargar_desde_bigquery(a.corte, a.fecha_corte)
+    completa, recorte = cargar_desde_bigquery(a.corte, a.fecha_corte, a.tabla)
     res = comparar(completa, recorte)
     print(f"Filas comparadas: {res['filas_comparadas']} (completa {res['filas_completa']}, recorte "
           f"{res['filas_recorte']}); diferencias totales: {res['diferencias_totales']}")
@@ -139,9 +157,14 @@ def main(argv=None) -> int:
     if a.informe:
         ruta = Path(a.informe)
         ruta.parent.mkdir(parents=True, exist_ok=True)
-        ruta.write_text(informe_markdown(res, a.corte, a.fecha_corte, leer_fallos(Path(a.fallos_previos))),
-                        encoding="utf-8")
+        ruta.write_text(informe_markdown(res, a.corte, a.fecha_corte, leer_fallos(Path(a.fallos_previos)),
+                                         a.tabla, a.etiqueta_informe), encoding="utf-8")
         print(f"Informe: {ruta}")
+    if a.salida_fallos:
+        ruta_f = Path(a.salida_fallos)
+        ruta_f.parent.mkdir(parents=True, exist_ok=True)
+        ruta_f.write_text(json.dumps(fallos_desde_resultado(res), ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+        print(f"Fallos: {ruta_f}")
     return 0 if res["sin_diferencias"] else 1
 
 
