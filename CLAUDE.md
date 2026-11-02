@@ -25,7 +25,7 @@ Comandos P2: `make landing-subir VERSION=v2` (datos a `gs://<lake>/landing/datos
 `python predecir.py --datos <carpeta> --fecha-corte 2026-08-30`.
 
 ## Al retomar una sesión
-Leer en este orden: `CLAUDE.md`, `docs/PLAN.md`, `docs/PROGRESS.md`, `docs/DECISIONS.md`.
+Leer en este orden: `CLAUDE.md`, `docs/PLAN.md`, `docs/PLAN_P2.md`, `docs/PROGRESS.md`, `docs/DECISIONS.md`.
 Si el generador `docs/generar_red_metropolitana.py` ya existe, leerlo completo antes de tocar modelos.
 
 ## Stack (decidido)
