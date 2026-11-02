@@ -15,3 +15,16 @@ red_metropolitana:
       job_execution_timeout_seconds: 600
       job_retries: 1
       maximum_bytes_billed: 10737418240   # 10 GB por consulta: salvaguarda de costo
+    # Proyecto 2 (ADR-015) · prueba de recorte y ensayo de invariancia: mismas credenciales y proyecto, pero
+    # generate_schema_name añade el sufijo `_recorte` a cada esquema. Se usa con --vars recorte_datos_hasta.
+    recorte:
+      type: bigquery
+      method: oauth
+      project: cienciadatos-509301
+      dataset: staging
+      location: us-central1
+      threads: 4
+      priority: interactive
+      job_execution_timeout_seconds: 600
+      job_retries: 1
+      maximum_bytes_billed: 10737418240
