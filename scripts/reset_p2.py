@@ -16,6 +16,7 @@ from __future__ import annotations
 import argparse
 import csv
 import datetime as dt
+import os
 import shlex
 import subprocess
 import sys
@@ -244,8 +245,10 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--dry-run", action="store_true", help="solo lista; no borra ni exporta")
     ap.add_argument("--sin-vm", action="store_true", help="omite Kafka y los datos de la VM")
     ap.add_argument("--project", default=PROJECT_ID_DEFECTO)
-    ap.add_argument("--salida-dir", type=Path, default=REPO / "docs" / "evidence" / "p2")
-    ap.add_argument("--exportes-dir", type=Path, default=REPO / "docs" / "evidence" / "p1")
+    # En la VM docs/ está montado de solo lectura: EVIDENCIA_DIR (como en conteos_bronze.py) redirige las salidas.
+    evid = os.environ.get("EVIDENCIA_DIR")
+    ap.add_argument("--salida-dir", type=Path, default=Path(evid) if evid else REPO / "docs" / "evidence" / "p2")
+    ap.add_argument("--exportes-dir", type=Path, default=Path(evid) / "p1" if evid else REPO / "docs" / "evidence" / "p1")
     args = ap.parse_args(argv)
 
     if args.confirmar is not None and not confirmacion_valida(args.confirmar, args.project):
@@ -308,8 +311,14 @@ def main(argv: list[str] | None = None) -> int:
 
     args.salida_dir.mkdir(parents=True, exist_ok=True)
     informe = args.salida_dir / f"reset_{ts}.md"
-    informe.write_text(markdown_reset(modo, args.project, ts, antes, despues, exportados, notas), encoding="utf-8")
-    log(f"informe: {informe}")
+    texto = markdown_reset(modo, args.project, ts, antes, despues, exportados, notas)
+    try:
+        informe.parent.mkdir(parents=True, exist_ok=True)
+        informe.write_text(texto, encoding="utf-8")
+        log(f"informe: {informe}")
+    except OSError as exc:  # p. ej. docs/ de solo lectura en la VM
+        log(f"AVISO: no se pudo escribir {informe} ({exc}); el informe va por stdout")
+        print(texto)
     return 0
 
 

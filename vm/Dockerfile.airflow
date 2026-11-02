@@ -36,9 +36,9 @@ RUN pip install --no-cache-dir \
     "pytest==9.1.1" \
     "scikit-learn==1.9.1" \
     "numpy==2.5.3" \
-    "pandas==3.0.6" \
+    "pandas==3.0.5" \
     "joblib==1.6.0" \
-    "db-dtypes==1.9.0"
+    "db-dtypes==1.7.1"
 
 # Sanidad: dbt debe importar y quedar en el PATH del usuario airflow.
 RUN dbt --version
