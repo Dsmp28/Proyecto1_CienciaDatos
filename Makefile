@@ -100,4 +100,24 @@ demo-idempotencia: ## Corre el flujo dos veces, compara conteos por capa y falla
 scan-secrets: ## Escanea el historial de git en busca de secretos
 	bash scripts/scan_secrets.sh
 
-.PHONY: help venv bootstrap-plan bootstrap-apply init plan apply destroy outputs vm-start vm-stop vm-status vm-ssh vm-sync vm-up vm-logs dbt-deps dbt-build dbt-test dbt-docs test demo-idempotencia scan-secrets
+.PHONY: help venv bootstrap-plan bootstrap-apply init plan apply destroy outputs vm-start vm-stop vm-status vm-ssh vm-sync vm-up vm-logs dbt-deps dbt-build dbt-test dbt-docs test demo-idempotencia scan-secrets landing-subir reset reset-dry-run desde-cero evidencia-p2
+
+# ---- Proyecto 2 ----
+VERSION ?= v2
+ORIGEN  ?= docs/P2_datos_red/datos_red
+
+landing-subir: ## Sube los 9 archivos crudos v2 a gs://<lake>/landing/datos_red/<VERSION>/ y escribe el MANIFEST
+	$(PY) -m ingest.landing subir --origen $(ORIGEN) --version $(VERSION)
+
+reset: ## Borra Bronze, tablas de BigQuery y estado de la VM (exige CONFIRMAR=BORRAR-<proyecto>)
+	$(PY) scripts/reset_p2.py --confirmar "$(CONFIRMAR)"
+
+reset-dry-run: ## Lista lo que borraría el reset, sin borrar nada
+	$(PY) scripts/reset_p2.py --dry-run
+
+desde-cero: ## Reset + carga completa v2 por Airflow + evidencia en docs/evidence/p2 (exige CONFIRMAR=BORRAR-<proyecto>)
+	CONFIRMAR="$(CONFIRMAR)" bash scripts/desde_cero.sh
+
+evidencia-p2: ## Genera conteos, tiempos y capas de un run_id: make evidencia-p2 RUN_ID=desde-cero-...
+	@test -n "$(RUN_ID)" || (echo "falta RUN_ID=<dag_run_id>" && exit 1)
+	$(PY) ingest/evidencia_p2.py --run-id "$(RUN_ID)"
