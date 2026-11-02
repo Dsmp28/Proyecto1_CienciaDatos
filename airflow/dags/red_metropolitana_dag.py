@@ -50,8 +50,15 @@ DBT_VARS = '{"run_id": "{{ run_id }}", "run_ts": "' + TPL_RUN_TS + '"}'
 
 
 def _dbt(cmd: str) -> str:
-    """Comando dbt con cwd fijo, sin colores y con run_id/run_ts como vars."""
-    return f"cd {CWD}/dbt && dbt {cmd} --no-use-colors --vars '{DBT_VARS}'"
+    """Comando dbt con cwd fijo, sin colores y con run_id/run_ts como vars.
+
+    Los `build` por capa usan `--indirect-selection cautious`: solo corren las pruebas cuyos padres están TODOS
+    en la selección. Con el modo por defecto (eager) una prueba singular de Silver que referencia staging se
+    ejecutaría en la etapa staging y, en un warehouse vacío (carga desde cero del Proyecto 2), fallaría porque
+    las tablas de Silver aún no existen. Cada prueba corre en la capa que completa sus dependencias.
+    """
+    extra = " --indirect-selection cautious" if cmd.startswith("build ") else ""
+    return f"cd {CWD}/dbt && dbt {cmd}{extra} --no-use-colors --vars '{DBT_VARS}'"
 
 
 # ---------------------------------------------------------------------------
