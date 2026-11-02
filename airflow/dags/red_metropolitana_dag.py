@@ -124,7 +124,7 @@ los scripts solo por variables de entorno.
 | `tablas_externas_bronze` | `CREATE OR REPLACE EXTERNAL TABLE` Hive sobre cada prefijo y verifica `COUNT(*)`. | DDL declarativo. |
 | `conciliar_bronze` | filas del archivo (manifiesto) == filas de la tabla externa, por fuente. | Solo lee. |
 | `publicar_clave_hmac` | Deriva los bloques HMAC desde Secret Manager a `ops_secrets.hmac_key` y verifica BigQuery == Python. | No hace nada si la versión del secreto ya está publicada. |
-| `transformacion_dbt.*` | `deps` → `seed --full-refresh` → staging → silver+quarantine → gold → features → `docs generate`. | Materialización `table` (recreación completa) y `var('fecha_referencia')` fija: nunca `CURRENT_DATE`. |
+| `transformacion_dbt.*` | `deps` → `seed --full-refresh` → staging → silver+quarantine → gold → features → churn (dataset del Proyecto 2: cortes A/B/C) → `docs generate`. | Materialización `table` (recreación completa) y `var('fecha_referencia')` fija: nunca `CURRENT_DATE`. |
 | `pruebas_python` | `pytest tests`: linaje de Gold, sin fecha del sistema, ingesta, este DAG. | Solo lee. |
 | `registrar_metricas` | `ops.run_metrics`: filas y bytes por tabla y por capa + `estado=1`. | Añade filas etiquetadas con el `run_id`. |
 | `registrar_fallo` | Si cualquier tarea falla (`one_failed`) registra `estado=0` para la corrida. | Ídem. |
@@ -186,9 +186,11 @@ with DAG(
         dbt_staging = _bash("dbt_staging", _dbt("build --select tag:staging"))
         dbt_silver = _bash("dbt_silver", _dbt("build --select tag:silver tag:quarantine"))
         dbt_gold = _bash("dbt_gold", _dbt("build --select tag:gold"))
-        dbt_features = _bash("dbt_features", _dbt("build --select tag:features"))
+        dbt_features = _bash("dbt_features", _dbt("build --select tag:features --exclude tag:churn"))
+        # Proyecto 2 (ADR-015): dataset de churn por persona y corte (silver_unidad_tarjetas_corte + features.churn_*).
+        dbt_churn = _bash("dbt_churn", _dbt("build --select tag:churn"))
         dbt_docs = _bash("dbt_docs", _dbt("docs generate"))
-        dbt_deps >> dbt_seed >> dbt_staging >> dbt_silver >> dbt_gold >> dbt_features >> dbt_docs
+        dbt_deps >> dbt_seed >> dbt_staging >> dbt_silver >> dbt_gold >> dbt_features >> dbt_churn >> dbt_docs
 
     pruebas_python = _bash("pruebas_python", f"{PYTHON} -m pytest -q tests")
     registrar_metricas = _bash("registrar_metricas", f"{PYTHON} -m ingest.run_metrics --estado 1")

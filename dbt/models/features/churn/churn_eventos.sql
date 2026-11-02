@@ -1,7 +1,8 @@
 -- Features · Proyecto 2 (ADR-015). Abordajes válidos (silver_abordajes) de cada persona (unidad_id = usuario_unificado_sk)
 -- para cada corte t, en [t - ventana_max_dias, t + horizonte_dias). tramo = 'ventana' (fecha < t, insumo de features) o
 -- 'horizonte' (fecha >= t, solo para la etiqueta). dias_antes_corte = DATE_DIFF(t, fecha, DAY): 1..28 en la ventana.
--- Tabla de trabajo: conserva modo/llave nativa para contar tarjetas; la salida final (churn_dataset) no las expone.
+-- Tabla de trabajo en el dataset features: NO expone llaves nativas; la tarjeta se identifica por su seudónimo
+-- usuario_sk (HMAC por modo y llave, calculado en silver_usuarios), suficiente para contar tarjetas distintas.
 -- Solo Silver y variables (nunca Gold ni CURRENT_DATE). Abordajes sin persona resuelta (unidad_id nulo) no entran.
 {{ config(materialized='table', cluster_by=['corte']) }}
 
@@ -9,7 +10,7 @@ with cortes as (
     {{ cortes_cte() }}
 ),
 usuarios as (
-    select modo_id, llave_nativa, usuario_unificado_sk as unidad_id
+    select modo_id, llave_nativa, usuario_sk as tarjeta_sk, usuario_unificado_sk as unidad_id
     from {{ ref('silver_usuarios') }}
     where usuario_unificado_sk is not null
 )
@@ -19,7 +20,7 @@ select
     u.unidad_id,
     a.abordaje_id,
     a.modo_id,
-    a.llave_nativa,
+    u.tarjeta_sk,
     a.fecha,
     a.hora,
     a.fecha_hora_local,

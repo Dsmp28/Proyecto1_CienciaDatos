@@ -22,7 +22,7 @@ feriados as (
 ),
 ev as (
     select
-        e.corte, e.fecha_corte, e.unidad_id, e.modo_id, e.llave_nativa, e.fecha, e.hora, e.monto_q, e.zona_id,
+        e.corte, e.fecha_corte, e.unidad_id, e.modo_id, e.tarjeta_sk, e.fecha, e.hora, e.monto_q, e.zona_id,
         e.estacion_sk, e.es_transbordo_interno, e.dias_antes_corte,
         div(e.dias_antes_corte - 1, 7) as semana_idx,
         coalesce(f.es_hora_pico, false) as es_hora_pico,
@@ -64,7 +64,7 @@ agregados as (
         count(distinct estacion_sk) as n_estaciones_28d,
         count(distinct zona_id) as n_zonas_28d,
         safe_divide(countif(es_transbordo_interno), count(*)) as pct_transbordo_interno,
-        count(distinct concat(modo_id, '|', llave_nativa)) as n_tarjetas_activas_28d,
+        count(distinct tarjeta_sk) as n_tarjetas_activas_28d,
         avg(hora) as hora_media,
         stddev_pop(hora) as hora_sd
     from ev

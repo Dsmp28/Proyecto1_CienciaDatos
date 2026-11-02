@@ -32,7 +32,7 @@
   ('n_estaciones_28d', 'INT64', 'Estaciones o paradas distintas donde abordó.', '28 d', 'silver_abordajes', 'COUNT(DISTINCT estacion_sk)'),
   ('n_zonas_28d', 'INT64', 'Zonas conformadas distintas donde abordó.', '28 d', 'silver_abordajes', 'COUNT(DISTINCT zona_id)'),
   ('pct_transbordo_interno', 'FLOAT64', 'Proporción de abordajes que son transbordo interno de Transmetro, 0 a 1.', '28 d', 'silver_abordajes', 'COUNTIF(es_transbordo_interno) / COUNT(*)'),
-  ('n_tarjetas_activas_28d', 'INT64', 'Tarjetas (modo + llave) distintas con abordajes en la ventana: la unidad es la persona, no la tarjeta.', '28 d', 'silver_abordajes', 'COUNT(DISTINCT modo_id || llave_nativa)'),
+  ('n_tarjetas_activas_28d', 'INT64', 'Tarjetas (modo + llave) distintas con abordajes en la ventana: la unidad es la persona, no la tarjeta.', '28 d', 'silver_abordajes', 'COUNT(DISTINCT tarjeta_sk) (seudónimo HMAC por modo y llave, de silver_usuarios.usuario_sk)'),
   ('hora_media', 'FLOAT64', 'Hora del día media de los abordajes (0 a 23).', '28 d', 'silver_abordajes', 'AVG(hora)'),
   ('hora_sd', 'FLOAT64', 'Desviación estándar poblacional de la hora de abordaje.', '28 d', 'silver_abordajes', 'STDDEV_POP(hora)'),
   ('modo_principal', 'STRING', 'Modo con más abordajes (moda); desempate alfabético.', '28 d', 'silver_abordajes', 'ROW_NUMBER() por COUNT(*) DESC, modo_id'),

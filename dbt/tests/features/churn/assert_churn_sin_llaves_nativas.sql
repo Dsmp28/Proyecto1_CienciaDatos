@@ -4,6 +4,6 @@
 {% set d = ref('churn_dataset') %}
 select table_name, column_name
 from `{{ d.database }}`.`{{ d.schema }}`.INFORMATION_SCHEMA.COLUMNS
-where table_name = '{{ d.identifier }}'
+where table_name like 'churn_%'  -- todas las tablas de churn del dataset features, no solo churn_dataset
   and (lower(column_name) in ('llave_nativa', 'tarjeta', 'tarjetas', 'num_tarjeta', 'card', 'user_hash', 'usuario_base_id')
        or lower(column_name) like '%llave%')

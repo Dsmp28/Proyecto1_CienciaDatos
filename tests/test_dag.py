@@ -38,6 +38,7 @@ TAREAS_ESPERADAS = {
     "transformacion_dbt.dbt_silver",
     "transformacion_dbt.dbt_gold",
     "transformacion_dbt.dbt_features",
+    "transformacion_dbt.dbt_churn",
     "transformacion_dbt.dbt_docs",
     "pruebas_python",
     "registrar_metricas",
