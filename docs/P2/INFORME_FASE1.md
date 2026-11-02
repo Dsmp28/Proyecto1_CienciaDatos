@@ -105,4 +105,61 @@ del enunciado ("algún DELETE antes de t") y la alternativa ("estado de baja vig
 
 ## 1.4 Líneas base y regresión logística regularizada
 
-[pendiente: métrica, tabla de modelos, gráfica AP vs λ, coeficientes]
+**Métrica elegida: Average Precision (AP, área bajo la curva precisión-recall).** La clase positiva es el 11,3 % de la
+población y la decisión de negocio es ordenar personas por riesgo para contactar a un subconjunto con presupuesto
+limitado: lo que importa es la precisión en la cola alta del ranking, que AP resume y ROC-AUC diluye (ROC-AUC premia
+también ordenar bien a los negativos fáciles). Además el baseline constante tiene AP exactamente igual a la tasa positiva
+(0,113), así que cualquier mejora se lee de inmediato. Reportamos ROC-AUC y Brier como secundarias: el Brier mide la
+calibración de las probabilidades, necesaria para que el umbral por costo de la sección 2.2 tenga sentido (ADR-016).
+
+**Protocolo.** Validación cruzada estratificada de 5 pliegues solo con el corte A (51 955 personas), semilla 2026,
+pliegues calculados una vez y persistidos en `ml/artefactos/folds_A.csv`; todos los modelos, incluidas las líneas base,
+usan exactamente esos pliegues. El preprocesamiento (imputación por mediana con indicador de nulo, estandarización,
+one-hot) se ajusta dentro de cada pliegue. Nada se evalúa con el corte B en esta fase (la carga de B con etiqueta está
+bloqueada por código en `ml/datos.py`).
+
+**Líneas base.** (1) Constante: todos reciben 0,113. (2) Una sola feature, sin entrenar: `dias_desde_ultimo`, elegida a
+priori porque el abandono se manifiesta primero como silencio; quien lleva más días sin viajar al corte queda con más
+riesgo (puntaje = rango percentil). Es una línea base exigente: sola alcanza AP 0,410 y ROC-AUC 0,842.
+
+**Tabla de modelos** (`make ml-entrenar FASE=1` → `docs/evidence/p2/fase1_modelos.md`; mismos 5 pliegues):
+
+| Modelo | AP media | AP sd | ROC-AUC media | Brier media |
+|---|---:|---:|---:|---:|
+| Baseline constante (tasa de A) | 0,1130 | 0,0000 | 0,5000 | 0,1002 |
+| Baseline una feature (`dias_desde_ultimo`) | 0,4101 | 0,0186 | 0,8417 | 0,2597* |
+| Logística L2 (λ* = 0,316) | **0,4459** | 0,0160 | 0,8501 | 0,0782 |
+| Logística L1 (λ* = 0,1) | 0,4459 | 0,0160 | 0,8501 | 0,0782 |
+| Logística ElasticNet 0,5 (λ* = 0,1) | 0,4459 | 0,0160 | 0,8501 | 0,0782 |
+
+\* el puntaje por ranking no es una probabilidad; su Brier no es comparable.
+
+**Castigos y λ.** Se compararon L2, L1 y ElasticNet (l1_ratio 0,5) con solver saga sobre una grilla de 13 valores de
+λ entre 10⁻⁴ y 10² (C = 1/λ); λ* es el de mayor AP media de validación (empate → el más regularizado). Gráfica:
+`docs/evidence/p2/figuras/ap_vs_lambda.png`; tabla completa en `fase1_lambda.md`. La curva es prácticamente plana hasta
+λ ≈ 10 y solo cae con castigos muy fuertes (L1 cae antes que L2 porque anula coeficientes: 0,437 frente a 0,445 en
+λ = 100). Lectura: con 52 000 filas y unas 40 columnas el modelo lineal no sufre de varianza; su límite es el sesgo de
+la forma lineal, lo que motiva el ensemble de la fase 2. La brecha entrenamiento-validación es de 0,005 en AP.
+
+**Coeficientes de la logística L2** (features estandarizadas; positivo = empuja al abandono; `fase1_coeficientes.md`):
+
+| Hacia el abandono | Coef. | Interpretación |
+|---|---:|---|
+| `dias_desde_ultimo` | +0,62 | Cada desviación estándar más de silencio antes del corte sube la probabilidad de no volver: el abandono empieza como ausencia. |
+| `zona_principal_GT-Z13` | +0,37 | Las personas cuya zona principal es la 13 abandonan más que el promedio (cobertura más débil o demanda ocasional); tiene sentido como efecto territorial, no causal. |
+| `zona_principal_GT-Z10` | +0,30 | Ídem para la zona 10. |
+| `semanas_activas_4` | +0,14 | Condicional al resto (dado el mismo número de viajes), repartirlos en más semanas distintas se asocia a uso esporádico y no a rutina; el signo sorprende pero es coherente con `dias_activos_7d` negativo: lo que protege es la intensidad reciente. |
+| `share_am` | +0,11 | Mayor proporción de abordajes en Aerómetro (modo de uso ocasional, 24 % de las personas) se asocia a abandono. |
+
+| Protectores | Coef. | Interpretación |
+|---|---:|---|
+| `perfil_padron_a_t_SIN_DATO` | −0,92 | No estar en el padrón de Transmetro protege: estas personas usan otros modos y no pasan por el registro de bajas; junto con `tiene_padron_a_t` (−0,56) describe el mismo fenómeno desde dos lados. |
+| `dias_activos_7d` | −0,57 | Viajar en varios días de la última semana es la señal más fuerte de rutina: a más días activos, menos abandono. |
+| `modo_principal_AM` | −0,48 | Si Aerómetro es el modo principal (no solo una fracción), la persona es usuaria habitual del cable. |
+| `perfil_padron_a_t_adulto_mayor` | −0,41 | El perfil de adulto mayor del padrón se asocia a mayor permanencia. |
+
+Los signos coinciden con la intuición del problema: silencio reciente y uso esporádico empujan al abandono; intensidad
+reciente y pertenencia a un registro con beneficios protegen. Ninguna feature mira después del corte (sección 1.3).
+
+**Tiempos** (`fase1_tiempos.md`): carga desde BigQuery 19,6 s; validación cruzada de 5 modelos × 13 λ × 5 pliegues
+566 s; ajuste final 8,3 s; total 594 s en la laptop.
