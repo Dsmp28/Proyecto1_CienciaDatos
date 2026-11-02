@@ -21,7 +21,8 @@ RUN apt-get update \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
-# Dependencias del pipeline (dbt, Kafka, Google Cloud), con versiones fijas y las
+# Dependencias del pipeline (dbt, Kafka, Google Cloud) y de la inferencia del Proyecto 2 (scikit-learn,
+# joblib, pandas: `predecir.py` carga el modelo guardado; el entrenamiento corre fuera de la VM), con versiones fijas y las
 # constraints oficiales de Airflow para que pip no mueva la versión de ningún
 # provider (p. ej. apache-airflow-providers-fab, que corrige CVE de autenticación).
 USER airflow
@@ -32,7 +33,12 @@ RUN pip install --no-cache-dir \
     "dbt-bigquery==1.12.1" \
     "confluent-kafka==2.15.1" \
     "pyyaml==6.0.3" \
-    "pytest==9.1.1"
+    "pytest==9.1.1" \
+    "scikit-learn==1.9.1" \
+    "numpy==2.5.3" \
+    "pandas==3.0.6" \
+    "joblib==1.6.0" \
+    "db-dtypes==1.9.0"
 
 # Sanidad: dbt debe importar y quedar en el PATH del usuario airflow.
 RUN dbt --version
