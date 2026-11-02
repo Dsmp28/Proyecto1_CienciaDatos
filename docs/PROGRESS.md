@@ -52,3 +52,16 @@ Proyección: ~57 USD/mes con la VM 24×7 o ~25 USD/mes apagándola fuera de uso 
   Cambiado a `same-origin` y recargado Caddy sin cortar el servicio (`caddy reload`) mientras corría el DAG.
 - Lección operativa: `sed -i` sobre un archivo montado como volumen de un solo archivo cambia el inodo y el contenedor sigue viendo
   el viejo; aplicar con `docker compose cp` + `caddy reload --config`, o recrear el contenedor.
+
+## Proyecto 2 (desde 2026-11-01) · estado al 2026-11-01 22:00 CST
+- F0 cerrada: huellas v2, landing en `gs://<lake>/landing/datos_red/v2/`, reset confirmado, `desde_cero.sh`, deps de ML fijadas,
+  `fecha_referencia` 2026-08-30, tope de identidad 100 000, target `recorte`, modelos dbt de churn, paquete `ml/` (fases 1 y 2),
+  `predecir.py`, invariancia, prueba de recorte, tareas `ml` del DAG. ADR-012 a ADR-017.
+- F1 cerrada (1.1): `make desde-cero` con tres defectos reales de "desde cero" corregidos (pruebas de silver en staging por
+  selección indirecta; 409 al crear `ops` en paralelo; constraints de Airflow que se movieron). Corrida `desde-cero-20261101T212525`:
+  18 tareas success + 3 skipped (ml sin modelo aún); Bronze = LEEME en los 9 archivos (3 405 575 filas, diferencia 0);
+  suma de tareas 877 s. Evidencia en `docs/evidence/p2/`.
+- F2 (1.2, 1.3) en curso: población A 51 955 / positivos 5 869 (0,113); B 50 483 / 5 159 (0,102); C 49 853 sin etiqueta;
+  costo de la unidad medido (AM 16 930/16 930 invertidos; 7 038 de 15 808 falsos churn con la unidad tarjeta). Prueba de
+  recorte con borrador ingenuo en ejecución. F3 (1.4) entrenamiento en ejecución.
+- Recursos: VM `vm-pipeline` ENCENDIDA (imagen reconstruida con scikit-learn y matplotlib). Apagar con `make vm-stop` al cerrar el día.
