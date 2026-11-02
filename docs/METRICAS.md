@@ -205,5 +205,5 @@ Costo de la unidad persona: Aerómetro 16 930 / 16 930 hashes invertidos; 0 tarj
 | Carga desde cero (suma de tareas del DAG, corrida `desde-cero-20261101T212525`) | 877 |
 | Cálculo de features (`transformacion_dbt.dbt_churn`, 3 cortes) | 92 |
 | Prueba de recorte (seeds + run recorte + test + comparación) | ≈ 330 |
-| Entrenamiento fase 1 (carga 20 s + CV 566 s + ajuste 8 s) | 594 |
+| Entrenamiento fase 1 (carga 21 s + CV 534 s + ajuste 9 s) | 564 |
 | Predicción | pendiente (fase 2) |

@@ -65,3 +65,6 @@ infra/**/tfplan
 # Proyecto 2: cache del dataset y salidas de Airflow (los modelos, folds y evidencia sí se versionan)
 ml/artefactos/cache/
 airflow/salidas/
+
+# Predicciones out-of-fold del corte A (22 MB; se regeneran con `make ml-entrenar FASE=1`; los pliegues y las métricas sí se versionan)
+ml/artefactos/oof_*.csv

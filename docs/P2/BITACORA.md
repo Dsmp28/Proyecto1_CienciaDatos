@@ -16,4 +16,4 @@ La evaluación única del corte B se registra aquí con el marcador `<!-- EVALUA
 | 2026-11-01 | `681ef8c`, `f08a88d` | 1.2 cerrado: población A/B/C, costo de la unidad | `analysis/p2_poblacion.sql`, `analysis/p2_costo_unidad.sql` |
 | 2026-11-01 | `4752076` | 1.4: primera corrida de la fase 1 (594 s) sobre el dataset previo a la corrección de redondeo | `docs/evidence/p2/fase1_*.md` |
 | 2026-11-01 | `acf425d` | 1.3 cerrado: prueba de recorte 0 diferencias; borrador ingenuo con 4 fugas; medias con sumas exactas | `make prueba-recorte` |
-| 2026-11-01 | — | Reentrenamiento de la fase 1 sobre el dataset definitivo (mismos folds) | `make ml-entrenar FASE=1` |
+| 2026-11-01 | cierre `fase-1` | Reentrenamiento de la fase 1 sobre el dataset definitivo (mismos folds): métricas idénticas (AP 0,4459 ± 0,0160), 564 s | `make ml-entrenar FASE=1` → `docs/evidence/p2/fase1_*.md`, `ml/artefactos/fase1_resultados.json` |

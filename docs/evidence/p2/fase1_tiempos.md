@@ -2,7 +2,7 @@
 
 | etapa | segundos |
 |---|---|
-| carga | 19.55 |
-| cv | 566.25 |
-| ajuste_final | 8.29 |
-| total | 594.09 |
+| carga | 20.78 |
+| cv | 533.88 |
+| ajuste_final | 9.34 |
+| total | 563.99 |

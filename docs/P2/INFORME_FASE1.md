@@ -213,5 +213,5 @@ la forma lineal, lo que motiva el ensemble de la fase 2. La brecha entrenamiento
 Los signos coinciden con la intuición del problema: silencio reciente y uso esporádico empujan al abandono; intensidad
 reciente y pertenencia a un registro con beneficios protegen. Ninguna feature mira después del corte (sección 1.3).
 
-**Tiempos** (`fase1_tiempos.md`): carga desde BigQuery 19,6 s; validación cruzada de 5 modelos × 13 λ × 5 pliegues
-566 s; ajuste final 8,3 s; total 594 s en la laptop.
+**Tiempos** (`fase1_tiempos.md`, corrida final sobre el dataset definitivo): carga desde BigQuery 20,8 s; validación
+cruzada de 5 modelos × 13 λ × 5 pliegues 534 s; ajuste final 9,3 s; total 564 s en la laptop (primera corrida: 594 s).

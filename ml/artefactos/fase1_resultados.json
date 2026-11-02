@@ -49,24 +49,24 @@
       "ap_sd": 0.015994507787953693,
       "roc_auc_media": 0.8501360691822153,
       "roc_auc_sd": 0.00844754450117162,
-      "brier_media": 0.07820951394615126,
-      "brier_sd": 0.0012774061074428166
+      "brier_media": 0.07820951394615025,
+      "brier_sd": 0.0012774061074395568
     },
     "logistica_l1": {
       "ap_media": 0.4458621353853597,
       "ap_sd": 0.016003534238742727,
       "roc_auc_media": 0.8501367162932418,
       "roc_auc_sd": 0.008448917649288032,
-      "brier_media": 0.07821019404037625,
-      "brier_sd": 0.0012774459490477476
+      "brier_media": 0.07821019404037528,
+      "brier_sd": 0.0012774459490444785
     },
     "logistica_elasticnet": {
       "ap_media": 0.4458572473235797,
       "ap_sd": 0.016007239114204166,
       "roc_auc_media": 0.8501347938006616,
       "roc_auc_sd": 0.00844731387240923,
-      "brier_media": 0.07820996749049769,
-      "brier_sd": 0.0012774879351868315
+      "brier_media": 0.07820996749049669,
+      "brier_sd": 0.0012774879351835646
     }
   },
   "mejor_castigo": "L2",
@@ -431,234 +431,234 @@
   "coeficientes_mejor": [
     {
       "feature": "dias_desde_ultimo",
-      "coeficiente": 0.6239363417740934
+      "coeficiente": 0.6239363417742474
     },
     {
       "feature": "zona_principal_GT-Z13",
-      "coeficiente": 0.37122432958704943
+      "coeficiente": 0.37122432958700163
     },
     {
       "feature": "zona_principal_GT-Z10",
-      "coeficiente": 0.29961482097647096
+      "coeficiente": 0.2996148209764988
     },
     {
       "feature": "semanas_activas_4",
-      "coeficiente": 0.14242382245723548
+      "coeficiente": 0.14242382245695917
     },
     {
       "feature": "share_am",
-      "coeficiente": 0.11388674861424486
+      "coeficiente": 0.11388674861323271
     },
     {
       "feature": "n_zonas_28d",
-      "coeficiente": 0.10904187026868567
+      "coeficiente": 0.1090418702695867
     },
     {
       "feature": "cv_semanal",
-      "coeficiente": 0.10487049806971632
+      "coeficiente": 0.1048704980696907
     },
     {
       "feature": "n_eventos_padron_28d",
-      "coeficiente": 0.09670010077279266
+      "coeficiente": 0.09670010077280698
     },
     {
       "feature": "perfil_padron_a_t_general",
-      "coeficiente": 0.0865709018122107
+      "coeficiente": 0.08657090181255703
     },
     {
       "feature": "viajes_mr_completos_28d",
-      "coeficiente": 0.08545205488505897
+      "coeficiente": 0.08545205488503213
     },
     {
       "feature": "n_estaciones_28d",
-      "coeficiente": 0.08363475165446112
+      "coeficiente": 0.08363475165378485
     },
     {
       "feature": "n_abordajes_14d",
-      "coeficiente": 0.07592827146217072
+      "coeficiente": 0.07592827146203955
     },
     {
       "feature": "share_mr",
-      "coeficiente": 0.06982028121018026
+      "coeficiente": 0.06982028120960841
     },
     {
       "feature": "n_abordajes_7d",
-      "coeficiente": 0.059225793481155434
+      "coeficiente": 0.059225793480889515
     },
     {
       "feature": "missingindicator_ratio_ult14_prev14",
-      "coeficiente": 0.04921864676725791
+      "coeficiente": 0.04921864676722934
     },
     {
       "feature": "missingindicator_duracion_media_mr_min",
-      "coeficiente": 0.048658009993105794
+      "coeficiente": 0.04865800999330435
     },
     {
       "feature": "pct_transbordo_interno",
-      "coeficiente": 0.017520403754369217
+      "coeficiente": 0.017520403754401653
     },
     {
       "feature": "hora_media",
-      "coeficiente": 0.015639435580244183
+      "coeficiente": 0.01563943557572219
     },
     {
       "feature": "duracion_media_mr_min",
-      "coeficiente": 0.000612861080389213
+      "coeficiente": 0.0006128610807133373
     },
     {
       "feature": "pct_fin_semana",
-      "coeficiente": -0.006669084342189111
+      "coeficiente": -0.006669084342108933
     },
     {
       "feature": "zona_principal_GT-VILLA-NUEVA",
-      "coeficiente": -0.008281266607028845
+      "coeficiente": -0.008281266606962044
     },
     {
       "feature": "pct_hora_pico",
-      "coeficiente": -0.011082170080115491
+      "coeficiente": -0.011082170082670616
     },
     {
       "feature": "share_tm",
-      "coeficiente": -0.02581129751839937
+      "coeficiente": -0.025811297517847987
     },
     {
       "feature": "dias_desde_primero_28d",
-      "coeficiente": -0.03577654324715414
+      "coeficiente": -0.03577654324734447
     },
     {
       "feature": "n_modos_28d",
-      "coeficiente": -0.056961614492692825
+      "coeficiente": -0.05696161449265546
     },
     {
       "feature": "n_tarjetas_activas_28d",
-      "coeficiente": -0.056961614492692825
+      "coeficiente": -0.05696161449265546
     },
     {
       "feature": "ratio_ult14_prev14",
-      "coeficiente": -0.05828420020721284
+      "coeficiente": -0.05828420020724332
     },
     {
       "feature": "gasto_q_28d",
-      "coeficiente": -0.06911648059130517
+      "coeficiente": -0.06911648059030212
     },
     {
       "feature": "zona_principal_GT-Z18",
-      "coeficiente": -0.09827478605074133
+      "coeficiente": -0.09827478605069527
     },
     {
       "feature": "perfil_padron_a_t_estudiante",
-      "coeficiente": -0.10007698893406183
+      "coeficiente": -0.100076988934277
     },
     {
       "feature": "share_tu",
-      "coeficiente": -0.10143563660768347
+      "coeficiente": -0.10143563660723837
     },
     {
       "feature": "zona_principal_GT-Z08",
-      "coeficiente": -0.10588392617394066
+      "coeficiente": -0.10588392617385488
     },
     {
       "feature": "gasto_medio_q",
-      "coeficiente": -0.1304452416975363
+      "coeficiente": -0.13044524169599256
     },
     {
       "feature": "zona_principal_GT-SAN-MIGUEL-PETAPA",
-      "coeficiente": -0.13749886826990287
+      "coeficiente": -0.13749886826981395
     },
     {
       "feature": "perfil_padron_a_t_trabajador",
-      "coeficiente": -0.1377562862607425
+      "coeficiente": -0.13775628626078354
     },
     {
       "feature": "zona_principal_GT-Z11",
-      "coeficiente": -0.13844229921242987
+      "coeficiente": -0.1384422992124292
     },
     {
       "feature": "n_abordajes_28d",
-      "coeficiente": -0.13963890474367313
+      "coeficiente": -0.13963890474301846
     },
     {
       "feature": "zona_principal_GT-Z07",
-      "coeficiente": -0.15492924621866994
+      "coeficiente": -0.1549292462185954
     },
     {
       "feature": "zona_principal_GT-MIXCO",
-      "coeficiente": -0.15773773360747514
+      "coeficiente": -0.15773773360761606
     },
     {
       "feature": "hora_sd",
-      "coeficiente": -0.17405111929721062
+      "coeficiente": -0.17405111929393285
     },
     {
       "feature": "zona_principal_GT-Z06",
-      "coeficiente": -0.189253712456706
+      "coeficiente": -0.1892537124565937
     },
     {
       "feature": "zona_principal_GT-Z01",
-      "coeficiente": -0.190602902109326
+      "coeficiente": -0.1906029021092372
     },
     {
       "feature": "zona_principal_GT-Z12",
-      "coeficiente": -0.20268863744011237
+      "coeficiente": -0.2026886374401449
     },
     {
       "feature": "zona_principal_GT-Z04",
-      "coeficiente": -0.22562883666319744
+      "coeficiente": -0.22562883666311806
     },
     {
       "feature": "zona_principal_GT-Z09",
-      "coeficiente": -0.23673072655663033
+      "coeficiente": -0.2367307265565141
     },
     {
       "feature": "modo_principal_MR",
-      "coeficiente": -0.24027624392944738
+      "coeficiente": -0.24027624392923613
     },
     {
       "feature": "zona_principal_GT-Z17",
-      "coeficiente": -0.30838665007741994
+      "coeficiente": -0.308386650077439
     },
     {
       "feature": "dias_activos_28d",
-      "coeficiente": -0.36205380842369084
+      "coeficiente": -0.3620538084247002
     },
     {
       "feature": "modo_principal_TU",
-      "coeficiente": -0.3673645657036418
+      "coeficiente": -0.3673645657035713
     },
     {
       "feature": "pct_feriado",
-      "coeficiente": -0.37560252865103655
+      "coeficiente": -0.37560252865095023
     },
     {
       "feature": "modo_principal_TM",
-      "coeficiente": -0.3992868656067849
+      "coeficiente": -0.3992868656066672
     },
     {
       "feature": "perfil_padron_a_t_adulto_mayor",
-      "coeficiente": -0.4091983935602458
+      "coeficiente": -0.409198393560079
     },
     {
       "feature": "modo_principal_AM",
-      "coeficiente": -0.4765727656402662
+      "coeficiente": -0.4765727656401239
     },
     {
       "feature": "tiene_padron_a_t",
-      "coeficiente": -0.5604607669429238
+      "coeficiente": -0.5604607669426874
     },
     {
       "feature": "dias_activos_7d",
-      "coeficiente": -0.5729065778803015
+      "coeficiente": -0.572906577880014
     },
     {
       "feature": "perfil_padron_a_t_SIN_DATO",
-      "coeficiente": -0.9230396739371899
+      "coeficiente": -0.9230396739368356
     }
   ],
   "tiempos_s": {
-    "carga_s": 19.54616795782931,
-    "cv_s": 566.2527613760903,
-    "ajuste_final_s": 8.29359316593036,
-    "total_s": 594.09252249985
+    "carga_s": 20.776797375176102,
+    "cv_s": 533.881353374105,
+    "ajuste_final_s": 9.335492791840807,
+    "total_s": 563.9936435411219
   },
   "figura": "/Users/davidmonje/Documents/URL/CienciaDatos/repos/ProyectoCienciaDatos1/docs/evidence/p2/figuras/ap_vs_lambda.png"
 }
