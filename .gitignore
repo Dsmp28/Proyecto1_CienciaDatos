@@ -1,5 +1,7 @@
 # Datos generados (200 MB+): nunca al repo
 datos_red/
+# Datos v2 del Proyecto 2 (525 MB, entregados por la cátedra): solo se versiona el LEEME con los conteos esperados
+docs/P2_datos_red/datos_red/
 *.csv.gz
 *.parquet
 

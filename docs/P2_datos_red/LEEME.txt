@@ -1,0 +1,28 @@
+Proyecto 2 · Ciencia de Datos 2026 · URL, Ingeniería, Sección 2
+Datos de la Red Metropolitana de Transporte, versión 2
+
+LOS DATOS SON SIMULADOS. No corresponden a ningún operador ni usuario real.
+
+Contenido
+  datos_red/   los mismos nueve archivos del Proyecto 1, con los mismos
+               nombres, columnas, formatos y problemas de calidad.
+  Periodo:     1 de junio al 29 de agosto de 2026 (90 días).
+
+Cómo cargarlos
+  Estos datos reemplazan a los del Proyecto 1, no se agregan. Antes de
+  cargarlos vacía tu lake, tu warehouse, tus snapshots y cualquier tabla
+  incremental, y corre tu flujo desde cero.
+
+Filas esperadas por archivo (sin contar el encabezado)
+  aerometro_boardings.csv          387,053
+  am_estaciones.csv                     14
+  cdc_padron_usuarios.csv           77,636
+  metroriel_viajes.jsonl           590,844   (una línea por viaje)
+  mr_estaciones.csv                     22
+  tm_estaciones.csv                    104
+  transmetro_validaciones.csv      713,786
+  transurbano_transacciones.csv  1,635,788
+  tu_paradas.csv                       328
+
+Estos conteos son de los archivos crudos, antes de cualquier limpieza.
+Compáralos con lo que llega a tu capa Bronze en la sección 1.1.
