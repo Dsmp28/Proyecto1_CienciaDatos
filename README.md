@@ -1,4 +1,4 @@
-# Agencia Metropolitana de Transporte — Proyecto 1 (URL, Ciencia de Datos)
+# Agencia Metropolitana de Transporte — Proyectos 1 y 2 (URL, Ciencia de Datos)
 
 Pipeline de datos de punta a punta que integra los cuatro operadores de transporte del área metropolitana de
 Guatemala (Transmetro, Transurbano, MetroRiel y Aerómetro) bajo una sola definición de viaje y un seudónimo de
@@ -133,6 +133,43 @@ make dbt-docs        # grafo de linaje en dbt/target (copia entregada en docs/ev
 **Objetivos de `make`** (`make help` los lista): `venv`, `bootstrap-plan/apply`, `init`, `plan`, `apply`, `destroy`,
 `outputs`, `vm-start`, `vm-stop`, `vm-status`, `vm-ssh`, `vm-sync`, `vm-up`, `vm-logs`, `dbt-deps`, `dbt-build`,
 `dbt-test`, `dbt-docs`, `test`, `demo-idempotencia`, `scan-secrets`.
+
+## Proyecto 2 · ¿Quién deja de usar la red? (churn a 30 días)
+
+Segunda fase del curso sobre la misma plataforma: predecir por **persona** (`usuario_unificado_sk`) y fecha de corte si no
+tendrá ningún abordaje válido en los 30 días siguientes, y decidir a quién contactar con el escenario de costos. Enunciado:
+`docs/Proyecto 2 Red Metropolitana.pdf`; plan: `docs/PLAN_P2.md`; informes: `docs/P2/`; checklist: `docs/RUBRICA_CHECKLIST_P2.md`;
+decisiones: ADR-012 a ADR-017 en `docs/DECISIONS.md`. Los datos son simulados.
+
+**Comando único: carga desde cero de los datos v2** (vacía lake y warehouse, conserva la sal HMAC y `landing/`, dispara el DAG
+y deja las tablas de conteos y tiempos en `docs/evidence/p2/`). Requiere los datos publicados una vez en el landing y la VM encendida:
+
+```bash
+make landing-subir VERSION=v2 ORIGEN=docs/P2_datos_red/datos_red   # una sola vez: sube los 9 archivos y su MANIFEST
+make desde-cero CONFIRMAR=BORRAR-cienciadatos-509301                # reset confirmado + DAG completo + evidencia
+```
+
+`make reset-dry-run` muestra qué borraría sin tocar nada. El DAG recibe los parámetros `origen_datos` (landing), `version_datos`
+(v2) y `verificar_hashes` (true: sha256 y filas contra `ingest/expected_hashes.json`, que coincide con el LEEME de la cátedra).
+
+**Dataset, modelos y predicción** (laptop con `.venv` y ADC; el dataset lo construye el DAG en `features.churn_*`):
+
+```bash
+make prueba-recorte                 # 1.3: features de A con datos completos vs recortados al 30-jun → 0 diferencias
+make ml-entrenar FASE=1             # 1.4: líneas base y logística L2/L1/EN con λ por CV (solo corte A)
+make ml-entrenar FASE=2             # 2.1–2.2: ensemble, sesgo-varianza, importancias, umbral por costo, modelo v1.0.0
+make ml-segmentos                   # 2.3: KMeans + PCA sobre A
+make ml-test-b                      # 2.2: evaluación ÚNICA en B (guardia + bitácora con fecha y commit)
+make ml-exportar-features           # respaldo CSV de las features de C para correr predecir.py sin GCP
+python predecir.py --datos docs/P2_datos_red/datos_red --fecha-corte 2026-08-30            # CSV del corte C
+python predecir.py --datos <carpeta> --fecha-corte 2026-08-30 --origen csv                  # sin BigQuery
+make ensayo-invariancia             # 2.4: corte B con datos truncados al 30-jul vs completos → predicciones idénticas
+```
+
+`predecir.py` verifica el sha256 de los 9 archivos de `--datos` contra lo ingerido, lee las features del corte, carga
+`ml/modelos/churn_persona_v<versión>.joblib` sin reentrenar y escribe `unidad_id,tarjetas,puntaje,contactar`. El entregable
+oficial es `predicciones/predicciones_corte_2026-08-30.csv`; el DAG lo compara en cada corrida (`ml.ml_invariancia`).
+Entorno reproducible: `requirements.txt` (versiones fijas, iguales a `vm/Dockerfile.airflow`), semilla 2026 en `ml/config.py`.
 
 ## Estructura del repositorio
 
