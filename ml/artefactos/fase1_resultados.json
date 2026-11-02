@@ -1,0 +1,664 @@
+{
+  "fase": 1,
+  "semilla": 2026,
+  "n_folds": 5,
+  "n_unidades_A": 51955,
+  "tasa_positiva_A": 0.1129631411798672,
+  "versiones": {
+    "python": "3.12.7",
+    "scikit-learn": "1.9.1",
+    "numpy": "2.5.3",
+    "pandas": "3.0.5",
+    "matplotlib": "3.11.2",
+    "joblib": "1.6.0"
+  },
+  "lambdas": [
+    0.0001,
+    0.00031622776601683794,
+    0.001,
+    0.0031622776601683794,
+    0.01,
+    0.03162277660168379,
+    0.1,
+    0.31622776601683794,
+    1.0,
+    3.1622776601683795,
+    10.0,
+    31.622776601683793,
+    100.0
+  ],
+  "metricas_cv": {
+    "baseline_constante": {
+      "ap_media": 0.1129631411798672,
+      "ap_sd": 4.3038552160518903e-05,
+      "roc_auc_media": 0.5,
+      "roc_auc_sd": 0.0,
+      "brier_media": 0.10020247074818722,
+      "brier_sd": 3.331361417922953e-05
+    },
+    "baseline_dias_desde_ultimo": {
+      "ap_media": 0.4101341449340084,
+      "ap_sd": 0.01855069099171108,
+      "roc_auc_media": 0.8417102337223878,
+      "roc_auc_sd": 0.007441795998328728,
+      "brier_media": 0.25969979643264773,
+      "brier_sd": 0.0014913697552732398
+    },
+    "logistica_l2": {
+      "ap_media": 0.4458622192161686,
+      "ap_sd": 0.015994507787953693,
+      "roc_auc_media": 0.8501360691822153,
+      "roc_auc_sd": 0.00844754450117162,
+      "brier_media": 0.07820951394615126,
+      "brier_sd": 0.0012774061074428166
+    },
+    "logistica_l1": {
+      "ap_media": 0.4458621353853597,
+      "ap_sd": 0.016003534238742727,
+      "roc_auc_media": 0.8501367162932418,
+      "roc_auc_sd": 0.008448917649288032,
+      "brier_media": 0.07821019404037625,
+      "brier_sd": 0.0012774459490477476
+    },
+    "logistica_elasticnet": {
+      "ap_media": 0.4458572473235797,
+      "ap_sd": 0.016007239114204166,
+      "roc_auc_media": 0.8501347938006616,
+      "roc_auc_sd": 0.00844731387240923,
+      "brier_media": 0.07820996749049769,
+      "brier_sd": 0.0012774879351868315
+    }
+  },
+  "mejor_castigo": "L2",
+  "lambda_optimo": {
+    "L2": 0.31622776601683794,
+    "L1": 0.1,
+    "ElasticNet": 0.1
+  },
+  "grilla": [
+    {
+      "castigo": "L2",
+      "lambda": 0.0001,
+      "C": 10000.0,
+      "ap_val_media": 0.44585120162240777,
+      "ap_val_sd": 0.015993310986894528,
+      "ap_train_media": 0.4506365942279415,
+      "es_optimo": false
+    },
+    {
+      "castigo": "L2",
+      "lambda": 0.00031622776601683794,
+      "C": 3162.277660168379,
+      "ap_val_media": 0.4458511759864331,
+      "ap_val_sd": 0.015993490733684695,
+      "ap_train_media": 0.4506365839463042,
+      "es_optimo": false
+    },
+    {
+      "castigo": "L2",
+      "lambda": 0.001,
+      "C": 1000.0,
+      "ap_val_media": 0.445851129404961,
+      "ap_val_sd": 0.01599354582523913,
+      "ap_train_media": 0.4506364773673927,
+      "es_optimo": false
+    },
+    {
+      "castigo": "L2",
+      "lambda": 0.0031622776601683794,
+      "C": 316.2277660168379,
+      "ap_val_media": 0.4458505524529294,
+      "ap_val_sd": 0.015993766761717265,
+      "ap_train_media": 0.45063650149548024,
+      "es_optimo": false
+    },
+    {
+      "castigo": "L2",
+      "lambda": 0.01,
+      "C": 100.0,
+      "ap_val_media": 0.44585058655460275,
+      "ap_val_sd": 0.015993534253524986,
+      "ap_train_media": 0.45063598683938544,
+      "es_optimo": false
+    },
+    {
+      "castigo": "L2",
+      "lambda": 0.03162277660168379,
+      "C": 31.622776601683796,
+      "ap_val_media": 0.4458535228479531,
+      "ap_val_sd": 0.015994034391394064,
+      "ap_train_media": 0.45063556909495545,
+      "es_optimo": false
+    },
+    {
+      "castigo": "L2",
+      "lambda": 0.1,
+      "C": 10.0,
+      "ap_val_media": 0.44585329750531955,
+      "ap_val_sd": 0.01599522908416528,
+      "ap_train_media": 0.45063417677979806,
+      "es_optimo": false
+    },
+    {
+      "castigo": "L2",
+      "lambda": 0.31622776601683794,
+      "C": 3.162277660168379,
+      "ap_val_media": 0.4458622192161686,
+      "ap_val_sd": 0.015994507787953693,
+      "ap_train_media": 0.45063099292520264,
+      "es_optimo": true
+    },
+    {
+      "castigo": "L2",
+      "lambda": 1.0,
+      "C": 1.0,
+      "ap_val_media": 0.4458442400196162,
+      "ap_val_sd": 0.01600638357864012,
+      "ap_train_media": 0.4506174274939145,
+      "es_optimo": false
+    },
+    {
+      "castigo": "L2",
+      "lambda": 3.1622776601683795,
+      "C": 0.31622776601683794,
+      "ap_val_media": 0.445808775918072,
+      "ap_val_sd": 0.01603767280785856,
+      "ap_train_media": 0.45057191947400127,
+      "es_optimo": false
+    },
+    {
+      "castigo": "L2",
+      "lambda": 10.0,
+      "C": 0.1,
+      "ap_val_media": 0.4457994715125036,
+      "ap_val_sd": 0.0160827316710026,
+      "ap_train_media": 0.45039916287273707,
+      "es_optimo": false
+    },
+    {
+      "castigo": "L2",
+      "lambda": 31.622776601683793,
+      "C": 0.03162277660168379,
+      "ap_val_media": 0.44552196716373277,
+      "ap_val_sd": 0.01626418045011284,
+      "ap_train_media": 0.4498226302162124,
+      "es_optimo": false
+    },
+    {
+      "castigo": "L2",
+      "lambda": 100.0,
+      "C": 0.01,
+      "ap_val_media": 0.44451954819047934,
+      "ap_val_sd": 0.016716746941326126,
+      "ap_train_media": 0.44822514659618784,
+      "es_optimo": false
+    },
+    {
+      "castigo": "L1",
+      "lambda": 0.0001,
+      "C": 10000.0,
+      "ap_val_media": 0.4458510991057703,
+      "ap_val_sd": 0.01599352252717698,
+      "ap_train_media": 0.45063655326311913,
+      "es_optimo": false
+    },
+    {
+      "castigo": "L1",
+      "lambda": 0.00031622776601683794,
+      "C": 3162.277660168379,
+      "ap_val_media": 0.4458510367989968,
+      "ap_val_sd": 0.01599356236841528,
+      "ap_train_media": 0.4506362536848753,
+      "es_optimo": false
+    },
+    {
+      "castigo": "L1",
+      "lambda": 0.001,
+      "C": 1000.0,
+      "ap_val_media": 0.44585051519955154,
+      "ap_val_sd": 0.015993729078156254,
+      "ap_train_media": 0.4506362651363808,
+      "es_optimo": false
+    },
+    {
+      "castigo": "L1",
+      "lambda": 0.0031622776601683794,
+      "C": 316.2277660168379,
+      "ap_val_media": 0.44585238429952334,
+      "ap_val_sd": 0.015992731020568446,
+      "ap_train_media": 0.45063651753616407,
+      "es_optimo": false
+    },
+    {
+      "castigo": "L1",
+      "lambda": 0.01,
+      "C": 100.0,
+      "ap_val_media": 0.44585142621418916,
+      "ap_val_sd": 0.01599269486842504,
+      "ap_train_media": 0.45063506308832535,
+      "es_optimo": false
+    },
+    {
+      "castigo": "L1",
+      "lambda": 0.03162277660168379,
+      "C": 31.622776601683796,
+      "ap_val_media": 0.445848816673671,
+      "ap_val_sd": 0.015993360280105298,
+      "ap_train_media": 0.4506333947151049,
+      "es_optimo": false
+    },
+    {
+      "castigo": "L1",
+      "lambda": 0.1,
+      "C": 10.0,
+      "ap_val_media": 0.4458621353853597,
+      "ap_val_sd": 0.016003534238742727,
+      "ap_train_media": 0.4506267173172495,
+      "es_optimo": true
+    },
+    {
+      "castigo": "L1",
+      "lambda": 0.31622776601683794,
+      "C": 3.162277660168379,
+      "ap_val_media": 0.44585446447403265,
+      "ap_val_sd": 0.016014359562210118,
+      "ap_train_media": 0.4506081080470697,
+      "es_optimo": false
+    },
+    {
+      "castigo": "L1",
+      "lambda": 1.0,
+      "C": 1.0,
+      "ap_val_media": 0.4457852641789956,
+      "ap_val_sd": 0.016076663842689083,
+      "ap_train_media": 0.4505235107742477,
+      "es_optimo": false
+    },
+    {
+      "castigo": "L1",
+      "lambda": 3.1622776601683795,
+      "C": 0.31622776601683794,
+      "ap_val_media": 0.445639686368094,
+      "ap_val_sd": 0.01621258152186866,
+      "ap_train_media": 0.4501965445447286,
+      "es_optimo": false
+    },
+    {
+      "castigo": "L1",
+      "lambda": 10.0,
+      "C": 0.1,
+      "ap_val_media": 0.44511022943033574,
+      "ap_val_sd": 0.016984591397684108,
+      "ap_train_media": 0.4490422045455061,
+      "es_optimo": false
+    },
+    {
+      "castigo": "L1",
+      "lambda": 31.622776601683793,
+      "C": 0.03162277660168379,
+      "ap_val_media": 0.44290508533899775,
+      "ap_val_sd": 0.018159918289391192,
+      "ap_train_media": 0.4453205814364029,
+      "es_optimo": false
+    },
+    {
+      "castigo": "L1",
+      "lambda": 100.0,
+      "C": 0.01,
+      "ap_val_media": 0.43702572300093107,
+      "ap_val_sd": 0.018646626701900294,
+      "ap_train_media": 0.43781250144298234,
+      "es_optimo": false
+    },
+    {
+      "castigo": "ElasticNet",
+      "lambda": 0.0001,
+      "C": 10000.0,
+      "ap_val_media": 0.4458510741009671,
+      "ap_val_sd": 0.015993426566471926,
+      "ap_train_media": 0.4506365798102336,
+      "es_optimo": false
+    },
+    {
+      "castigo": "ElasticNet",
+      "lambda": 0.00031622776601683794,
+      "C": 3162.277660168379,
+      "ap_val_media": 0.4458510937782208,
+      "ap_val_sd": 0.015993529711817715,
+      "ap_train_media": 0.45063652754536115,
+      "es_optimo": false
+    },
+    {
+      "castigo": "ElasticNet",
+      "lambda": 0.001,
+      "C": 1000.0,
+      "ap_val_media": 0.44585059876801447,
+      "ap_val_sd": 0.01599367562492076,
+      "ap_train_media": 0.4506363056377782,
+      "es_optimo": false
+    },
+    {
+      "castigo": "ElasticNet",
+      "lambda": 0.0031622776601683794,
+      "C": 316.2277660168379,
+      "ap_val_media": 0.44585039959851686,
+      "ap_val_sd": 0.015994285438537387,
+      "ap_train_media": 0.45063631087195627,
+      "es_optimo": false
+    },
+    {
+      "castigo": "ElasticNet",
+      "lambda": 0.01,
+      "C": 100.0,
+      "ap_val_media": 0.44585328998055945,
+      "ap_val_sd": 0.015991572270236676,
+      "ap_train_media": 0.4506357257755492,
+      "es_optimo": false
+    },
+    {
+      "castigo": "ElasticNet",
+      "lambda": 0.03162277660168379,
+      "C": 31.622776601683796,
+      "ap_val_media": 0.44585212158352777,
+      "ap_val_sd": 0.01599161369194315,
+      "ap_train_media": 0.4506334865070654,
+      "es_optimo": false
+    },
+    {
+      "castigo": "ElasticNet",
+      "lambda": 0.1,
+      "C": 10.0,
+      "ap_val_media": 0.4458572473235797,
+      "ap_val_sd": 0.016007239114204166,
+      "ap_train_media": 0.4506279552419275,
+      "es_optimo": true
+    },
+    {
+      "castigo": "ElasticNet",
+      "lambda": 0.31622776601683794,
+      "C": 3.162277660168379,
+      "ap_val_media": 0.4458508766015852,
+      "ap_val_sd": 0.016029136092238043,
+      "ap_train_media": 0.45061577852934664,
+      "es_optimo": false
+    },
+    {
+      "castigo": "ElasticNet",
+      "lambda": 1.0,
+      "C": 1.0,
+      "ap_val_media": 0.44583265208740086,
+      "ap_val_sd": 0.016027669851156494,
+      "ap_train_media": 0.450571288144908,
+      "es_optimo": false
+    },
+    {
+      "castigo": "ElasticNet",
+      "lambda": 3.1622776601683795,
+      "C": 0.31622776601683794,
+      "ap_val_media": 0.44572984824087847,
+      "ap_val_sd": 0.016132526851004633,
+      "ap_train_media": 0.4503949731086968,
+      "es_optimo": false
+    },
+    {
+      "castigo": "ElasticNet",
+      "lambda": 10.0,
+      "C": 0.1,
+      "ap_val_media": 0.44550442223514963,
+      "ap_val_sd": 0.016397138283725417,
+      "ap_train_media": 0.44975425173626365,
+      "es_optimo": false
+    },
+    {
+      "castigo": "ElasticNet",
+      "lambda": 31.622776601683793,
+      "C": 0.03162277660168379,
+      "ap_val_media": 0.44417151873982164,
+      "ap_val_sd": 0.01729689872429378,
+      "ap_train_media": 0.44767251100383304,
+      "es_optimo": false
+    },
+    {
+      "castigo": "ElasticNet",
+      "lambda": 100.0,
+      "C": 0.01,
+      "ap_val_media": 0.44007136634542887,
+      "ap_val_sd": 0.018586194939530027,
+      "ap_train_media": 0.44187878659748936,
+      "es_optimo": false
+    }
+  ],
+  "coeficientes_mejor": [
+    {
+      "feature": "dias_desde_ultimo",
+      "coeficiente": 0.6239363417740934
+    },
+    {
+      "feature": "zona_principal_GT-Z13",
+      "coeficiente": 0.37122432958704943
+    },
+    {
+      "feature": "zona_principal_GT-Z10",
+      "coeficiente": 0.29961482097647096
+    },
+    {
+      "feature": "semanas_activas_4",
+      "coeficiente": 0.14242382245723548
+    },
+    {
+      "feature": "share_am",
+      "coeficiente": 0.11388674861424486
+    },
+    {
+      "feature": "n_zonas_28d",
+      "coeficiente": 0.10904187026868567
+    },
+    {
+      "feature": "cv_semanal",
+      "coeficiente": 0.10487049806971632
+    },
+    {
+      "feature": "n_eventos_padron_28d",
+      "coeficiente": 0.09670010077279266
+    },
+    {
+      "feature": "perfil_padron_a_t_general",
+      "coeficiente": 0.0865709018122107
+    },
+    {
+      "feature": "viajes_mr_completos_28d",
+      "coeficiente": 0.08545205488505897
+    },
+    {
+      "feature": "n_estaciones_28d",
+      "coeficiente": 0.08363475165446112
+    },
+    {
+      "feature": "n_abordajes_14d",
+      "coeficiente": 0.07592827146217072
+    },
+    {
+      "feature": "share_mr",
+      "coeficiente": 0.06982028121018026
+    },
+    {
+      "feature": "n_abordajes_7d",
+      "coeficiente": 0.059225793481155434
+    },
+    {
+      "feature": "missingindicator_ratio_ult14_prev14",
+      "coeficiente": 0.04921864676725791
+    },
+    {
+      "feature": "missingindicator_duracion_media_mr_min",
+      "coeficiente": 0.048658009993105794
+    },
+    {
+      "feature": "pct_transbordo_interno",
+      "coeficiente": 0.017520403754369217
+    },
+    {
+      "feature": "hora_media",
+      "coeficiente": 0.015639435580244183
+    },
+    {
+      "feature": "duracion_media_mr_min",
+      "coeficiente": 0.000612861080389213
+    },
+    {
+      "feature": "pct_fin_semana",
+      "coeficiente": -0.006669084342189111
+    },
+    {
+      "feature": "zona_principal_GT-VILLA-NUEVA",
+      "coeficiente": -0.008281266607028845
+    },
+    {
+      "feature": "pct_hora_pico",
+      "coeficiente": -0.011082170080115491
+    },
+    {
+      "feature": "share_tm",
+      "coeficiente": -0.02581129751839937
+    },
+    {
+      "feature": "dias_desde_primero_28d",
+      "coeficiente": -0.03577654324715414
+    },
+    {
+      "feature": "n_modos_28d",
+      "coeficiente": -0.056961614492692825
+    },
+    {
+      "feature": "n_tarjetas_activas_28d",
+      "coeficiente": -0.056961614492692825
+    },
+    {
+      "feature": "ratio_ult14_prev14",
+      "coeficiente": -0.05828420020721284
+    },
+    {
+      "feature": "gasto_q_28d",
+      "coeficiente": -0.06911648059130517
+    },
+    {
+      "feature": "zona_principal_GT-Z18",
+      "coeficiente": -0.09827478605074133
+    },
+    {
+      "feature": "perfil_padron_a_t_estudiante",
+      "coeficiente": -0.10007698893406183
+    },
+    {
+      "feature": "share_tu",
+      "coeficiente": -0.10143563660768347
+    },
+    {
+      "feature": "zona_principal_GT-Z08",
+      "coeficiente": -0.10588392617394066
+    },
+    {
+      "feature": "gasto_medio_q",
+      "coeficiente": -0.1304452416975363
+    },
+    {
+      "feature": "zona_principal_GT-SAN-MIGUEL-PETAPA",
+      "coeficiente": -0.13749886826990287
+    },
+    {
+      "feature": "perfil_padron_a_t_trabajador",
+      "coeficiente": -0.1377562862607425
+    },
+    {
+      "feature": "zona_principal_GT-Z11",
+      "coeficiente": -0.13844229921242987
+    },
+    {
+      "feature": "n_abordajes_28d",
+      "coeficiente": -0.13963890474367313
+    },
+    {
+      "feature": "zona_principal_GT-Z07",
+      "coeficiente": -0.15492924621866994
+    },
+    {
+      "feature": "zona_principal_GT-MIXCO",
+      "coeficiente": -0.15773773360747514
+    },
+    {
+      "feature": "hora_sd",
+      "coeficiente": -0.17405111929721062
+    },
+    {
+      "feature": "zona_principal_GT-Z06",
+      "coeficiente": -0.189253712456706
+    },
+    {
+      "feature": "zona_principal_GT-Z01",
+      "coeficiente": -0.190602902109326
+    },
+    {
+      "feature": "zona_principal_GT-Z12",
+      "coeficiente": -0.20268863744011237
+    },
+    {
+      "feature": "zona_principal_GT-Z04",
+      "coeficiente": -0.22562883666319744
+    },
+    {
+      "feature": "zona_principal_GT-Z09",
+      "coeficiente": -0.23673072655663033
+    },
+    {
+      "feature": "modo_principal_MR",
+      "coeficiente": -0.24027624392944738
+    },
+    {
+      "feature": "zona_principal_GT-Z17",
+      "coeficiente": -0.30838665007741994
+    },
+    {
+      "feature": "dias_activos_28d",
+      "coeficiente": -0.36205380842369084
+    },
+    {
+      "feature": "modo_principal_TU",
+      "coeficiente": -0.3673645657036418
+    },
+    {
+      "feature": "pct_feriado",
+      "coeficiente": -0.37560252865103655
+    },
+    {
+      "feature": "modo_principal_TM",
+      "coeficiente": -0.3992868656067849
+    },
+    {
+      "feature": "perfil_padron_a_t_adulto_mayor",
+      "coeficiente": -0.4091983935602458
+    },
+    {
+      "feature": "modo_principal_AM",
+      "coeficiente": -0.4765727656402662
+    },
+    {
+      "feature": "tiene_padron_a_t",
+      "coeficiente": -0.5604607669429238
+    },
+    {
+      "feature": "dias_activos_7d",
+      "coeficiente": -0.5729065778803015
+    },
+    {
+      "feature": "perfil_padron_a_t_SIN_DATO",
+      "coeficiente": -0.9230396739371899
+    }
+  ],
+  "tiempos_s": {
+    "carga_s": 19.54616795782931,
+    "cv_s": 566.2527613760903,
+    "ajuste_final_s": 8.29359316593036,
+    "total_s": 594.09252249985
+  },
+  "figura": "/Users/davidmonje/Documents/URL/CienciaDatos/repos/ProyectoCienciaDatos1/docs/evidence/p2/figuras/ap_vs_lambda.png"
+}
