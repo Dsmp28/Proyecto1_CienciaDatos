@@ -17,9 +17,51 @@ Defectos reales de "desde cero" encontrados y corregidos en el camino (ninguno s
 cautious`; las tres vías de ingesta creaban a la vez las tablas de `ops` recién borradas (409) → creación tolerante;
 `fecha_referencia` y el tope de identidad del P1 no servían para v2 (ADR-012).
 
-**Tabla de conteos (archivo, esperadas, cargadas, diferencia):** `docs/evidence/p2/conteos_bronze.md` [pendiente de pegar].
+**Tabla de conteos** (corrida `desde-cero-20261101T212525`; `docs/evidence/p2/conteos_bronze.md`). Esperadas = LEEME de la
+cátedra (= `ingest/expected_hashes.json`); cargadas = `COUNT(*)` de la tabla externa de Bronze; en streaming se cuenta
+también `archivo:linea_num` distintos para descartar duplicados de Kafka:
 
-**Tabla de tiempos (etapa, segundos):** `docs/evidence/p2/tiempos.md` [pendiente de pegar].
+| archivo | vía | filas esperadas (LEEME) | filas cargadas (Bronze) | diferencia | ok |
+|---|---|---:|---:|---:|:---:|
+| tm_estaciones.csv | batch | 104 | 104 | 0 | sí |
+| tu_paradas.csv | batch | 328 | 328 | 0 | sí |
+| mr_estaciones.csv | batch | 22 | 22 | 0 | sí |
+| am_estaciones.csv | batch | 14 | 14 | 0 | sí |
+| metroriel_viajes.jsonl | batch | 590,844 | 590,844 | 0 | sí |
+| transurbano_transacciones.csv | batch | 1,635,788 | 1,635,788 | 0 | sí |
+| transmetro_validaciones.csv | streaming | 713,786 | 713,786 (distintas: 713,786) | 0 | sí |
+| aerometro_boardings.csv | streaming | 387,053 | 387,053 (distintas: 387,053) | 0 | sí |
+| cdc_padron_usuarios.csv | cdc | 77,636 | 77,636 | 0 | sí |
+| **Total** | | **3,405,575** | **3,405,575** | **0** | sí |
+
+**Tabla de tiempos** (misma corrida; `ops.run_metrics`, métrica `duracion_s` por tarea; `docs/evidence/p2/tiempos.md`).
+Las tareas de ingesta corren en paralelo, por lo que el reloj del DAG (≈ 24 min desde el disparo hasta `pruebas_python`)
+es menor que la suma; `ml_*` se omiten hasta que exista el modelo (fase 2):
+
+| etapa | segundos |
+|---|---:|
+| generar_o_verificar_datos | 6.3 |
+| ingesta_bronze.ingesta_cdc | 11.2 |
+| publicar_clave_hmac | 8.4 |
+| ingesta_bronze.ingesta_batch | 22.9 |
+| ingesta_bronze.ingesta_streaming.kafka_productor | 26.0 |
+| ingesta_bronze.ingesta_streaming.kafka_consumidor | 107.5 |
+| tablas_externas_bronze | 21.1 |
+| conciliar_bronze | 17.6 |
+| transformacion_dbt.dbt_deps | 5.5 |
+| transformacion_dbt.dbt_seed | 21.5 |
+| transformacion_dbt.dbt_staging | 66.4 |
+| transformacion_dbt.dbt_silver | 122.1 |
+| transformacion_dbt.dbt_gold | 120.0 |
+| transformacion_dbt.dbt_features | 41.3 |
+| transformacion_dbt.dbt_churn | 91.7 |
+| transformacion_dbt.dbt_docs | 102.7 |
+| pruebas_python | 64.6 |
+| registrar_metricas | 16.7 |
+| **TOTAL (suma de tareas)** | **877.3** |
+
+El vaciado previo (`docs/evidence/p2/reset_20261101T212526.md`) tardó ≈ 3 min: 228 objetos de Bronze, 110 tablas y los
+tópicos de Kafka. La carga desde cero completa, de un entorno vacío a Features, queda en ≈ 27 min de reloj.
 
 ## 1.2 Etiqueta, población y unidad
 

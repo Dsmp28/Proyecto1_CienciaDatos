@@ -1,0 +1,54 @@
+run_id,etapa,capa,fuente,metrica,valor,ts,detalle
+desde-cero-20261101T203117,ingesta_streaming_producer,,transmetro_validaciones,filas,713786.0,2026-11-02 02:37:25.963429+00:00,"tópico=transmetro.validaciones, partición(es)=1"
+desde-cero-20261101T203117,ingesta_streaming_producer,,transmetro_validaciones,duracion_s,8.64350569599992,2026-11-02 02:37:25.963439+00:00,"tópico=transmetro.validaciones, partición(es)=1"
+desde-cero-20261101T203117,ingesta_streaming_producer,,aerometro_boardings,filas,387053.0,2026-11-02 02:37:29.702457+00:00,"tópico=aerometro.boardings, partición(es)=1"
+desde-cero-20261101T203117,ingesta_streaming_producer,,aerometro_boardings,duracion_s,3.025131158000022,2026-11-02 02:37:29.702466+00:00,"tópico=aerometro.boardings, partición(es)=1"
+desde-cero-20261101T203117,transformacion_dbt.dbt_deps,,,duracion_s,4.661208,2026-11-02 02:40:10.724207+00:00,success
+desde-cero-20261101T203117,conciliar_bronze,,,duracion_s,16.775679,2026-11-02 02:40:04.947279+00:00,success
+desde-cero-20261101T203117,transformacion_dbt.dbt_seed,,,duracion_s,24.573019,2026-11-02 02:40:35.579119+00:00,success
+desde-cero-20261101T203117,tablas_externas_bronze,,,duracion_s,20.626862,2026-11-02 02:39:47.781960+00:00,success
+desde-cero-20261101T203117,publicar_clave_hmac,,,duracion_s,3.598926,2026-11-02 02:35:03.346672+00:00,success
+desde-cero-20261101T203117,ingesta_bronze.ingesta_streaming.kafka_consumidor,,,duracion_s,108.067169,2026-11-02 02:39:26.375925+00:00,success
+desde-cero-20261101T203117,ingesta_bronze.ingesta_batch,,,duracion_s,14.985541,2026-11-02 02:39:12.801412+00:00,success
+desde-cero-20261101T203117,generar_o_verificar_datos,,,duracion_s,6.886175,2026-11-02 02:34:56.598426+00:00,success
+desde-cero-20261101T203117,ingesta_bronze.ingesta_streaming.kafka_productor,,,duracion_s,22.390783,2026-11-02 02:37:37.125440+00:00,success
+desde-cero-20261101T203117,ingesta_bronze.ingesta_cdc,,,duracion_s,13.530891,2026-11-02 02:35:09.062608+00:00,success
+desde-cero-20261101T203117,conteos_bronze,bronze,tm_estaciones,filas,104.0,2026-11-02 02:39:50.309010+00:00,filas_origen=104
+desde-cero-20261101T203117,conteos_bronze,bronze,tu_paradas,filas,328.0,2026-11-02 02:39:51.061480+00:00,filas_origen=328
+desde-cero-20261101T203117,conteos_bronze,bronze,mr_estaciones,filas,22.0,2026-11-02 02:39:51.653787+00:00,filas_origen=22
+desde-cero-20261101T203117,conteos_bronze,bronze,am_estaciones,filas,14.0,2026-11-02 02:39:52.274741+00:00,filas_origen=14
+desde-cero-20261101T203117,conteos_bronze,bronze,metroriel_viajes,filas,590844.0,2026-11-02 02:39:56.192918+00:00,filas_origen=590844
+desde-cero-20261101T203117,conteos_bronze,bronze,transurbano_transacciones,filas,1635788.0,2026-11-02 02:39:58.925562+00:00,filas_origen=1635788
+desde-cero-20261101T203117,conteos_bronze,bronze,transmetro_validaciones,filas,713786.0,2026-11-02 02:39:59.900226+00:00,filas_origen=713786
+desde-cero-20261101T203117,conteos_bronze,bronze,aerometro_boardings,filas,387053.0,2026-11-02 02:40:00.817392+00:00,filas_origen=387053
+desde-cero-20261101T203117,conteos_bronze,bronze,cdc_padron_usuarios,filas,77636.0,2026-11-02 02:40:01.620684+00:00,filas_origen=77636
+desde-cero-20261101T203117,ingesta_cdc,bronze,cdc_padron_usuarios,filas,77636.0,2026-11-02 02:34:59.419988+00:00,completado
+desde-cero-20261101T203117,ingesta_cdc,bronze,cdc_padron_usuarios,bytes,5386252.0,2026-11-02 02:34:59.420000+00:00,completado
+desde-cero-20261101T203117,ingesta_cdc,bronze,cdc_padron_usuarios,duracion_s,1.155199964999838,2026-11-02 02:34:59.420007+00:00,completado
+desde-cero-20261101T203117,ingesta_batch,bronze,tm_estaciones,bytes,7387.0,2026-11-02 02:38:59.401979+00:00,completado
+desde-cero-20261101T203117,ingesta_batch,bronze,tu_paradas,bytes,13189.0,2026-11-02 02:39:00.134007+00:00,completado
+desde-cero-20261101T203117,ingesta_batch,bronze,mr_estaciones,bytes,537.0,2026-11-02 02:39:00.790314+00:00,completado
+desde-cero-20261101T203117,ingesta_batch,bronze,am_estaciones,bytes,687.0,2026-11-02 02:39:01.447623+00:00,completado
+desde-cero-20261101T203117,ingesta_batch,bronze,metroriel_viajes,bytes,109365069.0,2026-11-02 02:39:04.549386+00:00,completado
+desde-cero-20261101T203117,ingesta_batch,bronze,transurbano_transacciones,bytes,84725793.0,2026-11-02 02:39:08.277404+00:00,completado
+desde-cero-20261101T203117,ingesta_batch,bronze,tm_estaciones,duracion_s,0.8065982499999791,2026-11-02 02:38:59.401987+00:00,completado
+desde-cero-20261101T203117,ingesta_batch,bronze,tu_paradas,duracion_s,0.731966304000025,2026-11-02 02:39:00.134012+00:00,completado
+desde-cero-20261101T203117,ingesta_batch,bronze,mr_estaciones,duracion_s,0.6562473179999415,2026-11-02 02:39:00.790319+00:00,completado
+desde-cero-20261101T203117,ingesta_batch,bronze,am_estaciones,duracion_s,0.6572496989999763,2026-11-02 02:39:01.447631+00:00,completado
+desde-cero-20261101T203117,ingesta_batch,bronze,metroriel_viajes,duracion_s,3.101687279000089,2026-11-02 02:39:04.549394+00:00,completado
+desde-cero-20261101T203117,ingesta_batch,bronze,transurbano_transacciones,duracion_s,3.7279453820001436,2026-11-02 02:39:08.277409+00:00,completado
+desde-cero-20261101T203117,ingesta_batch,bronze,tm_estaciones,filas,104.0,2026-11-02 02:38:59.401964+00:00,completado
+desde-cero-20261101T203117,ingesta_batch,bronze,tu_paradas,filas,328.0,2026-11-02 02:39:00.134000+00:00,completado
+desde-cero-20261101T203117,ingesta_batch,bronze,mr_estaciones,filas,22.0,2026-11-02 02:39:00.790305+00:00,completado
+desde-cero-20261101T203117,ingesta_batch,bronze,am_estaciones,filas,14.0,2026-11-02 02:39:01.447614+00:00,completado
+desde-cero-20261101T203117,ingesta_batch,bronze,metroriel_viajes,filas,590844.0,2026-11-02 02:39:04.549372+00:00,completado
+desde-cero-20261101T203117,ingesta_batch,bronze,transurbano_transacciones,filas,1635788.0,2026-11-02 02:39:08.277396+00:00,completado
+desde-cero-20261101T203117,ingesta_streaming_consumer,bronze,transmetro_validaciones,filas,713786.0,2026-11-02 02:39:23.243275+00:00,archivo=transmetro_validaciones.csv
+desde-cero-20261101T203117,ingesta_streaming_consumer,bronze,transmetro_validaciones,objetos,143.0,2026-11-02 02:39:23.243321+00:00,archivo=transmetro_validaciones.csv
+desde-cero-20261101T203117,ingesta_streaming_consumer,bronze,transmetro_validaciones,bytes,266983436.0,2026-11-02 02:39:23.243332+00:00,archivo=transmetro_validaciones.csv
+desde-cero-20261101T203117,ingesta_streaming_consumer,bronze,aerometro_boardings,filas,387053.0,2026-11-02 02:39:23.243342+00:00,archivo=aerometro_boardings.csv
+desde-cero-20261101T203117,ingesta_streaming_consumer,bronze,aerometro_boardings,objetos,78.0,2026-11-02 02:39:23.243348+00:00,archivo=aerometro_boardings.csv
+desde-cero-20261101T203117,ingesta_streaming_consumer,bronze,aerometro_boardings,bytes,139044426.0,2026-11-02 02:39:23.243354+00:00,archivo=aerometro_boardings.csv
+desde-cero-20261101T203117,transformacion_dbt.dbt_staging,,,duracion_s,68.991057,2026-11-02 02:55:32.701580+00:00,failed
+desde-cero-20261101T203117,registrar_fallo,,,estado,0.0,2026-11-02 02:55:37.424873+00:00,failed
+desde-cero-20261101T203117,registrar_fallo,,,duracion_s,3.97991,2026-11-02 02:55:40.518230+00:00,success
