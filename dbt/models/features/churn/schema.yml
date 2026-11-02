@@ -1,0 +1,182 @@
+version: 2
+
+# Proyecto 2 (ADR-015): dataset de churn por persona y corte. Solo desde Silver y seeds (restricción dura 5).
+# Pruebas singulares en dbt/tests/features/churn/ y tests/test_ventanas_churn.py.
+models:
+- name: churn_eventos
+  description: >
+    Abordajes válidos por persona y corte en [t-ventana_max_dias, t+horizonte_dias). tramo 'ventana' (fecha < t) alimenta
+    las features; 'horizonte' (fecha >= t) solo la etiqueta. Tabla de trabajo, contiene llaves nativas.
+  columns:
+  - name: corte
+    data_tests:
+    - not_null
+    - accepted_values:
+        arguments:
+          values: ['A', 'B', 'C']
+  - name: unidad_id
+    data_tests: [not_null]
+  - name: tramo
+    data_tests:
+    - accepted_values:
+        arguments:
+          values: ['ventana', 'horizonte']
+  - name: dias_antes_corte
+    description: DATE_DIFF(t, fecha, DAY); positivo en la ventana, <= 0 en el horizonte.
+
+- name: churn_poblacion
+  description: >
+    Embudo de población: toda persona con >= 1 abordaje en [t-28, t) por corte, con n_abordajes_28d, bajas (DELETE) del
+    CDC previas a t, estado del último evento de padrón antes de t y en_poblacion (>= 2 abordajes y sin DELETE previo).
+  data_tests:
+  - dbt_utils.unique_combination_of_columns:
+      arguments:
+        combination_of_columns: [unidad_id, fecha_corte]
+  columns:
+  - name: unidad_id
+    data_tests: [not_null]
+  - name: corte
+    data_tests:
+    - not_null
+    - accepted_values:
+        arguments:
+          values: ['A', 'B', 'C']
+  - name: n_abordajes_28d
+    data_tests:
+    - not_null
+    - dbt_utils.accepted_range:
+        arguments:
+          min_value: 1
+          inclusive: true
+  - name: tiene_delete_previo
+    data_tests: [not_null]
+  - name: estado_padron_ultimo_a_t
+    description: ACTIVA, INACTIVA o SIN_PADRON, según el último evento con vigente_desde < t.
+    data_tests:
+    - accepted_values:
+        arguments:
+          values: ['ACTIVA', 'INACTIVA', 'SIN_PADRON']
+  - name: en_poblacion
+    data_tests: [not_null]
+
+- name: churn_etiqueta
+  description: >
+    Etiqueta de churn para la población de cada corte: 1 sin abordajes en [t, t+horizonte), 0 con abordajes, NULL cuando
+    t+horizonte supera fecha_referencia (corte C).
+  data_tests:
+  - dbt_utils.unique_combination_of_columns:
+      arguments:
+        combination_of_columns: [unidad_id, fecha_corte]
+  columns:
+  - name: unidad_id
+    data_tests: [not_null]
+  - name: etiqueta
+    data_tests:
+    - accepted_values:
+        arguments:
+          values: [0, 1]
+          quote: false
+
+- name: churn_features
+  description: >
+    Features de churn de la población por corte; todas las ventanas <= 28 días y solo eventos con fecha < t.
+  data_tests:
+  - dbt_utils.unique_combination_of_columns:
+      arguments:
+        combination_of_columns: [unidad_id, fecha_corte]
+  columns:
+  - name: unidad_id
+    data_tests: [not_null]
+
+- name: churn_dataset
+  description: >
+    Dataset de churn: una fila por (unidad_id = persona, fecha_corte) con features de ventana <= 28 días, etiqueta
+    (NULL en el corte C) y linaje (fecha_referencia, run_id). Diccionario en churn_diccionario. Sin llaves nativas.
+  data_tests:
+  - dbt_utils.unique_combination_of_columns:
+      arguments:
+        combination_of_columns: [unidad_id, fecha_corte]
+  columns:
+  - name: unidad_id
+    description: Persona seudonimizada (usuario_unificado_sk).
+    data_tests: [not_null]
+  - name: fecha_corte
+    data_tests: [not_null]
+  - name: corte
+    data_tests:
+    - not_null
+    - accepted_values:
+        arguments:
+          values: ['A', 'B', 'C']
+  - name: etiqueta
+    description: 1 = churn, 0 = sigue activa, NULL = horizonte no observado.
+    data_tests:
+    - accepted_values:
+        arguments:
+          values: [0, 1]
+          quote: false
+  - name: n_abordajes_28d
+    data_tests:
+    - not_null
+    - dbt_utils.accepted_range:
+        arguments:
+          min_value: 2
+          inclusive: true
+  - name: n_abordajes_14d
+    data_tests: [not_null]
+  - name: n_abordajes_7d
+    data_tests: [not_null]
+  - name: dias_desde_ultimo
+    data_tests:
+    - not_null
+    - dbt_utils.accepted_range:
+        arguments:
+          min_value: 1
+          max_value: 28
+          inclusive: true
+  - name: share_tm
+    data_tests: &rango01
+    - not_null
+    - dbt_utils.accepted_range:
+        arguments:
+          min_value: 0
+          max_value: 1
+          inclusive: true
+  - name: share_tu
+    data_tests: *rango01
+  - name: share_mr
+    data_tests: *rango01
+  - name: share_am
+    data_tests: *rango01
+  - name: pct_hora_pico
+    data_tests: *rango01
+  - name: pct_fin_semana
+    data_tests: *rango01
+  - name: pct_feriado
+    data_tests: *rango01
+  - name: pct_transbordo_interno
+    data_tests: *rango01
+  - name: fecha_referencia
+    data_tests: [not_null]
+  - name: run_id
+    data_tests: [not_null]
+
+- name: churn_diccionario
+  description: >
+    Diccionario de datos de churn_dataset materializado (una fila por columna: tipo, significado, ventana, fuente Silver
+    y fórmula).
+  columns:
+  - name: orden
+    data_tests: [unique, not_null]
+  - name: columna
+    data_tests: [unique, not_null]
+  - name: tipo
+    data_tests: [not_null]
+  - name: descripcion
+    data_tests: [not_null]
+  - name: ventana
+    data_tests: [not_null]
+  - name: fuente_silver
+    data_tests: [not_null]
+  - name: formula
+    data_tests: [not_null]

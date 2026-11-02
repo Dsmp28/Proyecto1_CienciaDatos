@@ -1,6 +1,7 @@
 -- Staging · validaciones de Transmetro (streaming Kafka -> GCS). Bronze guarda una envolvente JSON por mensaje;
 -- raw es la línea CSV original: validacion_id,tarjeta,estacion_id,linea,fecha_hora,tarifa,tipo.
 -- Una fila por mensaje de Bronze: no filtra ni deduplica (los ~1 115 duplicados de torniquete llegan a Silver/cuarentena).
+-- Recorte (ADR-015): con var('recorte_datos_hasta') se ignoran los eventos con fecha_hora posterior; con la var nula no hace nada.
 with bronze as (
     select
         offset, kafka_ts, clave, archivo, linea_num, sha256_archivo, raw, ingest_ts,
@@ -38,4 +39,4 @@ select
     sha256_archivo,
     safe_cast(ingest_ts as timestamp) as ingest_ts,
     raw
-from campos
+from campos{{ donde_recorte("safe.parse_datetime('%Y-%m-%d %H:%M:%S', nullif(trim(c[safe_offset(4)]), ''))") }}

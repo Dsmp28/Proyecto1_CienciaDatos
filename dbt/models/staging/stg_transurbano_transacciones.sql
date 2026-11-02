@@ -1,6 +1,7 @@
 -- Staging · transacciones de Transurbano (batch, CSV: fecha dd/mm/yyyy, hora separada, monto en centavos,
 -- estado como código numérico). Una fila por línea de Bronze: no filtra ni deduplica (cod_parada vacío y fechas
 -- del futuro se conservan; Silver decide). Fecha/hora con SAFE.PARSE_DATETIME; crudos en fecha_raw / hora_raw.
+-- Recorte (ADR-015): con var('recorte_datos_hasta') se ignoran los eventos con fecha_hora posterior; con la var nula no hace nada.
 with bronze as (
     select raw, ingest_date, _FILE_NAME as objeto_gcs
     from {{ source('bronze', 'transurbano_transacciones') }}
@@ -50,4 +51,4 @@ select
     to_hex(sha256(raw)) as registro_hash,
     row_number() over (partition by objeto_gcs, raw order by raw) as n_repeticion,
     raw
-from tipado
+from tipado{{ donde_recorte("safe.parse_datetime('%d/%m/%Y %H:%M:%S', concat(fecha_raw, ' ', hora_raw))") }}

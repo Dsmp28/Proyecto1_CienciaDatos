@@ -1,0 +1,38 @@
+version: 2
+
+# Proyecto 2 (ADR-015): Silver de la unidad persona por corte.
+models:
+- name: silver_unidad_tarjetas_corte
+  description: >
+    Tarjetas de cada persona (unidad_id = usuario_unificado_sk) conocidas en cada corte t, solo con evidencia anterior a
+    t (abordaje válido con fecha_hora_local < t o evento de padrón con vigente_desde < t). Padrón -> persona por
+    (modo_id, llave_nativa = tarjeta) contra silver_usuarios. Una fila por (unidad_id, fecha_corte).
+  data_tests:
+  - dbt_utils.unique_combination_of_columns:
+      arguments:
+        combination_of_columns: [unidad_id, fecha_corte]
+  columns:
+  - name: unidad_id
+    description: Persona seudonimizada (usuario_unificado_sk).
+    data_tests: [not_null]
+  - name: fecha_corte
+    description: Corte t (00:00 local).
+    data_tests: [not_null]
+  - name: corte
+    description: Letra del corte (A, B, C).
+    data_tests:
+    - not_null
+    - accepted_values:
+        arguments:
+          values: ['A', 'B', 'C']
+  - name: tarjetas
+    description: "Llaves nativas de las tarjetas observadas antes de t, separadas por ';' y ordenadas por modo_id, llave_nativa."
+    data_tests: [not_null]
+  - name: n_tarjetas
+    description: Cantidad de tarjetas observadas antes de t.
+    data_tests:
+    - not_null
+    - dbt_utils.accepted_range:
+        arguments:
+          min_value: 1
+          inclusive: true

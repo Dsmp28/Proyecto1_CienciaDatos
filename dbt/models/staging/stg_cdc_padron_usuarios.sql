@@ -2,6 +2,7 @@
 -- Una fila por operación de Bronze: no filtra ni deduplica; los DELETE llegan sin cuerpo (perfil/zona/estado NULL).
 -- Implementa ADR-008: la columna tarjeta mezcla formatos de tres operadores; se clasifica en formato_tarjeta y
 -- se extrae el identificador base compartido (usuario_base_id) que vincula tarjetas entre modos.
+-- Recorte (ADR-015): con var('recorte_datos_hasta') se ignoran las operaciones con commit_ts posterior; con la var nula no hace nada.
 with bronze as (
     select raw, ingest_date, _FILE_NAME as objeto_gcs
     from {{ source('bronze', 'cdc_padron_usuarios') }}
@@ -58,4 +59,4 @@ select
     to_hex(sha256(raw)) as registro_hash,
     row_number() over (partition by objeto_gcs, raw order by raw) as n_repeticion,
     raw
-from clasificado
+from clasificado{{ donde_recorte("safe.parse_datetime('%Y-%m-%dT%H:%M:%S', commit_ts_raw)") }}

@@ -2,6 +2,7 @@
 -- raw es la línea CSV original en inglés: boarding_id,user_hash,station_code,axis,timestamp_utc,cabin_number,fare.
 -- timestamp_utc llega en UTC ('...Z'); fecha_hora_local = DATETIME(ts, tz_local) (ADR-010).
 -- Una fila por mensaje de Bronze: no filtra ni deduplica.
+-- Recorte (ADR-015): con var('recorte_datos_hasta') se ignoran los eventos con fecha_hora_local posterior; con la var nula no hace nada.
 with bronze as (
     select
         offset, kafka_ts, clave, archivo, linea_num, sha256_archivo, raw, ingest_ts,
@@ -47,4 +48,4 @@ select
     sha256_archivo,
     safe_cast(ingest_ts as timestamp) as ingest_ts,
     raw
-from tipado
+from tipado{{ donde_recorte("datetime(ts_utc, '" ~ var("tz_local") ~ "')") }}

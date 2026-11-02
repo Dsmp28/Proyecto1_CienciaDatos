@@ -15,7 +15,9 @@ clean-targets: ["target", "dbt_packages"]
 vars:
   # Fecha fija del pipeline. Regla de "fechas del futuro" y corte de features.
   # NUNCA usar CURRENT_DATE en modelos (rompe la idempotencia). Se sobreescribe por --vars.
-  fecha_referencia: "2026-07-16"   # verificado en el generador (ADR-010): día siguiente a la última fecha legítima (2026-07-15)
+  # Proyecto 2 (ADR-012): datos v2 del 2026-06-01 al 2026-08-29; día siguiente a la última fecha legítima.
+  # (Proyecto 1, ADR-010: "2026-07-16" para los 45 días del generador.)
+  fecha_referencia: "2026-08-30"
   # Identificador de corrida que Airflow pasa por --vars para ops.run_metrics
   run_id: "manual"
   # Marca de tiempo de la corrida (ISO 8601 UTC) que Airflow pasa por --vars; alimenta quarantine.ts_cuarentena.
@@ -25,7 +27,15 @@ vars:
   tz_local: "America/Guatemala"
   # Cota superior del identificador base de personas (ADR-008): el generador crea 60 000; el mapa de
   # inversión del hash de Aerómetro (silver_am_hash_map) se calcula para 1..max_usuario_base_id.
-  max_usuario_base_id: 70000
+  # Proyecto 2 (ADR-012): los datos v2 llegan a 84 882 y los 16 930 hashes de Aerómetro se invierten con N >= 84 882.
+  max_usuario_base_id: 100000
+  # Proyecto 2 (ADR-015): fechas de corte A, B y C del dataset de churn (features.churn_*), horizonte de la etiqueta
+  # y ventana máxima de las features. `recorte_datos_hasta` (DATE o null) activa la prueba de recorte: con el target
+  # `recorte`, staging ignora todo evento posterior a esa fecha, como si los archivos crudos terminaran ahí.
+  fechas_corte: ["2026-07-01", "2026-07-31", "2026-08-30"]
+  horizonte_dias: 30
+  ventana_max_dias: 28
+  recorte_datos_hasta: null
 
 models:
   red_metropolitana:
@@ -38,6 +48,9 @@ models:
       +schema: silver
       +materialized: table
       +tags: ["silver"]
+      churn:                      # Proyecto 2: persona x corte (ADR-015)
+        +schema: silver
+        +tags: ["silver", "churn"]
     quarantine:
       +schema: quarantine
       +materialized: table
@@ -50,6 +63,9 @@ models:
       +schema: features
       +materialized: table
       +tags: ["features"]
+      churn:                      # Proyecto 2: dataset de churn por persona y corte (ADR-015)
+        +schema: features
+        +tags: ["features", "churn"]
     ops:
       +schema: ops
       +materialized: table
