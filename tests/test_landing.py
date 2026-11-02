@@ -32,10 +32,12 @@ def test_decidir_subida():
 
 
 def test_archivos_a_descargar_faltantes_y_distintos():
-    man = {"archivos": {"a.csv": {"sha256": "1"}, "b.csv": {"sha256": "2"}, "c.csv": {"sha256": "3"}}}
-    assert landing.archivos_a_descargar(man, {"a.csv": "1", "b.csv": "x", "c.csv": None}) == ["b.csv", "c.csv"]
-    assert landing.archivos_a_descargar(man, {"a.csv": "1", "b.csv": "2", "c.csv": "3"}) == []
-    assert landing.archivos_a_descargar(man, {}) == ["a.csv", "b.csv", "c.csv"]
+    # Solo nombres del catálogo FUENTES (un manifest manipulado no puede inyectar rutas).
+    a, b, c = "mr_estaciones.csv", "tm_estaciones.csv", "tu_paradas.csv"
+    man = {"archivos": {a: {"sha256": "1"}, b: {"sha256": "2"}, c: {"sha256": "3"}}}
+    assert landing.archivos_a_descargar(man, {a: "1", b: "x", c: None}) == [b, c]
+    assert landing.archivos_a_descargar(man, {a: "1", b: "2", c: "3"}) == []
+    assert landing.archivos_a_descargar(man, {}) == [a, b, c]
 
 
 def test_resolver_origen_y_version():
@@ -59,3 +61,15 @@ def test_huella_esperada_segun_origen():
     assert gv.huella_esperada_para("generador").name == "expected_hashes_p1.json"
     assert gv.huella_esperada_para("landing").name == "expected_hashes.json"
     assert gv.huella_esperada_para("local").name == "expected_hashes.json"
+
+
+def test_nombres_permitidos_rechaza_rutas_y_desconocidos():
+    from ingest import landing
+    manifest = {"archivos": {
+        "tm_estaciones.csv": {"sha256": "a"},
+        "../../etc/passwd": {"sha256": "b"},
+        "sub/tm_estaciones.csv": {"sha256": "c"},
+        "desconocido.csv": {"sha256": "d"},
+    }}
+    assert landing.nombres_permitidos(manifest) == ["tm_estaciones.csv"]
+    assert landing.archivos_a_descargar(manifest, {}) == ["tm_estaciones.csv"]

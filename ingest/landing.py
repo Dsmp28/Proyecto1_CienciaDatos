@@ -63,10 +63,23 @@ def decidir_subida(sha_local: str, sha_remoto: str | None) -> bool:
     return sha_remoto is None or sha_remoto != sha_local
 
 
+def nombres_permitidos(manifest: dict) -> list[str]:
+    """Nombres del manifest que pertenecen al catálogo FUENTES.
+
+    El MANIFEST llega del bucket (dato externo): solo se aceptan los 9 nombres del catálogo, sin
+    separadores de ruta ni `..`, para que ningún manifest manipulado escriba fuera de `destino`.
+    """
+    salida = []
+    for n in sorted(manifest.get("archivos", {})):
+        if n in FUENTES and "/" not in n and "\\" not in n and ".." not in n and n == Path(n).name:
+            salida.append(n)
+    return salida
+
+
 def archivos_a_descargar(manifest: dict, sha_locales: dict[str, str | None]) -> list[str]:
-    """Archivos del manifest cuyo sha256 local falta o no coincide (orden alfabético)."""
-    return [n for n, h in sorted(manifest["archivos"].items())
-            if sha_locales.get(n) != h["sha256"]]
+    """Archivos del catálogo presentes en el manifest cuyo sha256 local falta o no coincide (orden alfabético)."""
+    return [n for n in nombres_permitidos(manifest)
+            if sha_locales.get(n) != manifest["archivos"][n]["sha256"]]
 
 
 # ---------------------------------------------------------------------------
@@ -122,7 +135,7 @@ def descargar(version: str, destino: Path, solo_faltantes: bool = True) -> list[
                    for n in manifest["archivos"]}
         pendientes = archivos_a_descargar(manifest, locales)
     else:
-        pendientes = sorted(manifest["archivos"])
+        pendientes = nombres_permitidos(manifest)
     bucket = _bucket()
     for nombre in pendientes:
         final = destino / nombre
