@@ -158,7 +158,9 @@ def asegurar_tablas_ops(client: bigquery.Client | None = None) -> None:
         except NotFound:
             tabla = bigquery.Table(table_id, schema=schema)
             tabla.description = "Tabla operativa del pipeline (creada por ingest/common.py)."
-            client.create_table(tabla)
+            # exists_ok: las tres vías de ingesta arrancan en paralelo y, tras un vaciado, todas intentan crear
+            # las tablas de ops a la vez (409 Already Exists en la carga desde cero del Proyecto 2).
+            client.create_table(tabla, exists_ok=True)
 
 
 def manifiesto_tiene(client: bigquery.Client, archivo: str, sha256: str, estados: Iterable[str] = ("completado", "publicado")) -> bool:

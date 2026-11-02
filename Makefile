@@ -81,8 +81,11 @@ dbt-deps: ## Instala paquetes de dbt
 	cd dbt && ../$(DBT) deps
 
 dbt-build: ## dbt build completo (seeds, modelos, pruebas) por capas
-	cd dbt && ../$(DBT) build --select tag:staging && ../$(DBT) build --select tag:silver tag:quarantine \
-	  && ../$(DBT) build --select tag:gold && ../$(DBT) build --select tag:features
+	cd dbt && ../$(DBT) build --indirect-selection cautious --select tag:staging \
+	  && ../$(DBT) build --indirect-selection cautious --select tag:silver tag:quarantine \
+	  && ../$(DBT) build --indirect-selection cautious --select tag:gold \
+	  && ../$(DBT) build --indirect-selection cautious --select tag:features --exclude tag:churn \
+	  && ../$(DBT) build --indirect-selection cautious --select tag:churn
 
 dbt-test: ## Solo pruebas de dbt
 	cd dbt && ../$(DBT) test
