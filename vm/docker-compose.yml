@@ -77,6 +77,7 @@ x-airflow-common: &airflow-common
     # Proyecto 2: modelo guardado y predicciones entregadas (solo lectura); predecir lee ml/ y predicciones/.
     - ../ml:/opt/airflow/ml:ro
     - ../predicciones:/opt/airflow/predicciones:ro
+    - ../predecir.py:/opt/airflow/predecir.py:ro
     # Generador oficial y documentación (solo lectura): el DAG regenera/verifica datos en la VM.
     - ../docs:/opt/airflow/docs:ro
     # Datos generados en la VM (gitignored, nunca al repo).
