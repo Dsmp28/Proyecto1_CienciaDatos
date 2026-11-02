@@ -100,7 +100,7 @@ demo-idempotencia: ## Corre el flujo dos veces, compara conteos por capa y falla
 scan-secrets: ## Escanea el historial de git en busca de secretos
 	bash scripts/scan_secrets.sh
 
-.PHONY: help venv bootstrap-plan bootstrap-apply init plan apply destroy outputs vm-start vm-stop vm-status vm-ssh vm-sync vm-up vm-logs dbt-deps dbt-build dbt-test dbt-docs test demo-idempotencia scan-secrets landing-subir reset reset-dry-run desde-cero evidencia-p2
+.PHONY: help venv bootstrap-plan bootstrap-apply init plan apply destroy outputs vm-start vm-stop vm-status vm-ssh vm-sync vm-up vm-logs dbt-deps dbt-build dbt-test dbt-docs test demo-idempotencia scan-secrets landing-subir reset reset-dry-run desde-cero evidencia-p2 ml-entrenar ml-dataset
 
 # ---- Proyecto 2 ----
 VERSION ?= v2
@@ -121,3 +121,12 @@ desde-cero: ## Reset + carga completa v2 por Airflow + evidencia en docs/evidenc
 evidencia-p2: ## Genera conteos, tiempos y capas de un run_id: make evidencia-p2 RUN_ID=desde-cero-...
 	@test -n "$(RUN_ID)" || (echo "falta RUN_ID=<dag_run_id>" && exit 1)
 	$(PY) ingest/evidencia_p2.py --run-id "$(RUN_ID)"
+
+FASE ?= 1
+ML_ORIGEN ?= bigquery
+
+ml-entrenar: ## Entrena modelos del P2: make ml-entrenar FASE=1 [ML_ORIGEN=bigquery|csv] (csv exige RUTA_CSV=...)
+	$(PY) -m ml.entrenar --fase $(FASE) --origen $(ML_ORIGEN) $(if $(RUTA_CSV),--ruta-csv $(RUTA_CSV),)
+
+ml-dataset: ## Exporta features.churn_dataset a ml/artefactos/cache/churn_dataset.csv (sin la etiqueta de B)
+	$(PY) -m ml.datos exportar

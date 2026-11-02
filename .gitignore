@@ -61,3 +61,7 @@ __pycache__/
 tmp/
 scratch/
 infra/**/tfplan
+
+# Proyecto 2: cache del dataset y salidas de Airflow (los modelos, folds y evidencia sí se versionan)
+ml/artefactos/cache/
+airflow/salidas/
