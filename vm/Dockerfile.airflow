@@ -26,10 +26,11 @@ RUN apt-get update \
 # constraints oficiales de Airflow para que pip no mueva la versión de ningún
 # provider (p. ej. apache-airflow-providers-fab, que corrige CVE de autenticación).
 USER airflow
-# Las constraints de la rama constraints-3.3.2 se actualizan en el tiempo: en 2026-11 fijan pathspec==1.1.1, que
-# choca con dbt-core 1.12 (pathspec<1.1). Se descargan a un archivo y se excluye esa línea; todo lo demás se respeta.
+# La rama constraints-3.3.2 se actualiza en el tiempo y en 2026-11 fija versiones incompatibles con dbt-core 1.12
+# (pathspec, google-cloud-storage). Se conservan solo las líneas de apache-airflow y sus providers, que es lo que de
+# verdad no debe moverse; el resto lo resuelve pip con los pines de este archivo.
 RUN curl -sSfL "https://raw.githubusercontent.com/apache/airflow/constraints-${AIRFLOW_VERSION}/constraints-3.12.txt" \
-    | grep -v -E '^pathspec==' > /tmp/constraints-airflow.txt
+    | grep -E '^apache-airflow' > /tmp/constraints-airflow.txt
 RUN pip install --no-cache-dir \
     --constraint /tmp/constraints-airflow.txt \
     "apache-airflow==${AIRFLOW_VERSION}" \

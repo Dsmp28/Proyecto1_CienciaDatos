@@ -63,8 +63,8 @@ vm-sync: ## Copia el código del repo a la VM por IAP (sin datos, sin .venv, sin
 	COPYFILE_DISABLE=1 git ls-files -z | xargs -0 tar czf /tmp/red-metropolitana-src.tgz --no-xattrs
 	gcloud compute scp /tmp/red-metropolitana-src.tgz $(VM_NAME):/tmp/ --zone $(ZONE) --project $(PROJECT_ID) --tunnel-through-iap --quiet
 	gcloud compute ssh $(VM_NAME) --zone $(ZONE) --project $(PROJECT_ID) --tunnel-through-iap --quiet -- \
-	  'sudo mkdir -p $(VM_DIR)/airflow/logs $(VM_DIR)/datos_red && sudo tar xzf /tmp/red-metropolitana-src.tgz -C $(VM_DIR) --no-same-owner \
-	   && sudo find $(VM_DIR) -name '._*' -delete && sudo chown -R 50000:0 $(VM_DIR)/airflow/logs $(VM_DIR)/dbt $(VM_DIR)/datos_red && sudo chmod -R g+rwX $(VM_DIR)/airflow/logs $(VM_DIR)/dbt $(VM_DIR)/datos_red \
+	  'sudo mkdir -p $(VM_DIR)/airflow/logs $(VM_DIR)/airflow/salidas $(VM_DIR)/datos_red && sudo tar xzf /tmp/red-metropolitana-src.tgz -C $(VM_DIR) --no-same-owner \
+	   && sudo find $(VM_DIR) -name '._*' -delete && sudo chown -R 50000:0 $(VM_DIR)/airflow/logs $(VM_DIR)/airflow/salidas $(VM_DIR)/dbt $(VM_DIR)/datos_red && sudo chmod -R g+rwX $(VM_DIR)/airflow/logs $(VM_DIR)/airflow/salidas $(VM_DIR)/dbt $(VM_DIR)/datos_red \
 	   && echo sincronizado'
 	# Los directorios que escribe el contenedor (logs, dbt/target, datos_red) pertenecen al usuario airflow (uid 50000);
 	# el resto queda de root y es legible por todos. Nunca chown -R al usuario de SSH: rompe los logs de las tareas.
@@ -130,3 +130,33 @@ ml-entrenar: ## Entrena modelos del P2: make ml-entrenar FASE=1 [ML_ORIGEN=bigqu
 
 ml-dataset: ## Exporta features.churn_dataset a ml/artefactos/cache/churn_dataset.csv (sin la etiqueta de B)
 	$(PY) -m ml.datos exportar
+
+FECHA ?= 2026-08-30
+SCRATCH ?= tmp
+DBT_RECORTE = cd dbt && dbt run --target recorte --select tag:staging tag:silver tag:quarantine tag:churn
+
+ml-exportar-features: ## Exporta las features (con tarjetas, sin etiqueta) de FECHA a predicciones/features_corte_<FECHA>.csv
+	$(PY) -m ml.exportar --fecha-corte $(FECHA)
+
+prueba-recorte: ## Recorta los datos a < 2026-07-01, recalcula features en *_recorte y las compara con las completas
+	$(DBT_RECORTE) --vars '{"recorte_datos_hasta": "2026-06-30", "fechas_corte": ["2026-07-01"]}' && \
+	  dbt test --target recorte --select tag:churn --vars '{"recorte_datos_hasta": "2026-06-30", "fechas_corte": ["2026-07-01"]}'
+	$(PY) -m ml.prueba_recorte --corte A --fecha-corte 2026-07-01 --informe docs/evidence/p2/prueba_recorte.md
+
+ensayo-invariancia: ## Predice el corte B con datos recortados a < 2026-07-31 y completos; las predicciones deben coincidir
+	$(DBT_RECORTE) --vars '{"recorte_datos_hasta": "2026-07-30", "fechas_corte": ["2026-07-31"]}' && \
+	  dbt test --target recorte --select tag:churn --vars '{"recorte_datos_hasta": "2026-07-30", "fechas_corte": ["2026-07-31"]}'
+	mkdir -p $(SCRATCH)
+	$(PY) predecir.py --datos $(ORIGEN) --fecha-corte 2026-07-31 --sufijo-dataset _recorte --salida $(SCRATCH)/pred_B_recorte.csv --sin-verificar
+	$(PY) predecir.py --datos $(ORIGEN) --fecha-corte 2026-07-31 --salida $(SCRATCH)/pred_B_completo.csv
+	$(PY) -m ml.invariancia --referencia $(SCRATCH)/pred_B_completo.csv --nueva $(SCRATCH)/pred_B_recorte.csv --informe docs/evidence/p2/invariancia_B.md
+
+.PHONY: ml-exportar-features prueba-recorte ensayo-invariancia
+
+ml-test-b: ## Evaluación ÚNICA del modelo ACTUAL en el corte B (árbol limpio; aborta si ya se hizo: --forzar "justificación")
+	$(PY) -m ml.evaluar_b --modelo ACTUAL $(if $(FORZAR),--forzar "$(FORZAR)",)
+
+ml-segmentos: ## Segmenta las personas de A (KMeans, PCA, medianas, acciones): make ml-segmentos [ML_ORIGEN=bigquery|csv] [RUTA_CSV=...]
+	$(PY) -m ml.segmentos --origen $(ML_ORIGEN) $(if $(RUTA_CSV),--ruta-csv $(RUTA_CSV),)
+
+.PHONY: ml-test-b ml-segmentos

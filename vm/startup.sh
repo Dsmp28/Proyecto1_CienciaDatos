@@ -208,7 +208,7 @@ log ".env generado (${VM_DIR}/.env, 600 root)."
 
 # Directorios que los contenedores montan; deben existir antes de `up` para que
 # Docker no los cree como root con permisos inadecuados (airflow-init ajusta el dueño).
-for d in airflow/dags airflow/logs airflow/plugins dbt ingest scripts tests datos_red; do
+for d in airflow/dags airflow/logs airflow/salidas airflow/plugins dbt ingest scripts tests ml predicciones datos_red; do
   install -d "${REPO_DIR}/${d}"
 done
 

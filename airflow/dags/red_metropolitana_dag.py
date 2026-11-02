@@ -43,6 +43,7 @@ ENV_COMUN = {
     "ORIGEN_DATOS": "{{ params.origen_datos }}",  # landing | generador | local
     "VERSION_DATOS": "{{ params.version_datos }}",  # versión en gs://<lake>/landing/datos_red/<versión>/
     "VERIFICAR_HASHES": "{{ params.verificar_hashes }}",  # True/False: verificar sha256 contra expected_hashes
+    "FECHA_CORTE_PREDICCION": "{{ params.fecha_corte_prediccion }}",  # corte que puntúa el grupo `ml` (Proyecto 2)
 }
 
 DBT_VARS = '{"run_id": "{{ run_id }}", "run_ts": "' + TPL_RUN_TS + '"}'
@@ -114,7 +115,8 @@ Parámetros: `escala` (vacío = escala oficial 0.08 del generador; otro valor re
 sin verificar hashes) e `idle_segundos` (el consumidor Kafka termina tras ese tiempo sin mensajes).
 `origen_datos` (`landing` por defecto, `generador` o `local`) y `version_datos` (`v2`) eligen de dónde salen
 los 9 archivos crudos; `verificar_hashes` (por defecto `true`) activa la comparación de sha256. Todos llegan a
-los scripts solo por variables de entorno.
+los scripts solo por variables de entorno. `fecha_corte_prediccion` (`2026-08-30`, el corte C) es el corte que puntúa el
+grupo `ml`; también llega solo por entorno.
 
 | Etapa | Qué hace | Por qué es idempotente |
 |---|---|---|
@@ -126,7 +128,9 @@ los scripts solo por variables de entorno.
 | `publicar_clave_hmac` | Deriva los bloques HMAC desde Secret Manager a `ops_secrets.hmac_key` y verifica BigQuery == Python. | No hace nada si la versión del secreto ya está publicada. |
 | `transformacion_dbt.*` | `deps` → `seed --full-refresh` → staging → silver+quarantine → gold → features → churn (dataset del Proyecto 2: cortes A/B/C) → `docs generate`. | Materialización `table` (recreación completa) y `var('fecha_referencia')` fija: nunca `CURRENT_DATE`. |
 | `pruebas_python` | `pytest tests`: linaje de Gold, sin fecha del sistema, ingesta, este DAG. | Solo lee. |
-| `registrar_metricas` | `ops.run_metrics`: filas y bytes por tabla y por capa + `estado=1`. | Añade filas etiquetadas con el `run_id`. |
+| `ml.ml_predecir_corte_c` | Con el modelo `ml/modelos/ACTUAL` puntúa las features del corte `fecha_corte_prediccion` (verifica antes las huellas de los 9 archivos contra `ops.ingest_manifest`), escribe `/opt/airflow/salidas/predicciones_<run_id>.csv` y lo sube a `gs://<lake>/ml/predicciones/<run_id>/`. Sin modelo (código 99) la tarea queda omitida. | Solo lee BigQuery; el modelo no se reentrena y el CSV se sobrescribe con el mismo contenido. |
+| `ml.ml_invariancia` | Compara ese CSV con `predicciones/predicciones_corte_<fecha>.csv` del repo (unidades, `tarjetas`, `contactar` exactos; `puntaje` a 6 decimales) y deja el informe en `/opt/airflow/salidas/`. Falla si difieren; omitida (99) si falta alguno de los dos. | Solo lee. |
+| `registrar_metricas` | `ops.run_metrics`: filas y bytes por tabla y por capa + `estado=1` (corre aunque las tareas `ml` queden omitidas). | Añade filas etiquetadas con el `run_id`. |
 | `registrar_fallo` | Si cualquier tarea falla (`one_failed`) registra `estado=0` para la corrida. | Ídem. |
 
 Cada tarea registra además `duracion_s` (callbacks de éxito/fallo). Reintentos: 2 con espera
@@ -161,6 +165,8 @@ with DAG(
                                description="Versión de los datos en gs://<lake>/landing/datos_red/"),
         "verificar_hashes": Param(True, type="boolean",
                                   description="Verificar el sha256 de los archivos contra expected_hashes"),
+        "fecha_corte_prediccion": Param("2026-08-30", type="string", pattern=r"^\d{4}-\d{2}-\d{2}$",
+                                        description="Corte que puntúa el grupo ml (debe estar en fechas_corte de dbt)"),
     },
 ) as dag:
     generar_o_verificar_datos = _bash("generar_o_verificar_datos", f"{PYTHON} ingest/generar_o_verificar.py")
@@ -193,7 +199,17 @@ with DAG(
         dbt_deps >> dbt_seed >> dbt_staging >> dbt_silver >> dbt_gold >> dbt_features >> dbt_churn >> dbt_docs
 
     pruebas_python = _bash("pruebas_python", f"{PYTHON} -m pytest -q tests")
-    registrar_metricas = _bash("registrar_metricas", f"{PYTHON} -m ingest.run_metrics --estado 1")
+
+    with TaskGroup(group_id="ml", tooltip="Proyecto 2: predicción del corte C e invariancia") as ml:
+        # Código 99 = sin modelo / sin referencia: la tarea queda "omitida" y no bloquea el resto.
+        ml_predecir_corte_c = _bash("ml_predecir_corte_c", f"{PYTHON} scripts/ml_predecir_tarea.py",
+                                    skip_on_exit_code=99)
+        ml_invariancia = _bash("ml_invariancia", f"{PYTHON} scripts/ml_invariancia_tarea.py", skip_on_exit_code=99)
+        ml_predecir_corte_c >> ml_invariancia
+
+    # none_failed: corre si las tareas ml se omiten (99), pero no si alguna falla.
+    registrar_metricas = _bash("registrar_metricas", f"{PYTHON} -m ingest.run_metrics --estado 1",
+                               trigger_rule="none_failed")
     registrar_fallo = _bash(
         "registrar_fallo",
         f"{PYTHON} -m ingest.run_metrics --solo-estado 0",
@@ -204,7 +220,8 @@ with DAG(
     generar_o_verificar_datos >> [ingesta_batch, ingesta_cdc, kafka_productor, publicar_clave_hmac]
     [ingesta_batch, ingesta_cdc, kafka_consumidor] >> tablas_externas_bronze >> conciliar_bronze
     [conciliar_bronze, publicar_clave_hmac] >> dbt_deps
-    dbt_docs >> pruebas_python >> registrar_metricas
+    dbt_docs >> pruebas_python >> ml_predecir_corte_c
+    ml_invariancia >> registrar_metricas
 
     # registrar_fallo observa a todas las demás tareas: se ejecuta si cualquiera falla.
     for tarea in dag.tasks:

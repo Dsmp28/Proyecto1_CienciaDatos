@@ -41,6 +41,8 @@ TAREAS_ESPERADAS = {
     "transformacion_dbt.dbt_churn",
     "transformacion_dbt.dbt_docs",
     "pruebas_python",
+    "ml.ml_predecir_corte_c",
+    "ml.ml_invariancia",
     "registrar_metricas",
     "registrar_fallo",
 }
@@ -68,7 +70,8 @@ def test_dag_id_y_configuracion(dag):
     assert dag.max_active_runs == 1
     assert "red-metropolitana" in dag.tags
     assert dict(dag.params) == {"escala": "", "idle_segundos": 30, "origen_datos": "landing",
-                               "version_datos": "v2", "verificar_hashes": True}
+                               "version_datos": "v2", "verificar_hashes": True,
+                               "fecha_corte_prediccion": "2026-08-30"}
 
 
 def test_dag_sin_ciclos(dag):
@@ -88,7 +91,9 @@ def test_reintentos_y_callbacks(dag):
 
 def test_dependencias_clave(dag):
     assert "transformacion_dbt.dbt_silver" in dag.get_task("transformacion_dbt.dbt_gold").upstream_task_ids
-    assert "pruebas_python" in dag.get_task("registrar_metricas").upstream_task_ids
+    assert dag.get_task("ml.ml_predecir_corte_c").upstream_task_ids == {"pruebas_python"}
+    assert dag.get_task("ml.ml_invariancia").upstream_task_ids == {"ml.ml_predecir_corte_c"}
+    assert dag.get_task("registrar_metricas").upstream_task_ids == {"ml.ml_invariancia"}
     assert dag.get_task("tablas_externas_bronze").upstream_task_ids == {
         "ingesta_bronze.ingesta_batch", "ingesta_bronze.ingesta_cdc", "ingesta_bronze.ingesta_streaming.kafka_consumidor",
     }
@@ -96,7 +101,13 @@ def test_dependencias_clave(dag):
     fallo = dag.get_task("registrar_fallo")
     assert fallo.trigger_rule == "one_failed"  # TriggerRule es un str-Enum: compara por valor
     assert fallo.upstream_task_ids == TAREAS_ESPERADAS - {"registrar_fallo"}
-    assert dag.get_task("registrar_metricas").trigger_rule == "all_success"
+    assert dag.get_task("registrar_metricas").trigger_rule == "none_failed"
+
+
+def test_tareas_ml_se_omiten_con_codigo_99(dag):
+    for tid in ("ml.ml_predecir_corte_c", "ml.ml_invariancia"):
+        assert dag.get_task(tid).skip_on_exit_code == [99] or dag.get_task(tid).skip_on_exit_code == 99, tid
+        assert dag.get_task(tid).env["FECHA_CORTE_PREDICCION"] == "{{ params.fecha_corte_prediccion }}"
 
 
 def test_entorno_de_las_tareas_bash(dag):
@@ -119,7 +130,7 @@ def test_params_de_datos_llegan_por_entorno(dag):
     assert gen.env["VERSION_DATOS"] == "{{ params.version_datos }}"
     assert gen.env["VERIFICAR_HASHES"] == "{{ params.verificar_hashes }}"
     for tarea in dag.tasks:
-        assert "params." not in tarea.bash_command, tarea.task_id
+        assert "{{ params." not in tarea.bash_command, tarea.task_id
 
 
 # ---------------------------------------------------------------------------

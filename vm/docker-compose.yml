@@ -67,11 +67,16 @@ x-airflow-common: &airflow-common
   volumes:
     - ../airflow/dags:/opt/airflow/dags:ro   # solo lectura: una tarea comprometida no puede plantar DAGs
     - ../airflow/logs:/opt/airflow/logs
+    # Salidas de las tareas ml (predicciones del corte C e informe de invariancia); gitignored.
+    - ../airflow/salidas:/opt/airflow/salidas
     - ../airflow/plugins:/opt/airflow/plugins
     - ../dbt:/opt/airflow/dbt
     - ../ingest:/opt/airflow/ingest
     - ../scripts:/opt/airflow/scripts
     - ../tests:/opt/airflow/tests
+    # Proyecto 2: modelo guardado y predicciones entregadas (solo lectura); predecir lee ml/ y predicciones/.
+    - ../ml:/opt/airflow/ml:ro
+    - ../predicciones:/opt/airflow/predicciones:ro
     # Generador oficial y documentación (solo lectura): el DAG regenera/verifica datos en la VM.
     - ../docs:/opt/airflow/docs:ro
     # Datos generados en la VM (gitignored, nunca al repo).
@@ -171,9 +176,9 @@ services:
       - |
         set -euo pipefail
         echo "Creando directorios de trabajo y ajustando dueño a ${AIRFLOW_UID:-50000}:0"
-        mkdir -p /opt/airflow/logs /opt/airflow/dags /opt/airflow/plugins /opt/airflow/datos_red
+        mkdir -p /opt/airflow/logs /opt/airflow/dags /opt/airflow/plugins /opt/airflow/datos_red /opt/airflow/salidas
         mkdir -p /opt/airflow/dbt/target /opt/airflow/dbt/logs /opt/airflow/dbt/dbt_packages
-        chown -R "${AIRFLOW_UID:-50000}:0" /opt/airflow/logs /opt/airflow/datos_red /opt/airflow/dbt
+        chown -R "${AIRFLOW_UID:-50000}:0" /opt/airflow/logs /opt/airflow/salidas /opt/airflow/datos_red /opt/airflow/dbt
         echo "Airflow $$(airflow version)"
         # Una sola llamada al entrypoint oficial: espera la BD, migra (_AIRFLOW_DB_MIGRATE),
         # crea el admin (_AIRFLOW_WWW_USER_CREATE) y luego ejecuta el comando final,
