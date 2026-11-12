@@ -196,7 +196,8 @@ Costo de la unidad persona: Aerómetro 16 930 / 16 930 hashes invertidos; 0 tarj
 | RandomForest (AP de entrenamiento 0,8092) | 0,4527 ± 0,0227 | 0,859 | 0,078 |
 
 ## Decisión (umbral por costo, predicciones fuera de muestra de A)
-- G(u) = 15·TP − 5·(TP + FP); umbral teórico 1/3; **u* = 0,340**: 5 102 contactados (TP 2 514, FP 2 588), **Q12 200**
+- G(u) = 15·TP − 5·(TP + FP); umbral teórico 1/3; **u* = 0,340**: 5 102 contactados (TP 2 514, FP 2 588), precisión
+  0,4927, recall 0,4284, **Q12 200**
   (Q234,82 por 1 000 personas). Contactar a todos: −Q171 740; a nadie: Q0. Logística con su mejor umbral: Q11 465.
 
 ## Test (corte B, una sola vez: 2026-11-12T04:36:54Z, commit `29e8b14`)
@@ -205,6 +206,7 @@ Costo de la unidad persona: Aerómetro 16 930 / 16 930 hashes invertidos; 0 tarj
 | AP | 0,4214 | constante = tasa de B = 0,1022 |
 | ROC-AUC · Brier | 0,8591 · 0,0731 | — |
 | Matriz (TN · FP · FN · TP) | 42 319 · 3 005 · 2 839 · 2 320 | — |
+| Precisión · recall (umbral 0,340) | 0,4357 · 0,4497 | — |
 | Ganancia | Q8 175 (Q161,94 por 1 000) | contactar a todos −Q175 030; a nadie Q0 |
 
 ## Segmentos (corte A)

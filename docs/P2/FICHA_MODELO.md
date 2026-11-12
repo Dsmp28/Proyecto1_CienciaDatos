@@ -74,6 +74,19 @@ Importancia por permutación en validación (caída de AP): `dias_desde_ultimo` 
 `dias_activos_7d` 0,015; `n_abordajes_7d` 0,014; `ratio_ult14_prev14` 0,013. El modelo es, sobre todo, un modelo de
 recencia afinado con tendencia reciente, zona y perfil.
 
+## Fugas revisadas
+
+| Riesgo | Cómo se revisó | Resultado |
+|---|---|---|
+| Features que miran después del corte | Prueba de recorte: features de A con datos completos contra datos recortados al 30 de junio (`make prueba-recorte`) | 51 955 filas, 0 diferencias en 39 columnas |
+| Estado final del padrón (`perfil`, `estado`, `es_vigente`, `n_registros_operacion`) | Borrador ingenuo sometido a la misma prueba | 4 fugas detectadas (14 467 · 15 381 · 13 990 · 46 715 filas distintas) y retiradas; se usa el padrón a la fecha de corte |
+| Viajes de MetroRiel con salida posterior al corte | Filtro de salida anterior a t en las features de duración | Sin diferencias en el recorte |
+| Tarjetas de la persona conocidas después del corte | `tarjetas` solo incluye llaves observadas antes de t | 0 diferencias en `tarjetas` en el ensayo de invariancia |
+| Ventanas distintas entre cortes | Prueba automática: ninguna ventana supera 28 días | Pasa (`tests/test_ventanas_churn.py`) |
+| Preprocesamiento ajustado con filas de validación | Escalado y codificación dentro del `Pipeline`, ajustados solo con las filas de entrenamiento de cada pliegue | Por construcción |
+| Uso de B para ajustar | Guardia de evaluación única; ningún cambio posterior al modelo, al umbral ni a las features | Una evaluación registrada (commit `29e8b14`) |
+| Predicciones que cambian con más datos | Ensayo con B y 30 días menos de datos; CSV de la VM contra el oficial | 0 diferencias en 50 483 y 49 853 filas |
+
 ## Límites y riesgos
 
 - Datos simulados y un solo trimestre: sin evidencia de estabilidad estacional. El AP bajó de 0,468 a 0,421 entre A y B.

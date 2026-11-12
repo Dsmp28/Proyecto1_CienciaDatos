@@ -30,6 +30,7 @@ Fuente: `docs/evidence/p2/fase2_modelos.md` (incluye las 16 combinaciones de la 
 
 | Modelo | Brecha | Lectura |
 |---|---:|---|
+| Constante | 0,0000 | Sesgo máximo y varianza nula: no usa ninguna información de la persona. |
 | Una feature | −0,0005 | Sin varianza; todo su error es sesgo (una sola variable, sin interacción). |
 | Logística | 0,0048 | No sobreajusta. Con 33 features y 52 mil filas su límite es el sesgo de la forma lineal: por eso λ casi no movía la métrica en la fase 1. |
 | HistGradientBoosting | 0,1415 | Reduce sesgo (capta no linealidades e interacciones) a cambio de varianza. La grilla lo muestra: con 31 hojas y lr 0,1 el AP de entrenamiento sube a 0,88 y el de validación baja a 0,45; se eligió la configuración de árboles pequeños. |
@@ -211,8 +212,10 @@ mismas en `vm/Dockerfile.airflow`; semilla 2026 en `ml/config.py`; pliegues guar
 El ensayo con B no usa la etiqueta de B: solo compara predicciones. Por qué se cumple: toda feature mira registros con
 fecha < t y ventanas ≤ 28 días (prueba de recorte, fase 1); las tarjetas de cada persona son las observadas antes de t; la
 regla R03 envía a cuarentena los registros posteriores a `fecha_referencia`; los seudónimos dependen de una sal HMAC que
-no se rota; y el modelo se carga, no se reentrena. El guion para repetirla en vivo con el zip de la cátedra está en
-`docs/GUIA_DEFENSA.md` §P2.2.
+no se rota; y el modelo se carga, no se reentrena. El día de la calificación la prueba se corre con el
+comando único de 1.1 sobre el zip nuevo (`make desde-cero … VERSION_DATOS=invariancia VERIFICAR_HASHES=false`): los datos
+se **reemplazan**, no se acumulan, porque cargar el zip encima de v2 duplicaría los registros de las fuentes sin llave de
+negocio (ADR-018). El comando termina comparando el CSV de la VM con el oficial. Guion: `docs/GUIA_DEFENSA.md` §P2.2.
 
 ## Límites
 
