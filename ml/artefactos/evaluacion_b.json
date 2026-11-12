@@ -1,0 +1,30 @@
+{
+  "inicio_ts": "2026-11-12T04:36:37+00:00",
+  "commit": "29e8b14ac5202d7dd81a4fd4f812583a28e2fce0",
+  "modelo": "churn_persona_v1.0.0.joblib",
+  "sha256_modelo": "350b8fcadae48144571b18ade1a6b8e8cd25b10ab7b0a2e6ab704602bd68770b",
+  "estado": "completada",
+  "fin_ts": "2026-11-12T04:36:54+00:00",
+  "n": 50483,
+  "tasa_positiva": 0.10219281738406988,
+  "umbral": 0.34,
+  "metricas": {
+    "ap": 0.42140583099090984,
+    "roc_auc": 0.8591176802206641,
+    "brier": 0.07305607621795025
+  },
+  "confusion": {
+    "tn": 42319,
+    "fp": 3005,
+    "fn": 2839,
+    "tp": 2320
+  },
+  "precision": 0.4356807511737089,
+  "recall": 0.4496995541771661,
+  "contactados": 5325,
+  "ganancia_q": 8175.0,
+  "ganancia_q_por_1000": 161.93570112711208,
+  "ganancia_por_contactado_tp": 15.0,
+  "version_modelo": "1.0.0",
+  "forzado": null
+}

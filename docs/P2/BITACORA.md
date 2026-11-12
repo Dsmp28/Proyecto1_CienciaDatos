@@ -17,3 +17,23 @@ La evaluación única del corte B se registra aquí con un marcador HTML que esc
 | 2026-11-01 | `4752076` | 1.4: primera corrida de la fase 1 (594 s) sobre el dataset previo a la corrección de redondeo | `docs/evidence/p2/fase1_*.md` |
 | 2026-11-01 | `acf425d` | 1.3 cerrado: prueba de recorte 0 diferencias; borrador ingenuo con 4 fugas; medias con sumas exactas | `make prueba-recorte` |
 | 2026-11-01 | cierre `fase-1` | Reentrenamiento de la fase 1 sobre el dataset definitivo (mismos folds): métricas idénticas (AP 0,4459 ± 0,0160), 564 s | `make ml-entrenar FASE=1` → `docs/evidence/p2/fase1_*.md`, `ml/artefactos/fase1_resultados.json` |
+
+<!-- EVALUACION_B -->
+## Evaluación en el corte B
+
+- Fecha: 2026-11-12T04:36:54+00:00
+- Commit: `29e8b14ac5202d7dd81a4fd4f812583a28e2fce0`
+- Modelo: `churn_persona_v1.0.0.joblib` (sha256 `350b8fcadae48144571b18ade1a6b8e8cd25b10ab7b0a2e6ab704602bd68770b`)
+- Umbral (metadatos del modelo): 0.3400; unidades en B: 50483; tasa de churn en B: 0.1022
+
+AP 0.4214 | ROC-AUC 0.8591 | Brier 0.0731 | precisión 0.4357 | recall 0.4497
+
+Matriz de confusión (filas = real 0/1, columnas = predicho 0/1):
+
+| | pred 0 | pred 1 |
+|---|---|---|
+| real 0 | 42319 | 3005 |
+| real 1 | 2839 | 2320 |
+
+Ganancia en Q (15·TP − 5·contactados): 8175.00 en total; 161.94 por cada 1 000 personas.
+
