@@ -199,7 +199,7 @@ with DAG(
         dbt_staging = _bash("dbt_staging", _dbt("build --select tag:staging"))
         dbt_silver = _bash("dbt_silver", _dbt("build --select tag:silver tag:quarantine"))
         dbt_gold = _bash("dbt_gold", _dbt("build --select tag:gold"))
-        dbt_features = _bash("dbt_features", _dbt("build --select tag:features --exclude tag:churn"))
+        dbt_features = _bash("dbt_features", _dbt("build --select tag:features --exclude tag:churn tag:auditoria_recorte"))
         # Proyecto 2 (ADR-015): dataset de churn por persona y corte (silver_unidad_tarjetas_corte + features.churn_*).
         dbt_churn = _bash("dbt_churn", _dbt("build --select tag:churn"))
         dbt_docs = _bash("dbt_docs", _dbt("docs generate"))

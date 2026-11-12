@@ -1,0 +1,21 @@
+"""El borrador ingenuo de la prueba de recorte (tag auditoria_recorte) vive en la carpeta de features y hereda su tag,
+pero depende de los modelos de churn, que se construyen después: si entra al build de features, la carga desde un
+entorno vacío falla. Estas pruebas fijan que el flujo lo excluye."""
+from pathlib import Path
+
+REPO = Path(__file__).resolve().parents[1]
+SELECCION = "--select tag:features --exclude tag:churn tag:auditoria_recorte"
+
+
+def test_el_dag_excluye_la_auditoria_del_build_de_features():
+    assert SELECCION in (REPO / "airflow" / "dags" / "red_metropolitana_dag.py").read_text(encoding="utf-8")
+
+
+def test_el_makefile_excluye_la_auditoria_del_build_de_features():
+    assert SELECCION in (REPO / "Makefile").read_text(encoding="utf-8")
+
+
+def test_el_borrador_ingenuo_no_lleva_el_tag_churn():
+    proyecto = (REPO / "dbt" / "dbt_project.yml").read_text(encoding="utf-8")
+    bloque = proyecto[proyecto.index("auditoria:"):]
+    assert '+tags: ["auditoria_recorte"]' in bloque

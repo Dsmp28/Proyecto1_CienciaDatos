@@ -84,7 +84,7 @@ dbt-build: ## dbt build completo (seeds, modelos, pruebas) por capas
 	cd dbt && ../$(DBT) build --indirect-selection cautious --select tag:staging \
 	  && ../$(DBT) build --indirect-selection cautious --select tag:silver tag:quarantine \
 	  && ../$(DBT) build --indirect-selection cautious --select tag:gold \
-	  && ../$(DBT) build --indirect-selection cautious --select tag:features --exclude tag:churn \
+	  && ../$(DBT) build --indirect-selection cautious --select tag:features --exclude tag:churn tag:auditoria_recorte \
 	  && ../$(DBT) build --indirect-selection cautious --select tag:churn
 
 dbt-test: ## Solo pruebas de dbt
