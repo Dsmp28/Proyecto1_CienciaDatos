@@ -1,18 +1,18 @@
 # Entorno local y de CI (Python 3.12). Instalar con: make venv
 # Versiones fijas (revisión de seguridad 2026-09-23); Dependabot propone actualizaciones.
-dbt-core==1.12.5
-dbt-bigquery==1.12.1
-confluent-kafka==2.15.1
-google-cloud-storage==3.1.1
-google-cloud-bigquery==3.45.2
-google-cloud-secret-manager==2.30.0
+dbt-core==1.12.6
+dbt-bigquery==1.12.2
+confluent-kafka==2.16.1
+google-cloud-storage==3.17.1
+google-cloud-bigquery==3.47.0
+google-cloud-secret-manager==2.32.0
 pyyaml==6.0.3
-pytest==9.1.1
+pytest==9.2.0
 
 # Proyecto 2 · aprendizaje automático (versiones fijas = constraints de Airflow 3.3.2 para que laptop y VM coincidan; semilla en ml/config.py)
 scikit-learn==1.9.1
-numpy==2.5.3
-pandas==3.0.5
+numpy==2.5.4
+pandas==3.1.1
 matplotlib==3.11.2
 joblib==1.6.0
-db-dtypes==1.7.1
+db-dtypes==1.9.0
