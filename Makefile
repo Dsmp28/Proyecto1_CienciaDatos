@@ -118,7 +118,7 @@ reset: ## Borra Bronze, tablas de BigQuery y estado de la VM (exige CONFIRMAR=BO
 reset-dry-run: ## Lista lo que borraría el reset, sin borrar nada
 	$(PY) scripts/reset_p2.py --dry-run
 
-desde-cero: ## Reset + carga completa v2 por Airflow + evidencia en docs/evidence/p2 (exige CONFIRMAR=BORRAR-<proyecto>)
+desde-cero: ## Reset + carga completa por Airflow + evidencia + invariancia de C (exige CONFIRMAR=BORRAR-<proyecto>; VERSION_DATOS=v2 por defecto)
 	CONFIRMAR="$(CONFIRMAR)" bash scripts/desde_cero.sh
 
 evidencia-p2: ## Genera conteos, tiempos y capas de un run_id: make evidencia-p2 RUN_ID=desde-cero-...
