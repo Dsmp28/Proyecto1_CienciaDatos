@@ -568,27 +568,38 @@ B = 2026-07-31 (test, una sola vez), C = 2026-08-30 (predicciones entregadas). C
 
 ## P2.2 Prueba de invariancia en vivo
 
-Pasos exactos (el zip de la cátedra trae 30 días más de los nueve archivos):
+Pasos exactos (el zip de la cátedra trae los mismos nueve archivos con 30 días más). Los datos nuevos **reemplazan** a
+los cargados, no se agregan: se vacía y se carga de nuevo, igual que en la sección 1.1.
 
-1. Descomprimir el zip en una carpeta y publicar: `make landing-subir VERSION=invariancia ORIGEN=<carpeta del zip>`.
-2. En Airflow, disparar el DAG `red_metropolitana` con `origen_datos=landing`, `version_datos=invariancia` y
-   `verificar_hashes=false` (los hashes del zip no están en `ingest/expected_hashes.json`).
-3. Vigilar las tareas `ml.ml_predecir_corte_c` (genera el CSV nuevo) y `ml.ml_invariancia` (lo compara con
-   `predicciones/predicciones_corte_2026-08-30.csv`); ambas en `success` y la comparación sin diferencias.
-4. **Alternativa local** (sin Airflow, con credenciales ADC):
-   `python predecir.py --datos <carpeta> --fecha-corte 2026-08-30 --sin-verificar` y luego
-   `python -m ml.invariancia --referencia predicciones/predicciones_corte_2026-08-30.csv --nueva <csv>`.
+1. Descomprimir el zip en una carpeta y publicarlo: `make landing-subir VERSION=invariancia ORIGEN=<carpeta del zip>`.
+2. Un solo comando (VM encendida):
+   `make desde-cero CONFIRMAR=BORRAR-cienciadatos-509301 VERSION_DATOS=invariancia VERIFICAR_HASHES=false`.
+   Vacía Bronze y el warehouse (conserva la sal HMAC y el landing), corre el DAG completo con el zip nuevo y, al final,
+   descarga el CSV que generó la VM y lo compara con `predicciones/predicciones_corte_2026-08-30.csv`. Debe terminar con
+   `IDÉNTICAS`; la evidencia queda en `docs/evidence/p2/invariancia/` (`invariancia_C.md`, conteos y tiempos). Los hashes
+   no se verifican porque los del zip no están en `ingest/expected_hashes.json`; la tabla de conteos mostrará la
+   diferencia contra el LEEME de v2, que son los días añadidos.
+3. En Airflow se ve lo mismo: `ml.ml_predecir_corte_c` y `ml.ml_invariancia` en `success` (la segunda falla si el CSV cambia).
+4. `predecir.py` a mano, como pide el enunciado:
+   `python predecir.py --datos <carpeta del zip> --fecha-corte 2026-08-30 --salida tmp/pred_C_defensa.csv` y luego
+   `python -m ml.invariancia --referencia predicciones/predicciones_corte_2026-08-30.csv --nueva tmp/pred_C_defensa.csv`.
+
+**No cargar el zip encima de v2 sin vaciar.** Bronze guardaría los dos archivos de cada fuente y los registros de junio a
+agosto quedarían dos veces: Transurbano no trae identificador de transacción y Aerómetro y MetroRiel solo detectan el
+duplicado dentro del mismo archivo, así que los conteos de las features se duplicarían y las predicciones cambiarían
+(ADR-018). Es la misma advertencia del enunciado sobre mezclar versiones. Para volver a v2 después de la defensa:
+`make desde-cero CONFIRMAR=BORRAR-cienciadatos-509301`.
 
 **Por qué debe dar idéntico.** (a) Toda feature mira solo registros con fecha < t y ventanas ≤ 28 días; la prueba de
 recorte lo demostró con 0 diferencias. (b) Las tarjetas de cada persona son las observadas antes de t
 (`silver_unidad_tarjetas_corte`), así que tarjetas nuevas de septiembre no cambian la columna `tarjetas`. (c) La regla
-R03 (fecha del futuro respecto de `fecha_referencia = 2026-08-30`) manda los registros de septiembre a cuarentena: no
-entran a Silver ni a las features. (d) La sal HMAC está fija en `ops_secrets`, por lo que los `unidad_id` no cambian.
+R03 (fecha del futuro respecto de `fecha_referencia = 2026-08-30`) manda los abordajes de septiembre a cuarentena: no
+entran a Silver ni a las features; los eventos del CDC de septiembre sí entran y se excluyen con `vigente_desde < t`. (d) La sal HMAC está fija en `ops_secrets`, por lo que los `unidad_id` no cambian.
 (e) El modelo está versionado (`ml/modelos/churn_persona_v<versión>.joblib`, con sha256 y versiones de librerías) y los
 floats se redondean a 6 decimales; no hay reentrenamiento.
 
 **Plan B.** Antes de la defensa, `make ensayo-invariancia` repite la prueba con el corte B y datos truncados al 30 de
-julio. Si el DAG falla en vivo: correr la alternativa local; si falla BigQuery, `--origen csv` con
+julio. Si el DAG falla en vivo: corregir y relanzar con `scripts/desde_cero.sh --sin-reset` (el vaciado ya se hizo); si falla BigQuery, `--origen csv` con
 `predicciones/features_corte_<fecha>.csv`; si el CSV difiere solo en el último decimal entre laptop y VM, el oficial es
 el de la VM (ADR-017). Tener abierta la evidencia del ensayo y de la corrida previa del DAG.
 
