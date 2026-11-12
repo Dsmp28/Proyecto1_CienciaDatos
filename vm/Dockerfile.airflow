@@ -10,7 +10,7 @@
 #   - paquetes pip como usuario `airflow` con --no-cache-dir,
 #   - se repite "apache-airflow==<versión>" en el pip install para que pip
 #     no cambie la versión de Airflow al resolver dependencias de dbt.
-FROM apache/airflow:3.3.2-python3.12
+FROM apache/airflow:3.4.0-python3.12
 
 ARG AIRFLOW_VERSION=3.3.2
 
