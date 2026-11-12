@@ -4,7 +4,7 @@ Pipeline de datos de punta a punta para integrar cuatro operadores de transporte
 (Transmetro, Transurbano, MetroRiel, Aerómetro). Se califica con rúbrica de 100 pts y defensa oral.
 Enunciado: `docs/Proyecto 1 Red Metropolitana.pdf`. Plan aprobado: `docs/PLAN.md`.
 
-## Proyecto 2 (en curso desde 2026-11-01; defensa 2026-11-09): ¿quién deja de usar la red?
+## Proyecto 2 (fases 1 y 2 entregadas; modelo v1.0.0; B ya evaluado el 2026-11-11): ¿quién deja de usar la red?
 Enunciado: `docs/Proyecto 2 Red Metropolitana.pdf`; datos v2 en `docs/P2_datos_red/datos_red/` (525 MB, ignorados; el
 `LEEME.txt` trae los conteos esperados). Clasificación binaria por **persona** (`usuario_unificado_sk`) y fecha de corte:
 etiqueta 1 si no hay abordaje válido en [t, t+30). Cortes A = 2026-07-01 (entrena, CV 5 folds), B = 2026-07-31 (test,

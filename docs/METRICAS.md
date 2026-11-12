@@ -172,7 +172,7 @@ Medido en `gold.agg_cobertura_zona` y `gold.agg_transbordo_resumen` (detalle en 
 | Viajes del mes (junio 2026), dos caminos independientes | 1 093 235 = 1 093 235 |
 
 
-# Proyecto 2 · Métricas medidas (fase 1)
+# Proyecto 2 · Métricas medidas (fases 1 y 2)
 
 ## Problema (población, positivos y tasa por corte, con la cuenta)
 | Corte | Población | Positivos | Tasa positiva |
@@ -192,18 +192,38 @@ Costo de la unidad persona: Aerómetro 16 930 / 16 930 hashes invertidos; 0 tarj
 | Logística L2 (λ* 0,316) | 0,4459 ± 0,0160 | 0,850 | 0,078 |
 | Logística L1 (λ* 0,1) | 0,4459 ± 0,0160 | 0,850 | 0,078 |
 | Logística ElasticNet (λ* 0,1) | 0,4459 ± 0,0160 | 0,850 | 0,078 |
+| HistGradientBoosting v1.0.0 (AP de entrenamiento 0,6096) | 0,4680 ± 0,0205 | 0,861 | 0,077 |
+| RandomForest (AP de entrenamiento 0,8092) | 0,4527 ± 0,0227 | 0,859 | 0,078 |
+
+## Decisión (umbral por costo, predicciones fuera de muestra de A)
+- G(u) = 15·TP − 5·(TP + FP); umbral teórico 1/3; **u* = 0,340**: 5 102 contactados (TP 2 514, FP 2 588), **Q12 200**
+  (Q234,82 por 1 000 personas). Contactar a todos: −Q171 740; a nadie: Q0. Logística con su mejor umbral: Q11 465.
+
+## Test (corte B, una sola vez: 2026-11-12T04:36:54Z, commit `29e8b14`)
+| Métrica | Modelo v1.0.0 | Referencia |
+|---|---:|---|
+| AP | 0,4214 | constante = tasa de B = 0,1022 |
+| ROC-AUC · Brier | 0,8591 · 0,0731 | — |
+| Matriz (TN · FP · FN · TP) | 42 319 · 3 005 · 2 839 · 2 320 | — |
+| Ganancia | Q8 175 (Q161,94 por 1 000) | contactar a todos −Q175 030; a nadie Q0 |
+
+## Segmentos (corte A)
+- k = 2 por silueta (0,1766); PCA 2D 37,9 %. Ocasionales 36 454 (70,2 %), abandono 0,152; habituales 15 501 (29,8 %), 0,021.
 
 ## Fuga
 - Prueba de recorte (corte A, datos completos vs recortados al 2026-06-30): 51 955 filas comparadas, 0 diferencias en 39
   columnas (`docs/evidence/p2/prueba_recorte.md`); borrador ingenuo: 4 features con fuga detectadas (14 467 / 15 381 /
   13 990 / 46 715 filas distintas) + 2 diferencias numéricas corregidas.
-- Prueba de invariancia: pendiente (fase 2).
+- Prueba de invariancia: ensayo con el corte B (datos hasta el 30-jul contra completos), 50 483 filas, 0 diferencias en
+  `tarjetas`, `contactar` y `puntaje` (`docs/evidence/p2/invariancia_B.md`); BigQuery contra CSV en C: 0 diferencias.
 
-## Rendimiento (fase 1)
+## Rendimiento
 | Etapa | Segundos |
 |---|---:|
 | Carga desde cero (suma de tareas del DAG, corrida `desde-cero-20261101T212525`) | 877 |
 | Cálculo de features (`transformacion_dbt.dbt_churn`, 3 cortes) | 92 |
 | Prueba de recorte (seeds + run recorte + test + comparación) | ≈ 330 |
 | Entrenamiento fase 1 (carga 21 s + CV 534 s + ajuste 9 s) | 564 |
-| Predicción | pendiente (fase 2) |
+| Entrenamiento fase 2 (grilla HGB 128 s, RF 16 s, permutación 58 s, carga 17 s) | 229 |
+| Segmentación (KMeans k = 2..10, PCA) | 27 |
+| Predicción del corte C (49 853 personas; BigQuery / respaldo CSV) | 17 / 0,8 |

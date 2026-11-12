@@ -65,3 +65,15 @@ Proyección: ~57 USD/mes con la VM 24×7 o ~25 USD/mes apagándola fuera de uso 
   costo de la unidad medido (AM 16 930/16 930 invertidos; 7 038 de 15 808 falsos churn con la unidad tarjeta). Prueba de
   recorte con borrador ingenuo en ejecución. F3 (1.4) entrenamiento en ejecución.
 - Recursos: VM `vm-pipeline` ENCENDIDA (imagen reconstruida con scikit-learn y matplotlib). Apagar con `make vm-stop` al cerrar el día.
+
+## Proyecto 2 · fase 2 cerrada el 2026-11-11
+- 2.1: HistGradientBoosting (lr 0,05, 400 iteraciones, 15 hojas) AP de validación 0,4680 ± 0,0205 con los mismos pliegues
+  (logística 0,4459; una feature 0,4101; constante 0,1130); brecha entrenamiento-validación 0,14; RandomForest descartado.
+- 2.2: umbral 0,340 por ganancia sobre las predicciones fuera de muestra de A (Q12 200). Evaluación única en B
+  (commit `29e8b14`): AP 0,4214, ganancia Q8 175. La cabecera de la bitácora contenía el texto del marcador y la guardia
+  la leía como evaluación ya hecha: se corrigió la cabecera, no la guardia.
+- 2.3: k = 2 por silueta; ocasionales (70,2 %, abandono 0,152) y habituales (29,8 %, 0,021); dos acciones.
+- 2.4: modelo `churn_persona_v1.0.0.joblib`; CSV del corte C con 49 853 personas y 6 052 a contactar; ensayo de
+  invariancia en B con 0 diferencias. Informe, ficha, presentación y guía de entrega en `docs/P2/`.
+- No repetir: `make ml-test-b`; regenerar el CSV de C sin versión nueva; rotar la sal HMAC.
+
