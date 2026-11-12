@@ -196,13 +196,6 @@ artefactos se versionan; el DAG agrega las tareas nuevas (dataset de cortes + pr
 | F7 MLOps (2.4) | 6–7 nov | `predecir.py`, Dockerfile, tareas DAG, CSV de C (laptop vs VM), ficha, ensayo de invariancia (recorte B) y ensayo de acumulación en la VM | `ml_invariancia` success en la VM; ensayo 0 diferencias |
 | F8 docs y defensa | 8 nov | informe 2, presentación, checklist, guía | **tag `fase-2` + push**; ensayo en vivo |
 
-Reparto de subagentes (pedido del usuario): **Opus** (hilo principal): orquestación, ADRs, decisiones de fuga y
-población, revisión de compuertas, interpretación de coeficientes y segmentos, informes, ejecución supervisada de
-`ml-test-b`. **Sonnet**: modelos dbt churn y pruebas, macros y target recorte, `reset_p2.py`, `desde_cero.sh`,
-`evidencia_p2.py`, módulos `ml/*`, `predecir.py`, `invariancia.py`, cambios del DAG y `test_dag.py`, Dockerfile.
-**Haiku**: correr `make` y recolectar números, regenerar `expected_hashes`, exportar evidencia P1, capturas de
-Airflow/BigQuery, completar el checklist, revisar enlaces y ortografía.
-
 ## Verificación de punta a punta
 
 ```
