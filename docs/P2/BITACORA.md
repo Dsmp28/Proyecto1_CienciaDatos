@@ -1,7 +1,7 @@
 # Bitácora del Proyecto 2 (¿Quién deja de usar la red?)
 
 Registro cronológico de corridas y decisiones. Toda corrida reportada debe poder repetirse con el comando indicado.
-La evaluación única del corte B se registra aquí con el marcador `<!-- EVALUACION_B -->` (la escribe `ml/evaluar_b.py`).
+La evaluación única del corte B se registra aquí con un marcador HTML que escribe `ml/evaluar_b.py` (constante `MARCADOR`).
 
 | Fecha (local) | Commit | Qué se hizo | Comando / evidencia |
 |---|---|---|---|
