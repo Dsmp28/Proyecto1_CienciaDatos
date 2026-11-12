@@ -17,7 +17,8 @@ perfil/en_padron/zona_residencia/n_registros_operacion` (estado final) y `silver
 MetroRiel solo con salida < t. (2) La etiqueta de B se usa **una sola vez** (`make ml-test-b`, con guardia y bitácora).
 (3) `predicciones/predicciones_corte_2026-08-30.csv` no se regenera salvo nueva versión del modelo. (4) El vaciado
 (`make reset` / `make desde-cero`) es destructivo: solo con la frase `CONFIRMAR=BORRAR-<proyecto>` y OK del usuario.
-(5) Nunca rotar la sal HMAC antes de la defensa (los seudónimos deben ser invariantes).
+(5) Nunca rotar la sal HMAC antes de la defensa (los seudónimos deben ser invariantes). (6) El zip de la defensa reemplaza
+a v2 (`make desde-cero … VERSION_DATOS=invariancia VERIFICAR_HASHES=false`); nunca cargarlo encima sin vaciar (ADR-018).
 
 Comandos P2: `make landing-subir VERSION=v2` (datos a `gs://<lake>/landing/datos_red/v2/`), `make reset-dry-run`,
 `make desde-cero CONFIRMAR=…` (vaciar + cargar + evidencia en `docs/evidence/p2/`), `make prueba-recorte`,
