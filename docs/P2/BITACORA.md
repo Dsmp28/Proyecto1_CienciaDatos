@@ -37,3 +37,15 @@ Matriz de confusión (filas = real 0/1, columnas = predicho 0/1):
 
 Ganancia en Q (15·TP − 5·contactados): 8175.00 en total; 161.94 por cada 1 000 personas.
 
+## Cierre de la fase 2 (2026-11-11, hora local)
+
+| Commit | Qué se hizo | Comando / evidencia |
+|---|---|---|
+| `41f6eb1` | 2.3: segmentos del corte A (k = 2 por silueta 0,1766; PCA 2D 37,9 %) y acciones | `make ml-segmentos` → `docs/evidence/p2/segmentos*.md`, `acciones.md` |
+| `7c888dc` | 2.1 y umbral: HistGradientBoosting AP 0,4680 ± 0,0205 con los mismos pliegues; u* = 0,340 (Q12 200 fuera de muestra); modelo v1.0.0 | `make ml-entrenar FASE=2` (229 s) → `docs/evidence/p2/fase2_*.md`, `umbral.md`, `calibracion.md` |
+| `29e8b14` | La cabecera de esta bitácora contenía el texto del marcador y la guardia abortaba; se corrigió la cabecera (la guardia no se tocó ni se forzó) | — |
+| `29e8b14` | 2.2: evaluación única en B (entrada de arriba) | `make ml-test-b` → `docs/evidence/p2/test_b.md`, `ml/artefactos/evaluacion_b.json` |
+| `e8af355` | 2.4: CSV oficial del corte C (49 853 filas, 6 052 a contactar); respaldo CSV idéntico al de BigQuery; ensayo de invariancia en B (datos hasta el 30-jul contra completos): 0 diferencias en 50 483 filas | `python predecir.py --datos docs/P2_datos_red/datos_red --fecha-corte 2026-08-30`; `docs/evidence/p2/invariancia_B.md` |
+| `4a7bde5` | Informe de la fase 2, ficha del modelo, presentación, guía de entrega | `docs/P2/` |
+| cierre `fase-2` | Corrida completa del DAG en la VM (`desde-cero-20261111T223850`, sin vaciado): 20 tareas en success, 622 s de reloj; `ml.ml_predecir_corte_c` (19 s) y `ml.ml_invariancia` en success; el CSV generado en la VM es idéntico byte a byte al oficial | `scripts/desde_cero.sh --sin-reset`; `docs/evidence/p2/tiempos_fase2.md`, `invariancia_C_vm.md` |
+

@@ -206,7 +206,7 @@ mismas en `vm/Dockerfile.airflow`; semilla 2026 en `ml/config.py`; pliegues guar
 |---|---|---|
 | Ensayo con el corte B (`make ensayo-invariancia`) | Predicciones de B con todos los datos contra predicciones de B con el warehouse reconstruido solo con datos hasta el 30 de julio (30 días menos) | 50 483 filas, **0 diferencias** en `tarjetas`, `contactar` y `puntaje` (`docs/evidence/p2/invariancia_B.md`) |
 | Origen BigQuery contra origen CSV (corte C) | El mismo corte leído del warehouse y del respaldo CSV | 49 853 filas, 0 diferencias |
-| Tarea `ml.ml_invariancia` del DAG | El CSV que genera la VM en cada corrida contra el CSV oficial versionado | ver `docs/P2/BITACORA.md` (corrida de la fase 2) |
+| Tarea `ml.ml_invariancia` del DAG | El CSV que genera la VM en cada corrida contra el CSV oficial versionado (generado en la laptop) | Corrida `desde-cero-20261111T223850`: tarea en success; 49 853 filas, 0 diferencias, archivos idénticos byte a byte (`docs/evidence/p2/invariancia_C_vm.md`, `tiempos_fase2.md`) |
 
 El ensayo con B no usa la etiqueta de B: solo compara predicciones. Por qué se cumple: toda feature mira registros con
 fecha < t y ventanas ≤ 28 días (prueba de recorte, fase 1); las tarjetas de cada persona son las observadas antes de t; la
