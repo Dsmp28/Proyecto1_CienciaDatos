@@ -35,5 +35,5 @@ Problema · Validación (junto al baseline) · Decisión · Test · Fuga (recort
 ## Penalizaciones vigiladas
 - Fuga en features: `tests/test_ventanas_churn.py`, `assert_churn_*`, prueba de recorte, invariancia.
 - B más de una vez: guardia en `ml/datos.py` y `ml/evaluar_b.py`, marcador en la bitácora.
-- C cambia con más datos: `ml/invariancia.py` + tarea del DAG.
+- C cambia con más datos: `ml/invariancia.py` + tarea del DAG + comparación final de `scripts/desde_cero.sh`; el zip de la defensa reemplaza a v2, no se acumula (ADR-018).
 - Métrica sin baseline: toda tabla de `ml/entrenar.py` incluye las dos líneas base.

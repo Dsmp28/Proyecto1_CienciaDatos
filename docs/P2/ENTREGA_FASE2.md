@@ -56,6 +56,8 @@ La evaluación en B (`make ml-test-b`) ya se ejecutó y no debe repetirse (ver l
   modelo o umbral convertiría B en un conjunto de validación.
 - **Regenerar `predicciones/predicciones_corte_2026-08-30.csv` sin una nueva versión del modelo.** El archivo entregado
   es el oficial; solo se rehace si cambia `churn_persona_v<versión>.joblib`.
+- **Cargar el zip de la defensa encima de v2 sin vaciar.** Duplicaría registros y cambiaría las predicciones; la prueba
+  de invariancia se corre con `make desde-cero … VERSION_DATOS=invariancia VERIFICAR_HASHES=false` (ADR-018).
 - **Rotar la sal HMAC.** Cambiaría todos los `unidad_id` y rompería la invariancia que se demuestra en la defensa.
 - **`make desde-cero` o `make reset` sin confirmación.** Son destructivos: solo con la frase
   `CONFIRMAR=BORRAR-cienciadatos-509301` y el visto bueno del propietario. `make reset-dry-run` muestra qué se borraría.

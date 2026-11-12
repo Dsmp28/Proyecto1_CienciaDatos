@@ -171,6 +171,26 @@ make ensayo-invariancia             # 2.4: corte B con datos truncados al 30-jul
 oficial es `predicciones/predicciones_corte_2026-08-30.csv`; el DAG lo compara en cada corrida (`ml.ml_invariancia`).
 Entorno reproducible: `requirements.txt` (versiones fijas, iguales a `vm/Dockerfile.airflow`), semilla 2026 en `ml/config.py`.
 
+**En otra máquina, sin GCP** (Python 3.12 y la carpeta con los nueve archivos v2):
+
+```bash
+git clone https://github.com/Dsmp28/Proyecto1_CienciaDatos.git && cd Proyecto1_CienciaDatos && git checkout fase-2
+python3.12 -m venv .venv && .venv/bin/pip install -r requirements.txt
+.venv/bin/python predecir.py --datos <carpeta> --fecha-corte 2026-08-30 --origen csv --salida tmp/pred_C.csv
+cmp tmp/pred_C.csv predicciones/predicciones_corte_2026-08-30.csv      # sin salida = idénticas
+```
+
+**Prueba de invariancia** (el zip con 30 días más reemplaza a v2; no se carga encima, ADR-018):
+
+```bash
+make landing-subir VERSION=invariancia ORIGEN=<carpeta del zip>
+make desde-cero CONFIRMAR=BORRAR-cienciadatos-509301 VERSION_DATOS=invariancia VERIFICAR_HASHES=false   # termina en IDÉNTICAS
+```
+
+**Resultados** (detalle en `docs/P2/INFORME_FASE1.md`, `INFORME_FASE2.md` y `FICHA_MODELO.md`): Average Precision en validación
+cruzada de A: constante 0,113 · una feature 0,410 · logística 0,446 · HistGradientBoosting 0,468 (modelo v1.0.0). Umbral
+por costo 0,340. Evaluación única en B: AP 0,421 y ganancia Q8 175. Corte C: 49 853 personas, 6 052 a contactar.
+
 ## Estructura del repositorio
 
 ```

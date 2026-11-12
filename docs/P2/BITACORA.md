@@ -49,3 +49,14 @@ Ganancia en Q (15·TP − 5·contactados): 8175.00 en total; 161.94 por cada 1 0
 | `4a7bde5` | Informe de la fase 2, ficha del modelo, presentación, guía de entrega | `docs/P2/` |
 | cierre `fase-2` | Corrida completa del DAG en la VM (`desde-cero-20261111T223850`, sin vaciado): 20 tareas en success, 622 s de reloj; `ml.ml_predecir_corte_c` (19 s) y `ml.ml_invariancia` en success; el CSV generado en la VM es idéntico byte a byte al oficial | `scripts/desde_cero.sh --sin-reset`; `docs/evidence/p2/tiempos_fase2.md`, `invariancia_C_vm.md` |
 
+## Auditoría posterior a la entrega (2026-11-11)
+
+| Qué se revisó | Resultado | Evidencia |
+|---|---|---|
+| Reproducibilidad en un entorno nuevo: clon de la etiqueta `fase-2`, entorno virtual creado solo con `requirements.txt`, `predecir.py --origen csv` | CSV del corte C idéntico byte a byte al oficial; 115 pruebas pasan | README §Proyecto 2, "En otra máquina" |
+| Procedimiento de la prueba de invariancia en vivo | La guía indicaba disparar el DAG con el zip nuevo sin vaciar; eso habría duplicado los registros de las fuentes sin llave de negocio y cambiado las predicciones. Corregido: se corre con el comando único y vaciado (ADR-018); `scripts/desde_cero.sh` compara al final el CSV de la VM con el oficial | `docs/GUIA_DEFENSA.md` §P2.2; ADR-018 |
+| Ficha del modelo contra los campos del enunciado | Faltaba la sección de fugas revisadas; agregada | `docs/P2/FICHA_MODELO.md` |
+| Métricas obligatorias | Faltaban precisión y recall junto al umbral en `docs/METRICAS.md`; agregadas | `docs/METRICAS.md` §Proyecto 2 |
+| Evaluación de B | Una sola (commit `29e8b14`); no se repitió ni se ajustó nada después | entrada de arriba |
+| Predicciones del corte C | Sin cambios: mismo archivo, mismo modelo v1.0.0 | `git log -- predicciones/` |
+

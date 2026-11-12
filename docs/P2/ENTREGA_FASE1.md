@@ -56,7 +56,5 @@ bq query --use_legacy_sql=false --location=us-central1 < analysis/p2_costo_unida
 - `ml/artefactos/cache/`, `airflow/salidas/`, `tmp/`: salidas intermedias.
 - Secretos: nunca; la sal HMAC y las contraseñas están en Secret Manager.
 
-## Pendiente para la Fase 2 (entrega del 9 de noviembre, etiqueta `fase-2`)
-Ensemble y sesgo-varianza (2.1), umbral por costo y test único en B (2.2), KMeans y PCA (2.3), `predecir.py`, modelo
-versionado, ficha e invariancia (2.4), informe de la fase 2 y presentación. El código de todo ello ya está en el repo
-(`ml/`, `predecir.py`, tareas `ml` del DAG) pendiente de ejecutarse con los datos v2.
+## Fase 2
+Entregada con la etiqueta `fase-2`; ver `docs/P2/ENTREGA_FASE2.md`.
