@@ -539,3 +539,112 @@ Se pierde el crudo; por eso Bronze es inmutable, acumulativo y con retención de
 Cada integrante domina una parte y conoce el resto por esta guía: (1) ingesta y Bronze + orquestación (1.1, 1.5, demo);
 (2) Staging/CDC y Silver/cuarentena (1.2, 1.3); (3) Gold, gobernanza y seguridad (1.4, 3.1, 3.3); (4) tablero,
 recomendación y features (2.1, 2.2, 2.3). Todos: guion de 10 minutos, tabla "cifra → dónde sale" y penalizaciones.
+
+
+---
+
+# Proyecto 2 · Guía de defensa
+
+Pregunta del proyecto: **¿quién deja de usar la red?** Clasificación binaria por persona (`usuario_unificado_sk`) y fecha
+de corte; etiqueta 1 si no hay abordaje válido en [t, t+30). Cortes: A = 2026-07-01 (entrena, CV de 5 pliegues),
+B = 2026-07-31 (test, una sola vez), C = 2026-08-30 (predicciones entregadas). Cifras de la fase 1 salen de
+`docs/P2/INFORME_FASE1.md`; las de la fase 2 (ensemble, umbral elegido, test B, segmentos, invariancia) están en
+`docs/P2/INFORME_FASE2.md` y `docs/P2/FICHA_MODELO.md` y aquí no se repiten. Decisiones: ADR-012 a ADR-017.
+
+## P2.1 Guion de 15 minutos
+
+| Min | Qué se muestra | Archivo o comando | Frase clave |
+|---|---|---|---|
+| 0-1 | Problema, unidad, cortes A/B/C | `CLAUDE.md` (sección Proyecto 2) | "Una persona abandona si no aborda en ningún operador en 30 días; A entrena, B se abre una vez, C se entrega." |
+| 1-3 | Carga desde cero con un comando | `make desde-cero CONFIRMAR=…`; `docs/evidence/p2/conteos_bronze.md` | "Bronze coincide con el LEEME: 3 405 575 filas, diferencia 0." |
+| 3-4 | Tiempos por etapa | `docs/evidence/p2/tiempos.md` | "877,3 s de suma de tareas; unos 27 min de reloj de un entorno vacío a Features." |
+| 4-6 | Etiqueta, población y costo de la unidad persona | `analysis/p2_poblacion.sql`, `analysis/p2_costo_unidad.sql` | "Con la tarjeta, 7 038 de 15 808 supuestos abandonos seguían viajando con otra tarjeta." |
+| 6-8 | Auditoría de fuga y prueba de recorte | `make prueba-recorte`; `docs/evidence/p2/prueba_recorte_ingenuo.md` | "51 955 filas, 0 diferencias en 39 columnas; el borrador ingenuo sí fallaba." |
+| 8-9 | Líneas base y logística | `docs/evidence/p2/fase1_modelos.md` | "Una sola feature da AP 0,410; la logística 0,446; la constante 0,113." |
+| 9-11 | Ensemble, umbral por costo y test B | `docs/P2/INFORME_FASE2.md`, `docs/P2/FICHA_MODELO.md`, `docs/P2/BITACORA.md` | "B se abrió una vez y quedó registrado con commit y sha del modelo." |
+| 11-12 | Segmentos y acciones | `make ml-segmentos`; `docs/evidence/p2/segmentos.md`, `acciones.md` | "Cada segmento tiene una acción distinta; ver el informe de la fase 2." |
+| 12-14 | Invariancia en vivo | sección P2.2 de esta guía | "Con 30 días más de datos, el CSV del corte C sale idéntico." |
+| 14-15 | Penalizaciones y cierre | sección P2.5 de esta guía | "Cada regla dura tiene una prueba o un guardia en código." |
+
+## P2.2 Prueba de invariancia en vivo
+
+Pasos exactos (el zip de la cátedra trae 30 días más de los nueve archivos):
+
+1. Descomprimir el zip en una carpeta y publicar: `make landing-subir VERSION=invariancia ORIGEN=<carpeta del zip>`.
+2. En Airflow, disparar el DAG `red_metropolitana` con `origen_datos=landing`, `version_datos=invariancia` y
+   `verificar_hashes=false` (los hashes del zip no están en `ingest/expected_hashes.json`).
+3. Vigilar las tareas `ml.ml_predecir_corte_c` (genera el CSV nuevo) y `ml.ml_invariancia` (lo compara con
+   `predicciones/predicciones_corte_2026-08-30.csv`); ambas en `success` y la comparación sin diferencias.
+4. **Alternativa local** (sin Airflow, con credenciales ADC):
+   `python predecir.py --datos <carpeta> --fecha-corte 2026-08-30 --sin-verificar` y luego
+   `python -m ml.invariancia --referencia predicciones/predicciones_corte_2026-08-30.csv --nueva <csv>`.
+
+**Por qué debe dar idéntico.** (a) Toda feature mira solo registros con fecha < t y ventanas ≤ 28 días; la prueba de
+recorte lo demostró con 0 diferencias. (b) Las tarjetas de cada persona son las observadas antes de t
+(`silver_unidad_tarjetas_corte`), así que tarjetas nuevas de septiembre no cambian la columna `tarjetas`. (c) La regla
+R03 (fecha del futuro respecto de `fecha_referencia = 2026-08-30`) manda los registros de septiembre a cuarentena: no
+entran a Silver ni a las features. (d) La sal HMAC está fija en `ops_secrets`, por lo que los `unidad_id` no cambian.
+(e) El modelo está versionado (`ml/modelos/churn_persona_v<versión>.joblib`, con sha256 y versiones de librerías) y los
+floats se redondean a 6 decimales; no hay reentrenamiento.
+
+**Plan B.** Antes de la defensa, `make ensayo-invariancia` repite la prueba con el corte B y datos truncados al 30 de
+julio. Si el DAG falla en vivo: correr la alternativa local; si falla BigQuery, `--origen csv` con
+`predicciones/features_corte_<fecha>.csv`; si el CSV difiere solo en el último decimal entre laptop y VM, el oficial es
+el de la VM (ADR-017). Tener abierta la evidencia del ensayo y de la corrida previa del DAG.
+
+## P2.3 "Decisión ajena": cada quien explica una decisión de otro
+
+| # | Decisión | Qué se decidió | Alternativas y por qué se descartaron | Evidencia | Explica / repregunta al autor |
+|---|---|---|---|---|---|
+| 1 | Unidad = persona | `unidad_id = usuario_unificado_sk` (ADR-014); costo medido | Tarjeta: más simple, pero 7 038 de 15 808 supuestos abandonos son falsos. Persona sin Aerómetro: perdería al 24 % que lo usa | `analysis/p2_costo_unidad.sql`; informe fase 1 §1.2 | Dsmp28 / ChrisYuman |
+| 2 | DELETE literal y población | Población = ≥ 2 abordajes en 28 d y ningún DELETE con `vigente_desde < t`; A 51 955, B 50 483, C 49 853 | "Estado de baja vigente en t": en v2 ninguna baja se reactiva (0 reactivados), da la misma población; se reporta como contraste | `churn_poblacion.sql`; `analysis/p2_poblacion.sql`; ADR-015 | ChrisYuman / erickkrv |
+| 3 | Ventanas ≤ 28 días y recorte en staging | Ventanas 7/14/28 d; recorte aplicado en staging, no en features | Recortar solo en features: más barato, pero no prueba que deduplicación y SCD2 no filtren futuro. Ventanas de 90 d: A solo tiene 30 días de historia | `make prueba-recorte`; ADR-015 | erickkrv / jralbizures |
+| 4 | AP y folds fijos | Average Precision; `StratifiedKFold(5)`, semilla 2026, `ml/artefactos/folds_A.csv` | ROC-AUC: premia ordenar bien a los negativos fáciles. Folds por modelo: comparaciones no justas | `fase1_modelos.md`; ADR-016 | jralbizures / Smorareq1 |
+| 5 | Umbral por costo y B una sola vez | Umbral por ganancia en quetzales sobre OOF de A; `make ml-test-b` con guardia y bitácora | Umbral 0,5: ignora el escenario. Reentrenar con A ∪ B: el test dejaría de describir el modelo entregado | `docs/P2/BITACORA.md`; `FICHA_MODELO.md`; ADR-016 | Smorareq1 / Dsmp28 |
+| 6 | Landing y reset confirmado | `landing/datos_red/<versión>/` y `make desde-cero` solo con frase de confirmación (ADR-013) | Copiar por `scp` (lento, fuera del flujo); `destroy` + `apply` (10 min y cambia la URL); borrar `ops_secrets` (rotaría la sal) | `docs/evidence/p2/reset_*.md` | Opcional: quien termine primero |
+
+El reparto rota la autoría: quien aparece antes de "/" explica la decisión ante el catedrático; quien aparece después la
+tomó o la implementó y complementa si hay repregunta.
+
+## P2.4 Preguntas de fondo
+
+- **¿Dónde pudo haber fuga y cómo lo sabemos?** En el estado final del padrón. El borrador ingenuo fallaba la prueba de
+  recorte: `perfil_padron_final` 14 467 filas distintas, `estado_padron_final` 15 381, `es_vigente_padron` 13 990 y
+  `n_registros_operacion` 46 715; corregidas con eventos de `vigente_desde < t`. `duracion_media_mr_min` (4 filas) y
+  `hora_media` (2) no eran fuga: `AVG` en FLOAT suma en distinto orden y caía en el empate del 6.º decimal; se arregló con
+  suma entera exacta. MetroRiel exige salida < t (ningún viaje cruza la medianoche del 1 de julio, pero se exige igual).
+  Las tarjetas de cada persona son solo las observadas antes de t. Dos controles (`n_abordajes_28d`, `dias_desde_ultimo`)
+  dieron 0 diferencias.
+- **¿Por qué AP?** Positivos 11,3 % y decisión de contactar a un subconjunto: importa la precisión en la cola alta del
+  ranking. La constante tiene AP igual a la tasa positiva (0,113), así que toda mejora se lee de inmediato. ROC-AUC y Brier
+  van como secundarias; el Brier mide la calibración que necesita el umbral por costo.
+- **¿De dónde sale el umbral?** Contactar a una persona con probabilidad p cuesta 5 y rinde 0,25·60·p = 15p; la ganancia
+  esperada 15p − 5 es positiva si p > 1/3. El umbral empírico se elige maximizando la ganancia sobre las predicciones
+  out-of-fold de A y se contrasta con 1/3; una brecha grande indicaría descalibración. Valor elegido: ver la ficha del
+  modelo.
+- **¿Por qué B solo una vez y cómo se garantiza?** Si se mira B para ajustar, deja de ser test. `make ml-test-b` exige
+  árbol de git limpio, aborta si existe `ml/artefactos/evaluacion_b.json` o el marcador en `docs/P2/BITACORA.md`, escribe
+  el registro antes de calcular y anota commit y sha256 del modelo; además `ml/datos.py` bloquea la carga de B con
+  etiqueta en la fase 1.
+- **¿Por qué persona y cuánto cuesta?** La definición habla de "ningún operador" y el 73 % usaba más de un sistema. Costo:
+  16 930 hashes de Aerómetro, todos invertidos (100 %) con `max_usuario_base_id = 100000`; 0 tarjetas sin vínculo; en A,
+  27 967 personas con 1 tarjeta, 24 657 con 2, 8 349 con 3 y 936 con 4.
+- **¿Qué pasa si rota la sal HMAC?** Cambian todos los `unidad_id`: el CSV de la defensa ya no coincide con el de
+  referencia y la invariancia falla aunque el modelo sea el mismo. Por eso no se rota antes de la defensa y el reset no
+  toca `ops_secrets.hmac_key`.
+- **¿Por qué la logística casi no cambia con λ?** Con unas 40 columnas y 52 000 filas el modelo lineal no sufre de
+  varianza (brecha entrenamiento-validación de 0,005 en AP): su límite es el sesgo de la forma lineal. La curva es plana
+  hasta λ ≈ 10 y L2, L1 y ElasticNet empatan en 0,4459; solo cae con castigos muy fuertes (L1: 0,437 frente a 0,445 en
+  λ = 100). Eso motiva el ensemble de la fase 2.
+
+## P2.5 Penalizaciones del Proyecto 2 y cómo se evita cada una
+
+| Penalización | Cómo se evita | Verificación |
+|---|---|---|
+| Una feature mira después de t | Ventanas ≤ 28 d; prohibidas `estado_padron/perfil/en_padron/zona_residencia/n_registros_operacion` y `vigente_hasta/es_vigente`; MetroRiel con salida < t | `make prueba-recorte` (0 diferencias); `tests/test_ventanas_churn.py`; `assert_churn_ventana_max_28` |
+| Usar la etiqueta de B más de una vez | `make ml-test-b` con árbol limpio, registro previo y marcador en bitácora; carga bloqueada en `ml/datos.py` | `docs/P2/BITACORA.md`; `ml/artefactos/evaluacion_b.json` |
+| Regenerar las predicciones del corte C sin nueva versión del modelo | El CSV oficial se genera una vez; solo se regenera si cambia la versión (ADR-017) | `predicciones/predicciones_corte_2026-08-30.csv`; `ml.ml_invariancia` |
+| Vaciado destructivo sin permiso | Solo con la frase `CONFIRMAR=BORRAR-<proyecto>` y OK del usuario; `make reset-dry-run` solo lista | `scripts/reset_p2.py`; `docs/evidence/p2/reset_*.md` |
+| Rotar la sal HMAC antes de la defensa | La sal vive en `ops_secrets.hmac_key`; el reset no la toca; sin rotación hasta después de la defensa | ADR-013, ADR-014 |
+| Llaves nativas en Features o Gold | `churn_dataset` solo lleva seudónimos; features solo referencian Silver y seeds | `assert_churn_sin_llaves_nativas`; `tests/test_gold_lineage.py` |
+| Quitar la prueba que falla | Se corrige la causa raíz; la prueba no se modifica | Convención del repo (`CLAUDE.md`) |
