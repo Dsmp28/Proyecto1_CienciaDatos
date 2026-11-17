@@ -191,6 +191,26 @@ make desde-cero CONFIRMAR=BORRAR-cienciadatos-509301 VERSION_DATOS=invariancia V
 cruzada de A: constante 0,113 · una feature 0,410 · logística 0,446 · HistGradientBoosting 0,468 (modelo v1.0.0). Umbral
 por costo 0,340. Evaluación única en B: AP 0,421 y ganancia Q8 175. Corte C: 49 853 personas, 6 052 a contactar.
 
+## Defensa en video (entrega final)
+
+- **Etiqueta congelada:** `entrega-final` (contiene `predicciones/predicciones_corte_2026-08-30.csv`, `predecir.py`,
+  `ml/modelos/churn_persona_v1.0.0.joblib` y `docs/P2/FICHA_MODELO.md`).
+- **Video:** _enlace pendiente: se agrega aquí al subir el video (con acceso para el catedrático)._
+- **Resumen de la entrega:** `docs/P2/ENTREGA_FINAL.md`; guion: `docs/P2/GUION_VIDEO.md`; presentación y reporte:
+  `docs/P2/entrega_final/`; decisiones con responsable y número: `docs/P2/BITACORA.md`.
+- **Demostración de MLOps en una sola toma** (commit de la etiqueta, `predecir.py` con los datos de 90 días, comparación por
+  sha256 y `diff` con el CSV entregado, ficha del modelo):
+
+```bash
+git checkout entrega-final
+make demo-defensa                     # con BigQuery (ADC)
+make demo-defensa DEMO_ORIGEN=csv     # sin GCP
+```
+
+- **Invariancia con los datos de 120 días** (hasta el 28 de septiembre): flujo completo desde un entorno vacío, 20 tareas
+  en éxito y CSV del corte C idéntico al entregado (49 853 filas, 0 diferencias). Evidencia en
+  `docs/evidence/p2/defensa-120/`.
+
 ## Estructura del repositorio
 
 ```

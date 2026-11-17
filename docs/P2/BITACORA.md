@@ -60,3 +60,33 @@ Ganancia en Q (15·TP − 5·contactados): 8175.00 en total; 161.94 por cada 1 0
 | Evaluación de B | Una sola (commit `29e8b14`); no se repitió ni se ajustó nada después | entrada de arriba |
 | Predicciones del corte C | Sin cambios: mismo archivo, mismo modelo v1.0.0 | `git log -- predicciones/` |
 
+## Ensayo y prueba de invariancia con 30 días más de datos (2026-11-12 y 2026-11-16)
+
+| Fecha (local) | Commit | Qué se hizo | Resultado | Evidencia |
+|---|---|---|---|---|
+| 2026-11-11/12 | `d71bfbf` | Ensayo con un conjunto fabricado (v2 intacto más 30 días anexados). Primera corrida desde un entorno vacío: falló `dbt_features` porque el borrador ingenuo de la auditoría (`churn_features_ingenuo`) entraba al build de features y depende de tablas de churn que se construyen después | Defecto real del comando único (existía desde que se agregó ese modelo); corregido excluyendo `tag:auditoria_recorte` del flujo, con prueba | `tests/test_seleccion_dbt.py` |
+| 2026-11-12 | `8d3cfeb` | Segunda corrida: falló `pruebas_python` porque la prueba nueva buscaba archivos que no están montados en el contenedor | Corregida (se omite donde el archivo no existe) | `tests/test_seleccion_dbt.py` |
+| 2026-11-12 | `8d3cfeb` | Tercera corrida: las predicciones de C difirieron (548 puntajes, 59 decisiones, 7 personas de más). Causa: el conjunto fabricado elegía los registros de Aerómetro por fecha UTC y colocó 778 abordajes en la noche local del 29 de agosto, antes del corte | No era fuga del pipeline sino un defecto del conjunto de ensayo: eran datos nuevos anteriores a t. Corregido el fabricador (fecha local) | `scripts/fabricar_datos_ensayo.py` |
+| 2026-11-12 | `8d3cfeb` | Cuarta corrida, desde un entorno vacío, con el conjunto corregido (`desde-cero-20261112T005918`) | 20 tareas en éxito; CSV de C **idéntico**: 49 853 filas, 0 diferencias | `docs/evidence/p2/ensayo-invariancia/` |
+| 2026-11-16 | `8d3cfeb` + cambios de la entrega final | **Datos de 120 días de la cátedra** (`P2_datos_red_defensa_120dias.zip`, hasta el 28 de septiembre). Comprobado antes de cargar: los 9 archivos de 90 días son prefijo exacto de los de 120; 1 199 641 filas nuevas; 0 con fecha anterior al corte C. Flujo completo desde un entorno vacío (`desde-cero-20261116T214214`) | 20 tareas en éxito, 779 s; Bronze 4 605 216 filas; en cuarentena por R03: 257 420 + 572 416 + 137 807 + 208 530 = 1 176 173; último día válido en Silver 2026-08-29; CSV de C **idéntico** al entregado (49 853 filas, 0 diferencias); `predecir.py --datos <carpeta de 120 días>` da el mismo sha256 `2f0a5f76…4480b562` | `docs/evidence/p2/defensa-120/` |
+| 2026-11-16 | cierre `entrega-final` | Restauración de los datos de 90 días con el comando único, para la demostración del video (`desde-cero-20261116T220008`) | 20 tareas en éxito, 749 s; Bronze = LEEME (3 405 575, diferencia 0); CSV de C idéntico (49 853 filas, 0 diferencias). En v2, R03 de Transurbano = 1 645, lo que explica 572 416 = 570 771 + 1 645 con 120 días | `docs/evidence/p2/restauracion-v2/` |
+
+## Decisiones importantes: qué se decidió, quién la tomó y qué número la respalda
+
+"Quién" es la persona que registró la decisión en el repositorio (autor del commit que la introdujo). El número sale del
+repositorio y se puede volver a calcular con el comando o el archivo indicado.
+
+| # | Decisión | Quién | Commit | Número que la respalda | Dónde se comprueba |
+|---:|---|---|---|---|---|
+| 1 | La unidad es la **persona** (`usuario_unificado_sk`), no la tarjeta | Dsmp28 (David Monje) | `24c28a0`, `f08a88d` | Con la tarjeta, 7 038 de 15 808 supuestos abandonos (0,445) son de personas que siguieron viajando con otra tarjeta; 16 930 de 16 930 hashes de Aerómetro invertidos | `analysis/p2_costo_unidad.sql`; informe fase 1 §1.2 |
+| 2 | La llave de la persona se seudonimiza con HMAC-SHA256 y sal fija en Secret Manager | jralbizures | `69ed236` | 0 unidades faltantes o sobrantes y 0 diferencias en `tarjetas` al recalcular el corte C con 30 días más (49 853 filas) | `docs/evidence/p2/defensa-120/invariancia_C.md` |
+| 3 | El CDC del padrón se aplica en orden de `seq`; un DELETE anterior a t saca a la persona de la población | erickkrv | `0d3671d` (base), `24c28a0` (regla del P2) | Excluidas por DELETE previo: 1 259 en A, 1 082 en B, 935 en C; 0 bajas reactivadas | `analysis/p2_poblacion.sql`; informe fase 1 §1.2 |
+| 4 | Solo entran registros válidos: reglas R01 a R11 con cuarentena, y R03 corta en `fecha_referencia` = 2026-08-30 | erickkrv | `e6897cc`, `279bddd` | Con los datos de 120 días, los abordajes posteriores al 29 de agosto quedan en cuarentena por R03 y las predicciones de C no cambian (ver la corrida `defensa-120`) | `docs/evidence/p2/defensa-120/` |
+| 5 | Las features salen de Silver con la fecha de corte como parámetro y ventanas ≤ 28 días | jralbizures | `2f35f93` (tabla del P1), `9038692` (churn) | Prueba de recorte: 51 955 filas, 0 diferencias en 39 columnas; el borrador ingenuo falló en 4 features (14 467 · 15 381 · 13 990 · 46 715 filas) | `make prueba-recorte`; `docs/evidence/p2/prueba_recorte*.md` |
+| 6 | Bronze es idempotente por (archivo, sha256) y una versión nueva de los datos **reemplaza** a la anterior | ChrisYuman | `970d5be`, `879a0a2` | Bronze = LEEME: 3 405 575 filas esperadas y cargadas, diferencia 0 en los 9 archivos | `docs/evidence/p2/conteos_bronze.md`; ADR-018 |
+| 7 | Un solo comando vacía, carga, predice y compara; las tareas de churn y de predicción viven en el DAG | Smorareq1 | `9a7b29f`, `966dbe2` | 20 tareas en éxito; la carga desde un entorno vacío termina en `IDÉNTICAS` | `make desde-cero`; `docs/evidence/p2/defensa-120/` |
+| 8 | La métrica es Average Precision con los mismos 5 pliegues para todos los modelos | Dsmp28 (David Monje) | `8c0fb3d`, `13840bc` | Constante 0,1130 = tasa positiva de A; una feature 0,4101; logística 0,4459 ± 0,0160 | `docs/evidence/p2/fase1_modelos.md` |
+| 9 | Va a producción HistGradientBoosting v1.0.0 y no la logística ni RandomForest | Dsmp28 (David Monje) | `7c888dc` | AP de validación 0,4680 ± 0,0205 contra 0,4459; gana en los 5 pliegues; brecha entrenamiento-validación 0,14 | `docs/evidence/p2/fase2_modelos.md`, `fase2_decision.md` |
+| 10 | El umbral sale del costo (0,340; teórico 1/3) y B se evalúa una sola vez | Dsmp28 (David Monje) | `7c888dc`, evaluación en `29e8b14` | Q12 200 fuera de muestra en A; en B: AP 0,4214 y Q8 175 | `docs/evidence/p2/umbral.md`, `test_b.md` |
+| 11 | Dos segmentos (k = 2 por silueta) con acciones distintas | Dsmp28 (David Monje) | `41f6eb1` | Silueta 0,1766; abandono 0,152 en ocasionales (70,2 %) y 0,021 en habituales (29,8 %) | `docs/evidence/p2/segmentos*.md`, `acciones.md` |
+

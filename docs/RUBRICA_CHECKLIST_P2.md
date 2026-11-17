@@ -37,3 +37,16 @@ Problema · Validación (junto al baseline) · Decisión · Test · Fuga (recort
 - B más de una vez: guardia en `ml/datos.py` y `ml/evaluar_b.py`, marcador en la bitácora.
 - C cambia con más datos: `ml/invariancia.py` + tarea del DAG + comparación final de `scripts/desde_cero.sh`; el zip de la defensa reemplaza a v2, no se acumula (ADR-018).
 - Métrica sin baseline: toda tabla de `ml/entrenar.py` incluye las dos líneas base.
+
+## Defensa en video (30 pts; `P2 Defensa en video.pdf`)
+| Requisito | Dónde | Estado |
+|---|---|---|
+| Etiqueta `entrega-final` con el CSV de C, `predecir.py`, el modelo y la ficha | `git show entrega-final --stat` | hecho |
+| Bitácora con qué, quién y número por decisión | `docs/P2/BITACORA.md` §Decisiones importantes (11) | hecho |
+| Ensayo de la demostración y de la invariancia | `make demo-defensa`; `docs/evidence/p2/ensayo-invariancia/`, `defensa-120/` | hecho: 0 diferencias con los datos de 120 días |
+| Presentación (5 puntos, 8–10 min) | `docs/P2/entrega_final/Presentacion_Defensa_P2.pptx`; `docs/P2/GUION_VIDEO.md` | material listo; graba el equipo |
+| Demostración en una sola toma (git log -1, predecir.py, comparación, ficha) | `scripts/demo_defensa.sh` | probada; graba el equipo |
+| Explicación cruzada (cada integrante, ~90 s) | `docs/P2/GUION_VIDEO.md` §Parte 3 | material listo; graba el equipo |
+| Formato: 15–20 min, cámaras, ≥ 3 min por persona, números legibles | `docs/P2/GUION_VIDEO.md` §Reglas del formato | pendiente del equipo |
+| Enlace del video en el README con acceso para el catedrático | `README.md` §Defensa en video | pendiente: al subir el video |
+
