@@ -545,6 +545,12 @@ recomendación y features (2.1, 2.2, 2.3). Todos: guion de 10 minutos, tabla "ci
 
 # Proyecto 2 · Guía de defensa
 
+> **Actualización (16 de noviembre de 2026):** la defensa oral presencial se reemplazó por un video de 15 a 20 minutos
+> (`P2 Defensa en video.pdf`). El guion vigente, con tiempos y reparto por integrante, está en `docs/P2/GUION_VIDEO.md`;
+> la demostración en una sola toma es `make demo-defensa`; el resumen de la entrega, `docs/P2/ENTREGA_FINAL.md`. La prueba de
+> invariancia la corre el catedrático; aquí ya se comprobó con los datos de 120 días (`docs/evidence/p2/defensa-120/`).
+> Lo que sigue se conserva como material de estudio.
+
 Pregunta del proyecto: **¿quién deja de usar la red?** Clasificación binaria por persona (`usuario_unificado_sk`) y fecha
 de corte; etiqueta 1 si no hay abordaje válido en [t, t+30). Cortes: A = 2026-07-01 (entrena, CV de 5 pliegues),
 B = 2026-07-31 (test, una sola vez), C = 2026-08-30 (predicciones entregadas). Cifras de la fase 1 salen de
@@ -639,7 +645,7 @@ tomó o la implementó y complementa si hay repregunta.
   etiqueta en la fase 1.
 - **¿Por qué persona y cuánto cuesta?** La definición habla de "ningún operador" y el 73 % usaba más de un sistema. Costo:
   16 930 hashes de Aerómetro, todos invertidos (100 %) con `max_usuario_base_id = 100000`; 0 tarjetas sin vínculo; en A,
-  27 967 personas con 1 tarjeta, 24 657 con 2, 8 349 con 3 y 936 con 4.
+  20 267 personas de la población con 1 tarjeta, 22 639 con 2, 8 129 con 3 y 920 con 4 (suman 51 955).
 - **¿Qué pasa si rota la sal HMAC?** Cambian todos los `unidad_id`: el CSV de la defensa ya no coincide con el de
   referencia y la invariancia falla aunque el modelo sea el mismo. Por eso no se rota antes de la defensa y el reset no
   toca `ops_secrets.hmac_key`.

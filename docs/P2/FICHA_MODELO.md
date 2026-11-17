@@ -85,7 +85,7 @@ recencia afinado con tendencia reciente, zona y perfil.
 | Ventanas distintas entre cortes | Prueba automática: ninguna ventana supera 28 días | Pasa (`tests/test_ventanas_churn.py`) |
 | Preprocesamiento ajustado con filas de validación | Escalado y codificación dentro del `Pipeline`, ajustados solo con las filas de entrenamiento de cada pliegue | Por construcción |
 | Uso de B para ajustar | Guardia de evaluación única; ningún cambio posterior al modelo, al umbral ni a las features | Una evaluación registrada (commit `29e8b14`) |
-| Predicciones que cambian con más datos | Ensayo con B y 30 días menos de datos; CSV de la VM contra el oficial | 0 diferencias en 50 483 y 49 853 filas |
+| Predicciones que cambian con más datos | Flujo completo desde un entorno vacío con los datos de 120 días de la cátedra (hasta el 28 de septiembre); antes, ensayo con B y 30 días menos | 0 diferencias en 49 853 filas del corte C (mismo sha256 que el CSV entregado); 0 en 50 483 filas del ensayo con B |
 
 ## Límites y riesgos
 
@@ -106,7 +106,8 @@ python predecir.py --datos <carpeta> --fecha-corte 2026-08-30 --origen csv      
 - Entorno: `requirements.txt` (scikit-learn 1.9.1, numpy 2.5.3, pandas 3.0.5), iguales en `vm/Dockerfile.airflow`.
   La carga falla con otra versión de scikit-learn, y las columnas se toman en el orden guardado en los metadatos.
 - Invariancia: el DAG regenera las predicciones de C en cada corrida y las compara con el CSV oficial
-  (`ml.ml_invariancia`); ensayo con B: 0 diferencias en 50 483 filas (`docs/evidence/p2/invariancia_B.md`).
+  (`ml.ml_invariancia`). Con los datos de 120 días de la cátedra: 0 diferencias en 49 853 filas
+  (`docs/evidence/p2/defensa-120/invariancia_C.md`); ensayo con B: 0 diferencias en 50 483 filas.
 - Cambios: cualquier reentrenamiento es una versión nueva (`v1.1.0`, …) con su propio archivo, ficha y CSV; el CSV de la
   v1.0.0 no se regenera. Reentrenar si el AP medido sobre un corte ya vencido cae por debajo de la línea base de una
   feature, o si la tasa de contactados se aleja de la esperada (≈ 10–12 %).

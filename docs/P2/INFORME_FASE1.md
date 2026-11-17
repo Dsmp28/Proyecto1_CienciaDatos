@@ -94,7 +94,9 @@ del enunciado ("algún DELETE antes de t") y la alternativa ("estado de baja vig
   0 abordajes de Aerómetro sin persona.
 - Tarjetas sin vínculo: **0 de 0** por modo (todas las llaves TM, TU, MR y AM resolvieron a un identificador base; 711 684 +
   1 549 718 + 583 745 + 387 053 abordajes válidos con persona).
-- Tarjetas por persona en el corte A: 1 tarjeta 27 967 · 2 tarjetas 24 657 · 3 tarjetas 8 349 · 4 tarjetas 936.
+- Tarjetas por persona en el corte A, en la población (51 955): 1 tarjeta 20 267 · 2 tarjetas 22 639 · 3 tarjetas 8 129 ·
+  4 tarjetas 920. Entre todas las personas con alguna tarjeta observada antes del corte (61 909, incluye a quienes no
+  cumplen la regla de población): 27 967 · 24 657 · 8 349 · 936.
 - Contraste con la unidad tarjeta: de las 89 037 tarjetas activas en la ventana de A, 15 808 no tienen abordajes en el
   horizonte; **7 038 de esas 15 808 (0.445) pertenecen a personas que sí siguieron viajando con otra tarjeta**. Con la tarjeta
   como unidad, casi la mitad de los "abandonos" serían falsos; con la persona desaparecen.
