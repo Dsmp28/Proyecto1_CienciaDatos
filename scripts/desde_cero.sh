@@ -107,7 +107,8 @@ if [[ ! -f "$REFERENCIA" ]]; then
 elif ! gcloud storage cp "$OBJETO" "$NUEVA" --project "$PROJECT_ID" --quiet >/dev/null 2>&1; then
   fallo "la corrida no dejó $OBJETO (¿se omitió ml.ml_predecir_corte_c?)"
 else
-  "$PY" -m ml.invariancia --referencia "$REFERENCIA" --nueva "$NUEVA" --informe "$EVIDENCIA_DIR/invariancia_C.md" \
+  # rutas relativas al repositorio para que el informe no lleve rutas de la máquina
+  "$PY" -m ml.invariancia --referencia "${REFERENCIA#"$REPO"/}" --nueva "${NUEVA#"$REPO"/}" --informe "$EVIDENCIA_DIR/invariancia_C.md" \
     || fallo "las predicciones del corte ${FECHA_CORTE_PREDICCION} CAMBIARON (ver $EVIDENCIA_DIR/invariancia_C.md)"
   rm -f "$NUEVA"
 fi

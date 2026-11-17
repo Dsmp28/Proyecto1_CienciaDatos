@@ -168,3 +168,8 @@ ml-segmentos: ## Segmenta las personas de A (KMeans, PCA, medianas, acciones): m
 	$(PY) -m ml.segmentos --origen $(ML_ORIGEN) $(if $(RUTA_CSV),--ruta-csv $(RUTA_CSV),)
 
 .PHONY: ml-test-b ml-segmentos
+
+demo-defensa: ## Demostración del video: git log -1, predecir.py con los datos de 90 días y comparación con el CSV entregado (DEMO_ORIGEN=csv sin GCP)
+	bash scripts/demo_defensa.sh $(ORIGEN) $(if $(DEMO_ORIGEN),$(DEMO_ORIGEN),bigquery)
+
+.PHONY: demo-defensa
